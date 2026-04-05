@@ -1,15 +1,53 @@
-import { PageShell, PageHeader, FilterBar, SectionBlock, GridLayout } from '../../../components/layout'
+import { useState } from 'react'
+import { PageShell, PageHeader, SectionBlock, GridLayout } from '../../../components/layout'
 import { KpiCard, StatusCard, TableCard } from '../../../components/widgets'
 import { RoleIndicator } from '../../../components/common'
 import { expertWorkbenchMock } from './mock/expert-workbench'
 
+interface ServiceRecord {
+  taskId: string
+  enterprise: string
+  type: 'phone' | 'wechat' | 'onsite'
+  content: string
+}
+
 export function ExpertWorkbenchDashboard() {
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<any>(null)
+  const [serviceType, setServiceType] = useState<'phone' | 'wechat' | 'onsite'>('phone')
+  const [serviceContent, setServiceContent] = useState('')
+
   const handleExecuteTask = (taskId: string, action: string) => {
     console.log(`执行任务: ${taskId}, 动作: ${action}`)
     alert(`开始执行: ${action}`)
   }
 
-  const renderActionButton = (task: any) => {
+  const handleOpenServiceRecord = (task: any) => {
+    setSelectedTask(task)
+    setIsModalOpen(true)
+    setServiceType('phone')
+    setServiceContent('')
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedTask(null)
+    setServiceType('phone')
+    setServiceContent('')
+  }
+
+  const handleConfirmServiceRecord = () => {
+    const record: ServiceRecord = {
+      taskId: selectedTask?.enterprise || '',
+      enterprise: selectedTask?.enterprise || '',
+      type: serviceType,
+      content: serviceContent
+    }
+    console.log('记录服务:', record)
+    handleCloseModal()
+  }
+
+  const renderActionButtons = (task: any) => {
     const buttonStyle = {
       padding: '6px 12px',
       borderRadius: '6px',
@@ -32,9 +70,17 @@ export function ExpertWorkbenchDashboard() {
       color: '#475569'
     }
 
+    const serviceButton = {
+      ...buttonStyle,
+      background: '#10b981',
+      color: 'white'
+    }
+
+    let actionButton
+
     switch (task.taskType) {
       case '现场检查':
-        return (
+        actionButton = (
           <button 
             style={primaryButton}
             onClick={() => handleExecuteTask(task.enterprise, '开始现场检查')}
@@ -42,8 +88,9 @@ export function ExpertWorkbenchDashboard() {
             开始检查
           </button>
         )
+        break
       case 'AI看':
-        return (
+        actionButton = (
           <button 
             style={primaryButton}
             onClick={() => handleExecuteTask(task.enterprise, '启动AI分析')}
@@ -51,8 +98,9 @@ export function ExpertWorkbenchDashboard() {
             AI识别
           </button>
         )
+        break
       case '视频看':
-        return (
+        actionButton = (
           <button 
             style={primaryButton}
             onClick={() => handleExecuteTask(task.enterprise, '打开视频监控')}
@@ -60,8 +108,9 @@ export function ExpertWorkbenchDashboard() {
             查看视频
           </button>
         )
+        break
       case '整改复核':
-        return (
+        actionButton = (
           <button 
             style={primaryButton}
             onClick={() => handleExecuteTask(task.enterprise, '开始现场复核')}
@@ -69,8 +118,9 @@ export function ExpertWorkbenchDashboard() {
             开始复核
           </button>
         )
+        break
       case '日常检查':
-        return (
+        actionButton = (
           <button 
             style={secondaryButton}
             onClick={() => handleExecuteTask(task.enterprise, '开始日常检查')}
@@ -78,8 +128,9 @@ export function ExpertWorkbenchDashboard() {
             开始检查
           </button>
         )
+        break
       case '隐患复查':
-        return (
+        actionButton = (
           <button 
             style={secondaryButton}
             onClick={() => handleExecuteTask(task.enterprise, '开始隐患复查')}
@@ -87,8 +138,9 @@ export function ExpertWorkbenchDashboard() {
             开始复查
           </button>
         )
+        break
       default:
-        return (
+        actionButton = (
           <button 
             style={secondaryButton}
             onClick={() => handleExecuteTask(task.enterprise, '执行任务')}
@@ -96,7 +148,35 @@ export function ExpertWorkbenchDashboard() {
             执行
           </button>
         )
+        break
     }
+
+    return (
+      <div className="flex gap-2">
+        {actionButton}
+        <button
+          style={serviceButton}
+          onClick={() => handleOpenServiceRecord(task)}
+          aria-label="记录服务"
+        >
+          记录服务
+        </button>
+      </div>
+    )
+  }
+
+    return (
+      <div className="flex gap-2">
+        {actionButton}
+        <button 
+          style={serviceButton}
+          onClick={() => handleOpenServiceRecord(task)}
+          aria-label="记录服务"
+        >
+          记录服务
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -134,44 +214,112 @@ export function ExpertWorkbenchDashboard() {
           </GridLayout>
         </SectionBlock>
 
-        {/* 待办任务清单 - 带执行按钮 */}
         <SectionBlock 
           title="待办任务清单"
           description="按优先级排序，点击按钮开始执行"
         >
-          <div className="space-y-3">
-            {[...expertWorkbenchMock.pendingTasks]
-              .sort((a, b) => (a.riskScore || 0) - (b.riskScore || 0))
-              .map((task, index) => (
-              <div 
-                key={index}
-                className="card flex items-center justify-between"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="w-20 text-center">
-                    <span className={`text-sm font-semibold ${
-                      task.riskScore && task.riskScore <= 30 ? 'text-red-600' :
-                      task.riskScore && task.riskScore <= 60 ? 'text-orange-600' :
-                      'text-yellow-600'
-                    }`}>
-                      {task.priority}
-                    </span>
-                    <div className="text-xs text-text-tertiary mt-1">分值:{task.riskScore}</div>
+          <GridLayout columns={2}>
+            <SectionBlock title="主动巡查">
+              <div className="space-y-3">
+                {[...expertWorkbenchMock.pendingTasks]
+                  .filter(task => task.category !== 'Follow-up')
+                  .sort((a, b) => (a.riskScore || 0) - (b.riskScore || 0))
+                  .map((task, index) => (
+                  <div 
+                    key={index}
+                    className="card flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="w-20 text-center">
+                        <span className={`text-sm font-semibold ${
+                          task.riskScore && task.riskScore <= 30 ? 'text-red-600' :
+                          task.riskScore && task.riskScore <= 60 ? 'text-orange-600' :
+                          'text-yellow-600'
+                        }`}>
+                          {task.priority}
+                        </span>
+                        <div className="text-xs text-text-tertiary mt-1">分值:{task.riskScore}</div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-text">{task.enterprise}</div>
+                        <div className="text-sm text-text-secondary mt-1">{task.description}</div>
+                      </div>
+                      <div className="text-sm text-text-tertiary">
+                        截止: {task.deadline}
+                      </div>
+                    </div>
+            <SectionBlock title="闭环跟进">
+              <div className="space-y-3">
+                {[...expertWorkbenchMock.pendingTasks]
+                  .filter(task => task.category === 'Follow-up')
+                  .sort((a, b) => (a.riskScore || 0) - (b.riskScore || 0))
+                  .map((task, index) => (
+                    <div 
+                      key={index}
+                      className="card flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="w-20 text-center">
+                          <span className={`text-sm font-semibold ${
+                            task.riskScore && task.riskScore <= 30 ? 'text-red-600' :
+                            task.riskScore && task.riskScore <= 60 ? 'text-orange-600' :
+                            'text-yellow-600'
+                          }`}>
+                          {task.priority}
+                        </span>
+                        <div className="text-xs text-text-tertiary mt-1">分值:{task.riskScore}</div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-text">{task.enterprise}</div>
+                        <div className="text-sm text-text-secondary mt-1">{task.description}</div>
+                      </div>
+                      <div className="text-sm text-text-tertiary">
+                        截止: {task.deadline}
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      {renderActionButtons(task)}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-text">{task.enterprise}</div>
-                    <div className="text-sm text-text-secondary mt-1">{task.description}</div>
-                  </div>
-                  <div className="text-sm text-text-tertiary">
-                    截止: {task.deadline}
-                  </div>
-                </div>
-                <div className="ml-4">
-                  {renderActionButton(task)}
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </SectionBlock>
+              <div className="space-y-3">
+                {[...expertWorkbenchMock.pendingTasks]
+                  .filter(task => task.category === 'Follow-up')
+                  .sort((a, b) => (a.riskScore || 0) - (b.riskScore || 0))
+                  .map((task, index) => (
+                  <div 
+                    key={index}
+                    className="card flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="w-20 text-center">
+                        <span className={`text-sm font-semibold ${
+                          task.riskScore && task.riskScore <= 30 ? 'text-red-600' :
+                          task.riskScore && task.riskScore <= 60 ? 'text-orange-600' :
+                          'text-yellow-600'
+                        }`}>
+                          {task.priority}
+                        </span>
+                        <div className="text-xs text-text-tertiary mt-1">分值:{task.riskScore}</div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-text">{task.enterprise}</div>
+                        <div className="text-sm text-text-secondary mt-1">{task.description}</div>
+                      </div>
+                      <div className="text-sm text-text-tertiary">
+                        截止: {task.deadline}
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      {renderActionButtons(task)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </SectionBlock>
+          </GridLayout>
         </SectionBlock>
 
         {/* 任务状态统计 */}
@@ -196,6 +344,103 @@ export function ExpertWorkbenchDashboard() {
           />
         </SectionBlock>
       </PageShell>
+
+      {/* Service Recording Modal */}
+      {isModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          onClick={handleCloseModal}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="modal-title" className="text-lg font-semibold text-text mb-4">
+              记录服务 - {selectedTask?.enterprise}
+            </h2>
+            
+            {/* Service Type Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                服务类型
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="serviceType"
+                    value="phone"
+                    checked={serviceType === 'phone'}
+                    onChange={(e) => setServiceType(e.target.value as 'phone')}
+                    className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                  />
+                  <span className="ml-2 text-sm text-text">电话</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="serviceType"
+                    value="wechat"
+                    checked={serviceType === 'wechat'}
+                    onChange={(e) => setServiceType(e.target.value as 'wechat')}
+                    className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                  />
+                  <span className="ml-2 text-sm text-text">微信</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="serviceType"
+                    value="onsite"
+                    checked={serviceType === 'onsite'}
+                    onChange={(e) => setServiceType(e.target.value as 'onsite')}
+                    className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                  />
+                  <span className="ml-2 text-sm text-text">现场</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Service Content */}
+            <div className="mb-4">
+              <label htmlFor="service-content" className="block text-sm font-medium text-text-secondary mb-2">
+                服务内容
+              </label>
+              <textarea
+                id="service-content"
+                value={serviceContent}
+                onChange={(e) => setServiceContent(e.target.value)}
+                maxLength={200}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                placeholder="请输入服务内容..."
+              />
+              <div className="text-right text-xs text-text-tertiary mt-1">
+                {serviceContent.length}/200
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={handleCloseModal}
+                className="px-4 py-2 text-sm font-medium text-text-secondary bg-gray-100 rounded-md hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleConfirmServiceRecord}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                确认
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { BusinessSelector, RoleSwitcher } from './components/common'
 import { quickBIConfig, emergencyConfig } from './types/role'
 import { CEODashboard } from './business/quickbi/pages/CEODashboard'
@@ -9,13 +9,71 @@ import { StationChiefDashboard } from './business/emergency/pages/StationChiefDa
 import { EnterpriseBossDashboard } from './business/emergency/pages/EnterpriseBossDashboard'
 import { ExpertApp } from './business/expert/ExpertApp'
 
+const DEFAULT_PATH_BY_BUSINESS = {
+  quickbi: '/quickbi/ceo',
+  emergency: '/emergency/expert/queue',
+} as const
+
+const ROLE_PATHS: Record<string, Record<string, string>> = {
+  quickbi: {
+    ceo: '/quickbi/ceo',
+    product: '/quickbi/product',
+    sales: '/quickbi/sales',
+    operation: '/quickbi/operation',
+  },
+  emergency: {
+    'government-leader': '/emergency/government-leader',
+    'station-chief': '/emergency/station-chief',
+    'expert-workbench': '/emergency/expert/queue',
+    'enterprise-boss': '/emergency/enterprise-boss',
+    'monthly-report': '/emergency/monthly-report',
+  },
+}
+
+function getRouteSelection(pathname: string) {
+  if (pathname.startsWith('/quickbi/')) {
+    const role = pathname.split('/')[2] || 'ceo'
+    return { currentBusiness: 'quickbi', currentRole: role }
+  }
+
+  if (pathname.startsWith('/emergency/expert')) {
+    return { currentBusiness: 'emergency', currentRole: 'expert-workbench' }
+  }
+
+  if (pathname.startsWith('/emergency/')) {
+    const role = pathname.split('/')[2] || 'expert-workbench'
+    return { currentBusiness: 'emergency', currentRole: role }
+  }
+
+  return { currentBusiness: 'emergency', currentRole: 'expert-workbench' }
+}
+
+function PlaceholderPage({ title }: { title: string }) {
+  return (
+    <div style={{ padding: '96px 24px', textAlign: 'center', color: '#64748b' }}>
+      <div style={{ fontSize: '24px', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>{title}</div>
+      <div>该页面暂未实现，但已具备独立 URL 地址。</div>
+    </div>
+  )
+}
+
 function App() {
-  const [currentBusiness, setCurrentBusiness] = useState('emergency')
-  const [currentRole, setCurrentRole] = useState('expert-workbench')
-  
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { currentBusiness, currentRole } = getRouteSelection(location.pathname)
+
   const businesses = [quickBIConfig, emergencyConfig]
   const currentBusinessConfig = businesses.find(b => b.id === currentBusiness)
   const roles = currentBusinessConfig?.roles || []
+
+  const handleBusinessChange = (businessId: string) => {
+    navigate(DEFAULT_PATH_BY_BUSINESS[businessId as keyof typeof DEFAULT_PATH_BY_BUSINESS] ?? '/emergency/expert/queue')
+  }
+
+  const handleRoleChange = (roleId: string) => {
+    const target = ROLE_PATHS[currentBusiness]?.[roleId] ?? DEFAULT_PATH_BY_BUSINESS[currentBusiness as keyof typeof DEFAULT_PATH_BY_BUSINESS]
+    navigate(target)
+  }
 
   return (
     <div>
@@ -37,35 +95,33 @@ function App() {
         <BusinessSelector
           businesses={businesses}
           currentBusiness={currentBusiness}
-          onBusinessChange={setCurrentBusiness}
+          onBusinessChange={handleBusinessChange}
         />
         <RoleSwitcher
           roles={roles}
           currentRole={currentRole}
-          onRoleChange={setCurrentRole}
+          onRoleChange={handleRoleChange}
         />
       </div>
 
       {/* 内容区域 */}
       <div style={{ marginTop: '60px' }}>
-        {/* QuickBI 业务线 */}
-        {currentBusiness === 'quickbi' && (
-          <>
-            {currentRole === 'ceo' && <CEODashboard />}
-            {currentRole === 'product' && <ProductDashboard />}
-            {currentRole === 'sales' && <SalesDashboard />}
-          </>
-        )}
-        
-        {/* 应急业务线 */}
-        {currentBusiness === 'emergency' && (
-          <>
-            {currentRole === 'government-leader' && <GovernmentLeaderDashboard />}
-            {currentRole === 'station-chief' && <StationChiefDashboard />}
-            {currentRole === 'expert-workbench' && <ExpertApp />}
-            {currentRole === 'enterprise-boss' && <EnterpriseBossDashboard />}
-          </>
-        )}
+        <Routes>
+          <Route path="/" element={<Navigate to="/emergency/expert/queue" replace />} />
+
+          <Route path="/quickbi/ceo" element={<CEODashboard />} />
+          <Route path="/quickbi/product" element={<ProductDashboard />} />
+          <Route path="/quickbi/sales" element={<SalesDashboard />} />
+          <Route path="/quickbi/operation" element={<PlaceholderPage title="运营经理" />} />
+
+          <Route path="/emergency/government-leader" element={<GovernmentLeaderDashboard />} />
+          <Route path="/emergency/station-chief" element={<StationChiefDashboard />} />
+          <Route path="/emergency/expert/*" element={<ExpertApp />} />
+          <Route path="/emergency/enterprise-boss" element={<EnterpriseBossDashboard />} />
+          <Route path="/emergency/monthly-report" element={<PlaceholderPage title="月度报告" />} />
+
+          <Route path="*" element={<Navigate to="/emergency/expert/queue" replace />} />
+        </Routes>
       </div>
     </div>
   )

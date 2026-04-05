@@ -16,11 +16,16 @@ export type ServiceRecordType = 'wechat' | 'phone' | 'onsite' | 'other'
 
 export type ChangeType = 'added' | 'transferred_in' | 'transferred_out' | 'removed'
 
+export type EnterpriseCategory = 'production' | 'fire_key' | 'general'
+
+export type NudgeType = 'warning' | 'supervision' | 'effectiveness'
+
 // ==================== 企业相关 ====================
 
 export interface Enterprise {
   id: string
   name: string
+  category: EnterpriseCategory
   industry: string
   scale: string
   address: string
@@ -35,6 +40,7 @@ export interface Enterprise {
   openHazardCount: number
   boardScores: BoardScore[]
   aiInsight?: AiInsight
+  selfCheckRate?: number
 }
 
 export interface BoardScore {
@@ -132,7 +138,7 @@ export interface TodoItem {
   description: string
   enterpriseId?: string
   enterpriseName?: string
-  source: 'ai_push' | 'manual' | 'external_sync' | 'task'
+  source: 'ai_push' | 'manual' | 'external_sync' | 'task' | 'nudge'
   sourceLabel: string
   workGroup?: string
   status: TodoStatus
@@ -261,4 +267,74 @@ export interface TaskProgressOverview {
   specialTaskCount: number
   specialAvgProgress: number
   nearestDeadline: string
+}
+
+// ==================== 专家绩效评估 ====================
+
+export interface ExpertPerformance {
+  overallScore: number
+  dimensions: PerformanceDimension[]
+  rankInTeam?: number
+  totalTeamMembers?: number
+  updatedAt: string
+}
+
+export interface PerformanceDimension {
+  id: 'coverage' | 'systemization' | 'risk_accuracy' | 'plan_quality' | 'check_activity' | 'hazard_governance' | 'remote_effectiveness'
+  name: string
+  weight: number
+  score: number
+  targetScore: number
+  trend: 'up' | 'down' | 'stable'
+  formula: string
+}
+
+// ==================== 运营指引 ====================
+
+export interface OperationalNudge {
+  id: string
+  type: NudgeType
+  content: string
+  relatedMetric: string
+  relatedEnterpriseType?: EnterpriseCategory
+  relatedEnterpriseIds?: string[]
+  priority: number
+  createdAt: string
+  dismissed: boolean
+}
+
+// ==================== 风险评级博弈（白皮书 6.1）====================
+
+export type RiskDiscrepancyStatus = 'pending' | 'resolved'
+
+export type ExpertResolutionAction = 'keep_ai' | 'override' | 'new_level'
+
+export interface RiskDiscrepancy {
+  id: string
+  enterpriseId: string
+  enterpriseName: string
+  enterpriseCategory?: EnterpriseCategory
+  aiRiskLevel: RiskLevel
+  aiScore: number
+  expertRiskLevel?: RiskLevel
+  expertScore?: number
+  status: RiskDiscrepancyStatus
+  expertResolution?: {
+    action: ExpertResolutionAction
+    selectedLevel?: RiskLevel
+    reason: string
+    resolvedAt: string
+  }
+  detectedAt: string
+  aiReasoning?: string
+}
+
+// ==================== 运营指标 ====================
+
+export interface OperationalMetrics {
+  hazardRectificationOverdueRate: number
+  selfCheckOverdueRate: number
+  neverSelfCheckRate: number
+  weeklyTrendGrowth: number
+  monthlyTrendGrowth: number
 }

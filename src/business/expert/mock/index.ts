@@ -5,6 +5,8 @@ import type {
   InspectionTask, SubTask, WorkGroup, WorkGroupEnterprise,
   PoolChange, ChatEnterprise, ChatMessage,
   DashboardKpi, WorkProgress, TaskProgressOverview,
+  ExpertPerformance, PerformanceDimension, OperationalNudge, OperationalMetrics,
+  RiskDiscrepancy,
 } from '../types'
 
 // ==================== 通用企业数据 ====================
@@ -29,10 +31,10 @@ const makeBoardScores = (overrides?: Partial<Record<string, number>>): BoardScor
 
 const enterprises: Enterprise[] = [
   {
-    id: 'ent-001', name: '鑫达化工有限公司', industry: '化工制造', scale: '中型',
+    id: 'ent-001', name: '鑫达化工有限公司', category: 'production', industry: '化工制造', scale: '中型',
     address: '滨海新区化工路88号', contactName: '王建国', contactPhone: '138****1234',
     safetyOfficer: '李明辉', safetyOfficerPhone: '139****5678',
-    riskScore: 22, expertRating: 35,
+    riskScore: 22, expertRating: 35, selfCheckRate: 30,
     workGroups: ['消防专项组', '化工巡查组'],
     lastCheckDate: '2026-03-28T10:00:00Z', openHazardCount: 3,
     boardScores: makeBoardScores({ '事故管理': 15, '双重预防': 20, '应急管理': 30 }),
@@ -51,10 +53,10 @@ const enterprises: Enterprise[] = [
     }
   },
   {
-    id: 'ent-002', name: '恒盛食品加工厂', industry: '食品加工', scale: '小型',
+    id: 'ent-002', name: '恒盛食品加工厂', category: 'production', industry: '食品加工', scale: '小型',
     address: '经济开发区食品园12号', contactName: '张丽华', contactPhone: '137****9012',
     safetyOfficer: '陈志强', safetyOfficerPhone: '136****3456',
-    riskScore: 45, expertRating: undefined,
+    riskScore: 45, expertRating: undefined, selfCheckRate: 50,
     workGroups: ['消防专项组'],
     lastCheckDate: '2026-04-02T14:30:00Z', openHazardCount: 1,
     boardScores: makeBoardScores({ '教育培训': 30, '安全制度': 40 }),
@@ -72,10 +74,10 @@ const enterprises: Enterprise[] = [
     }
   },
   {
-    id: 'ent-003', name: '宏基机械制造有限公司', industry: '机械制造', scale: '大型',
+    id: 'ent-003', name: '宏基机械制造有限公司', category: 'production', industry: '机械制造', scale: '大型',
     address: '高新区工业大道200号', contactName: '刘伟', contactPhone: '135****7890',
     safetyOfficer: '赵刚', safetyOfficerPhone: '134****2345',
-    riskScore: 58, expertRating: 55,
+    riskScore: 58, expertRating: 55, selfCheckRate: 65,
     workGroups: ['园区日常组'],
     lastCheckDate: '2026-03-30T09:00:00Z', openHazardCount: 2,
     boardScores: makeBoardScores({ '双重预防': 35, '机构职责': 40, '安全投入': 50 }),
@@ -92,10 +94,10 @@ const enterprises: Enterprise[] = [
     }
   },
   {
-    id: 'ent-004', name: '天成建材有限公司', industry: '建材制造', scale: '中型',
+    id: 'ent-004', name: '天成建材有限公司', category: 'production', industry: '建材制造', scale: '中型',
     address: '城东工业园建材路56号', contactName: '孙建军', contactPhone: '133****6789',
     safetyOfficer: '周磊', safetyOfficerPhone: '132****0123',
-    riskScore: 18, expertRating: undefined,
+    riskScore: 18, expertRating: undefined, selfCheckRate: 0,
     workGroups: ['消防专项组', '化工巡查组'],
     lastCheckDate: '2026-03-20T11:00:00Z', openHazardCount: 4,
     boardScores: makeBoardScores({ '事故管理': 10, '双重预防': 15, '应急管理': 20, '安全投入': 25 }),
@@ -113,10 +115,10 @@ const enterprises: Enterprise[] = [
     }
   },
   {
-    id: 'ent-005', name: '瑞祥电子科技有限公司', industry: '电子制造', scale: '小型',
+    id: 'ent-005', name: '瑞祥电子科技有限公司', category: 'general', industry: '电子制造', scale: '小型',
     address: '科技园创新路168号', contactName: '马超', contactPhone: '131****4567',
     safetyOfficer: '黄丽', safetyOfficerPhone: '130****8901',
-    riskScore: 85, expertRating: 90,
+    riskScore: 85, expertRating: 90, selfCheckRate: 90,
     workGroups: ['园区日常组'],
     lastCheckDate: '2026-04-01T16:00:00Z', openHazardCount: 0,
     boardScores: makeBoardScores({ '事故管理': 90, '双重预防': 88, '应急管理': 85, '机构职责': 82, '教育培训': 80, '安全投入': 85, '安全制度': 86 }),
@@ -131,10 +133,10 @@ const enterprises: Enterprise[] = [
     }
   },
   {
-    id: 'ent-006', name: '华通物流有限公司', industry: '仓储物流', scale: '中型',
+    id: 'ent-006', name: '华通物流有限公司', category: 'fire_key', industry: '仓储物流', scale: '中型',
     address: '交通枢纽物流园区A区', contactName: '杨帆', contactPhone: '150****1122',
     safetyOfficer: '吴刚', safetyOfficerPhone: '151****3344',
-    riskScore: 35, expertRating: undefined,
+    riskScore: 35, expertRating: undefined, selfCheckRate: 40,
     workGroups: ['消防专项组'],
     lastCheckDate: '2026-03-25T13:00:00Z', openHazardCount: 2,
     boardScores: makeBoardScores({ '应急管理': 25, '事故管理': 30 }),
@@ -152,10 +154,10 @@ const enterprises: Enterprise[] = [
     }
   },
   {
-    id: 'ent-007', name: '永安制药有限公司', industry: '医药制造', scale: '大型',
+    id: 'ent-007', name: '永安制药有限公司', category: 'production', industry: '医药制造', scale: '大型',
     address: '生物医药产业园8号', contactName: '陈晓明', contactPhone: '158****5566',
     safetyOfficer: '林婷', safetyOfficerPhone: '159****7788',
-    riskScore: 40, expertRating: undefined,
+    riskScore: 40, expertRating: undefined, selfCheckRate: 55,
     workGroups: ['化工巡查组'],
     lastCheckDate: '2026-04-03T10:30:00Z', openHazardCount: 1,
     boardScores: makeBoardScores({ '双重预防': 28, '安全投入': 35 }),
@@ -172,19 +174,19 @@ const enterprises: Enterprise[] = [
     }
   },
   {
-    id: 'ent-008', name: '博远包装材料有限公司', industry: '包装印刷', scale: '小型',
+    id: 'ent-008', name: '博远包装材料有限公司', category: 'general', industry: '包装印刷', scale: '小型',
     address: '城西工业集中区22号', contactName: '何强', contactPhone: '155****9900',
     safetyOfficer: '徐静', safetyOfficerPhone: '156****1122',
-    riskScore: 72, expertRating: 70,
+    riskScore: 72, expertRating: 70, selfCheckRate: 70,
     workGroups: ['园区日常组'],
     lastCheckDate: '2026-03-29T15:00:00Z', openHazardCount: 0,
     boardScores: makeBoardScores({ '教育培训': 60, '安全制度': 65 }),
   },
   {
-    id: 'ent-009', name: '鑫源金属制品有限公司', industry: '金属加工', scale: '中型',
+    id: 'ent-009', name: '鑫源金属制品有限公司', category: 'production', industry: '金属加工', scale: '中型',
     address: '经济开发区冶金路99号', contactName: '郑伟', contactPhone: '139****3344',
     safetyOfficer: '钱浩', safetyOfficerPhone: '138****5566',
-    riskScore: 28, expertRating: undefined,
+    riskScore: 28, expertRating: undefined, selfCheckRate: 10,
     workGroups: ['消防专项组', '化工巡查组'],
     lastCheckDate: '2026-03-18T09:30:00Z', openHazardCount: 3,
     boardScores: makeBoardScores({ '事故管理': 18, '双重预防': 22, '应急管理': 30, '安全投入': 35 }),
@@ -201,10 +203,10 @@ const enterprises: Enterprise[] = [
     }
   },
   {
-    id: 'ent-010', name: '万通木业有限公司', industry: '木材加工', scale: '小型',
+    id: 'ent-010', name: '万通木业有限公司', category: 'general', industry: '木材加工', scale: '小型',
     address: '北郊工业路150号', contactName: '吕建华', contactPhone: '137****7788',
     safetyOfficer: '范伟', safetyOfficerPhone: '136****9900',
-    riskScore: 52, expertRating: undefined,
+    riskScore: 52, expertRating: undefined, selfCheckRate: 60,
     workGroups: ['消防专项组'],
     lastCheckDate: '2026-03-31T11:00:00Z', openHazardCount: 1,
     boardScores: makeBoardScores({ '事故管理': 32, '应急管理': 38 }),
@@ -776,6 +778,431 @@ const taskProgress: TaskProgressOverview = {
   nearestDeadline: '2026-04-06T18:00:00Z',
 }
 
+// ==================== 专家绩效评估 Mock 数据 ====================
+
+const performanceDimensions: PerformanceDimension[] = [
+  { id: 'coverage', name: '企业基础覆盖度', weight: 10, score: 78, targetScore: 85, trend: 'up', formula: '账号开通率 + 信息采集完整率' },
+  { id: 'systemization', name: '制度数字化完善度', weight: 10, score: 65, targetScore: 80, trend: 'stable', formula: '已完善制度企业比例' },
+  { id: 'risk_accuracy', name: '风险识别精准度', weight: 10, score: 82, targetScore: 75, trend: 'up', formula: '实际识别风险点数 / AI判定应识别数' },
+  { id: 'plan_quality', name: '检查计划科学度', weight: 10, score: 70, targetScore: 80, trend: 'up', formula: '计划覆盖重大/较大风险点企业比例' },
+  { id: 'check_activity', name: '自查执行活跃度', weight: 15, score: 55, targetScore: 70, trend: 'down', formula: '计划实际检查达标户数比例' },
+  { id: 'hazard_governance', name: '隐患闭环治理度', weight: 15, score: 68, targetScore: 75, trend: 'stable', formula: '隐患发现率 + 隐患整改完成率' },
+  { id: 'remote_effectiveness', name: '远程监管效能度', weight: 30, score: 72, targetScore: 80, trend: 'up', formula: '远程监管覆盖率 + 按户/项整改完成率' },
+]
+
+const expertPerformance: ExpertPerformance = {
+  overallScore: 69,
+  dimensions: performanceDimensions,
+  rankInTeam: 3,
+  totalTeamMembers: 8,
+  updatedAt: '2026-04-04T18:00:00Z',
+}
+
+// ==================== 运营指引 Mock 数据 ====================
+
+const operationalNudges: OperationalNudge[] = [
+  {
+    id: 'nudge-001',
+    type: 'warning',
+    content: '本周重点：生产企业隐患整改逾期率达 35%，建议优先跟进鑫达化工、天成建材、鑫源金属的整改进度',
+    relatedMetric: '隐患整改逾期率',
+    relatedEnterpriseType: 'production',
+    relatedEnterpriseIds: ['ent-001', 'ent-004', 'ent-009'],
+    priority: 1,
+    createdAt: '2026-04-04T08:00:00Z',
+    dismissed: false,
+  },
+  {
+    id: 'nudge-002',
+    type: 'supervision',
+    content: '新增 2 家从不自查企业：天成建材（自开通以来未提交自查）、鑫源金属（连续 3 个月未自查），建议进行首访',
+    relatedMetric: '从不自查率',
+    relatedEnterpriseIds: ['ent-004', 'ent-009'],
+    priority: 2,
+    createdAt: '2026-04-04T08:00:00Z',
+    dismissed: false,
+  },
+  {
+    id: 'nudge-003',
+    type: 'supervision',
+    content: '消防重点单位华通物流自查自纠逾期，应急预案修订已超期 2 周',
+    relatedMetric: '自查自纠逾期率',
+    relatedEnterpriseType: 'fire_key',
+    relatedEnterpriseIds: ['ent-006'],
+    priority: 3,
+    createdAt: '2026-04-03T08:00:00Z',
+    dismissed: false,
+  },
+]
+
+// ==================== 运营指标 Mock 数据 ====================
+
+const operationalMetrics: OperationalMetrics = {
+  hazardRectificationOverdueRate: 35,
+  selfCheckOverdueRate: 22,
+  neverSelfCheckRate: 20,
+  weeklyTrendGrowth: 8,
+  monthlyTrendGrowth: 15,
+}
+
+// ==================== 派单队列 Mock 数据（派单执行型） ====================
+
+export type TaskType = 'risk_check' | 'hazard_review' | 'consultation_reply' | 'routine_check' | 'hazard_issue' | 'todo_follow'
+export type TaskPriority = 'urgent' | 'today' | 'later'
+export type TaskStatus = 'pending' | 'completed'
+
+export interface QueueTask {
+  id: string
+  type: TaskType
+  priority: TaskPriority
+  status: TaskStatus
+  enterpriseId: string
+  enterpriseName: string
+  enterpriseAddress?: string
+  enterpriseCategory?: string
+  // 共用字段
+  title: string          // 任务标题（大白话）
+  description: string    // 任务描述
+  actionLabel: string    // 动作按钮文字
+  createdAt: string
+  // 风险核对特有
+  aiScore?: number
+  aiLevel?: string
+  expertScore?: number
+  aiReasoning?: string
+  daysPending?: number
+  // 隐患下发特有（专家亲手创建隐患单）
+  hazardDescription?: string
+  hazardLevel?: 'general' | 'major'
+  hazardLocation?: string
+  rectifyDeadline?: string
+  // 隐患复核特有
+  hazardId?: string
+  hazardDescription2?: string
+  rectifyDeadline2?: string
+  overdueDays?: number
+  rectificationNote?: string
+  rectificationPhotos?: string[]
+  // 咨询回复特有
+  officerName?: string
+  messageTime?: string
+  messageContent?: string
+  // 定期巡查特有（政策驱动）
+  checkType?: string     // '季度巡查' | '半年巡查' | '专项检查'
+  checkScope?: string[]  // 检查的板块
+  lastCheckDate?: string
+  // 待办跟进特有
+  todoDescription?: string
+  todoDeadline?: string
+  todoSource?: string    // 'AI推送' | '手动创建' | '三方同步'
+  todoOverdueDays?: number
+}
+
+const queueTasks: QueueTask[] = [
+  // 🔴 紧急 - 风险核对
+  {
+    id: 'qt-001',
+    type: 'risk_check',
+    priority: 'urgent',
+    status: 'pending',
+    enterpriseId: 'ent-001',
+    enterpriseName: '鑫达化工有限公司',
+    enterpriseAddress: '滨海新区化工路88号',
+    aiScore: 22,
+    aiLevel: '重大风险',
+    aiReasoning: '近30天监控异常3次 | 消防设施检查得分45分（低于均值30%） | 隐患整改率60%（低于目标85%）',
+    daysPending: 3,
+    title: '风险评级待核对',
+    description: 'AI判定：重大风险（22分） | 专家未标注',
+    actionLabel: '去标注',
+    createdAt: '2026-04-01T08:00:00Z',
+  },
+  // 🔴 紧急 - 隐患逾期
+  {
+    id: 'qt-002',
+    type: 'hazard_review',
+    priority: 'urgent',
+    status: 'pending',
+    enterpriseId: 'ent-004',
+    enterpriseName: '天成建材有限公司',
+    enterpriseAddress: '城东工业园建材路56号',
+    hazardId: 'hz-007',
+    hazardDescription: '消防通道堵塞 / 灭火器过期',
+    hazardLevel: '重大隐患',
+    rectifyDeadline: '2026-04-05T18:00:00Z',
+    overdueDays: 5,
+    title: '隐患逾期未整改',
+    description: '整改项：消防通道堵塞 / 灭火器过期（已逾期5天）',
+    actionLabel: '联系安管员',
+    createdAt: '2026-03-28T10:00:00Z',
+  },
+  // 🟡 今日 - 企业整改待复核
+  {
+    id: 'qt-003',
+    type: 'hazard_review',
+    priority: 'today',
+    status: 'pending',
+    enterpriseId: 'ent-002',
+    enterpriseName: '恒盛食品加工厂',
+    enterpriseAddress: '经济开发区食品园12号',
+    hazardId: 'hz-004',
+    hazardDescription: '灭火器过期 → 企业已换新',
+    hazardLevel: '一般隐患',
+    rectificationNote: '已更换新的灭火器，照片已上传',
+    rectificationPhotos: [],
+    title: '企业整改待复核',
+    description: '隐患：灭火器过期 → 企业已换新，等待确认闭环',
+    actionLabel: '查看并确认闭环',
+    createdAt: '2026-04-02T15:00:00Z',
+  },
+  // 🟡 今日 - 待回复咨询
+  {
+    id: 'qt-004',
+    type: 'consultation_reply',
+    priority: 'today',
+    status: 'pending',
+    enterpriseId: 'ent-006',
+    enterpriseName: '华通物流有限公司',
+    officerName: '吴刚',
+    messageTime: '2026-04-04T09:30:00Z',
+    messageContent: '专家你好，我们厂的2号仓库消防栓水压不足，请问需要立即更换还是可以在下次检修时处理？',
+    title: '待回复咨询',
+    description: '安管员吴刚咨询消防栓水压不足问题，24h内未回复',
+    actionLabel: '查看并回复',
+    createdAt: '2026-04-04T09:30:00Z',
+  },
+  // 🟡 今日 - 待回复咨询
+  {
+    id: 'qt-005',
+    type: 'consultation_reply',
+    priority: 'today',
+    status: 'pending',
+    enterpriseId: 'ent-009',
+    enterpriseName: '鑫源金属制品有限公司',
+    officerName: '钱浩',
+    messageTime: '2026-04-04T08:45:00Z',
+    messageContent: '喷漆车间通风设备需要更换配件，已联系厂家，预计3天后到货。',
+    title: '待回复咨询',
+    description: '安管员钱浩跟进喷漆车间通风维修进度',
+    actionLabel: '查看并回复',
+    createdAt: '2026-04-04T08:45:00Z',
+  },
+  // ⚪ 稍后 - 例行检查
+  {
+    id: 'qt-006',
+    type: 'routine_check',
+    priority: 'later',
+    status: 'pending',
+    enterpriseId: 'ent-003',
+    enterpriseName: '宏基机械制造有限公司',
+    enterpriseAddress: '高新区工业大道200号',
+    checkItems: ['安全制度建立情况', '消防设施状态', '隐患自查情况'],
+    lastCheckDate: '2026-03-15T10:00:00Z',
+    title: '例行检查',
+    description: '检查项目：安全制度 / 消防设施 / 隐患自查（计划本周完成）',
+    actionLabel: '开始检查',
+    createdAt: '2026-04-04T08:00:00Z',
+  },
+  // ⚪ 稍后 - 例行检查
+  {
+    id: 'qt-007',
+    type: 'routine_check',
+    priority: 'later',
+    status: 'pending',
+    enterpriseId: 'ent-007',
+    enterpriseName: '永安制药有限公司',
+    enterpriseAddress: '生物医药产业园8号',
+    checkItems: ['双重预防机制', '安全投入计划', '隐患自查情况'],
+    lastCheckDate: '2026-04-03T10:30:00Z',
+    title: '例行检查',
+    description: '检查项目：双重预防 / 安全投入 / 隐患自查（计划本周完成）',
+    actionLabel: '开始检查',
+    createdAt: '2026-04-04T08:00:00Z',
+  },
+  // 已完成示例
+  {
+    id: 'qt-008',
+    type: 'hazard_review',
+    priority: 'today',
+    status: 'completed',
+    enterpriseId: 'ent-001',
+    enterpriseName: '鑫达化工有限公司',
+    enterpriseAddress: '滨海新区化工路88号',
+    hazardId: 'hz-002',
+    hazardDescription: '危化品仓库双锁管理 → 已整改完成',
+    hazardLevel: '重大隐患',
+    rectificationNote: '已加装第二把锁，双锁管理制度已严格执行',
+    rectificationPhotos: [],
+    title: '企业整改待复核',
+    description: '隐患：危化品仓库双锁管理 → 已整改完成',
+    actionLabel: '确认闭环',
+    createdAt: '2026-03-29T09:00:00Z',
+  },
+  {
+    id: 'qt-009',
+    type: 'consultation_reply',
+    priority: 'today',
+    status: 'completed',
+    enterpriseId: 'ent-001',
+    enterpriseName: '鑫达化工有限公司',
+    officerName: '李明辉',
+    messageTime: '2026-04-03T10:30:00Z',
+    messageContent: '收到，我马上安排人处理消防通道问题。',
+    title: '待回复咨询',
+    description: '安管员李明辉回复消防通道清理进度',
+    actionLabel: '查看并回复',
+    createdAt: '2026-04-03T10:30:00Z',
+  },
+]
+
+// ==================== 核对池（风险评级不一致）Mock 数据 ====================
+
+const riskDiscrepancies: RiskDiscrepancy[] = [
+  {
+    id: 'rd-001',
+    enterpriseId: 'ent-001',
+    enterpriseName: '鑫达化工有限公司',
+    enterpriseCategory: 'production',
+    aiRiskLevel: 'critical',
+    aiScore: 22,
+    expertRiskLevel: undefined,
+    expertScore: 35,
+    status: 'pending',
+    detectedAt: '2026-04-01T08:00:00Z',
+    aiReasoning: 'AI 判定重大风险：化工行业 + 3项未闭环隐患（含2项重大）+ 隐患整改逾期率 67% + 消防通道长期堵塞',
+  },
+  {
+    id: 'rd-002',
+    enterpriseId: 'ent-002',
+    enterpriseName: '恒盛食品加工厂',
+    enterpriseCategory: 'production',
+    aiRiskLevel: 'high',
+    aiScore: 45,
+    expertRiskLevel: undefined,
+    expertScore: undefined,
+    status: 'pending',
+    detectedAt: '2026-04-02T10:00:00Z',
+    aiReasoning: 'AI 判定较大风险：教育培训台账缺失 + 安全制度过期未更新 + 自查率偏低',
+  },
+  {
+    id: 'rd-003',
+    enterpriseId: 'ent-003',
+    enterpriseName: '宏基机械制造有限公司',
+    enterpriseCategory: 'production',
+    aiRiskLevel: 'high',
+    aiScore: 58,
+    expertRiskLevel: 'high',
+    expertScore: 55,
+    status: 'pending',
+    detectedAt: '2026-04-03T09:00:00Z',
+    aiReasoning: 'AI 判定较大风险：双重预防个别薄弱环节 + 安全管理人员配置不足 + 冲压车间防护罩松动',
+  },
+  {
+    id: 'rd-004',
+    enterpriseId: 'ent-004',
+    enterpriseName: '天成建材有限公司',
+    enterpriseCategory: 'production',
+    aiRiskLevel: 'critical',
+    aiScore: 18,
+    expertRiskLevel: undefined,
+    expertScore: undefined,
+    status: 'pending',
+    detectedAt: '2026-03-28T08:00:00Z',
+    aiReasoning: 'AI 判定重大风险：多项安全指标严重不达标 + 消防设施过期 + 4项未闭环隐患 + 从不自查 + 粉尘监测系统离线',
+  },
+  {
+    id: 'rd-005',
+    enterpriseId: 'ent-006',
+    enterpriseName: '华通物流有限公司',
+    enterpriseCategory: 'fire_key',
+    aiRiskLevel: 'high',
+    aiScore: 35,
+    expertRiskLevel: undefined,
+    expertScore: undefined,
+    status: 'pending',
+    detectedAt: '2026-04-03T11:00:00Z',
+    aiReasoning: 'AI 判定较大风险：消防重点单位 + 应急预案超期1年未更新 + 仓储区消防设施遮挡 + 自查逾期',
+  },
+  {
+    id: 'rd-006',
+    enterpriseId: 'ent-007',
+    enterpriseName: '永安制药有限公司',
+    enterpriseCategory: 'production',
+    aiRiskLevel: 'high',
+    aiScore: 40,
+    expertRiskLevel: undefined,
+    expertScore: undefined,
+    status: 'pending',
+    detectedAt: '2026-04-04T08:00:00Z',
+    aiReasoning: 'AI 判定较大风险：医药制造行业 + 双重预防风险管控清单未更新 + 安全投入计划执行率偏低',
+  },
+  {
+    id: 'rd-007',
+    enterpriseId: 'ent-009',
+    enterpriseName: '鑫源金属制品有限公司',
+    enterpriseCategory: 'production',
+    aiRiskLevel: 'critical',
+    aiScore: 28,
+    expertRiskLevel: undefined,
+    expertScore: undefined,
+    status: 'pending',
+    detectedAt: '2026-04-01T14:00:00Z',
+    aiReasoning: 'AI 判定重大风险：金属加工行业 + 3项未闭环隐患（含重大项 VOCs 超标）+ 从不自查 + 连续3个月无检查记录',
+  },
+  // 已解决的示例
+  {
+    id: 'rd-008',
+    enterpriseId: 'ent-005',
+    enterpriseName: '瑞祥电子科技有限公司',
+    enterpriseCategory: 'general',
+    aiRiskLevel: 'low',
+    aiScore: 85,
+    expertRiskLevel: 'low',
+    expertScore: 90,
+    status: 'resolved',
+    detectedAt: '2026-03-25T08:00:00Z',
+    aiReasoning: 'AI 判定低风险：各项安全管理指标表现良好，建议保持',
+    expertResolution: {
+      action: 'new_level',
+      selectedLevel: 'low',
+      reason: '该企业安全管理水平优秀，配合度高，实际风险应给予更高评价。',
+      resolvedAt: '2026-04-01T17:00:00Z',
+    },
+  },
+  {
+    id: 'rd-009',
+    enterpriseId: 'ent-008',
+    enterpriseName: '博远包装材料有限公司',
+    enterpriseCategory: 'general',
+    aiRiskLevel: 'medium',
+    aiScore: 72,
+    expertRiskLevel: 'medium',
+    expertScore: 70,
+    status: 'resolved',
+    detectedAt: '2026-03-28T10:00:00Z',
+    aiReasoning: 'AI 判定一般风险：教育培训和安全制度板块存在不足',
+    expertResolution: {
+      action: 'keep_ai',
+      selectedLevel: 'medium',
+      reason: '同意AI评级，该企业风险水平与系统判定基本一致。',
+      resolvedAt: '2026-03-30T10:00:00Z',
+    },
+  },
+  {
+    id: 'rd-010',
+    enterpriseId: 'ent-010',
+    enterpriseName: '万通木业有限公司',
+    enterpriseCategory: 'general',
+    aiRiskLevel: 'high',
+    aiScore: 52,
+    expertRiskLevel: undefined,
+    expertScore: undefined,
+    status: 'pending',
+    detectedAt: '2026-04-02T16:00:00Z',
+    aiReasoning: 'AI 判定较大风险：木材加工行业（易燃）+ 干燥车间灭火器配置不足 + 事故管理板块偏低',
+  },
+]
+
 // ==================== 导出 ====================
 
 export const expertMock = {
@@ -792,6 +1219,12 @@ export const expertMock = {
   dashboardKpi,
   workProgress,
   taskProgress,
+  expertPerformance,
+  operationalNudges,
+  operationalMetrics,
+  riskDiscrepancies,
+  // 派单执行型队列
+  queueTasks,
 }
 
 export default expertMock
