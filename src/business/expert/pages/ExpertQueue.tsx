@@ -393,35 +393,34 @@ function buildNodes(onGotoQueue: () => void): StateNode[] {
     { id: 'collected',  position: { x: x2,  y: 0 }, ...nodeBase, data: { count: '9家',  label: '已采集',      color: 'neutral' } },
     { id: 'authorized', position: { x: x3,  y: 0 }, ...nodeBase, data: { count: '9家',  label: '数据已授权',  color: 'neutral' } },
     // 合格（右上角，y偏移-40）
-    { id: 'qualified',  position: { x: x12,  y: -40 }, ...nodeBase, data: { count: '1家', label: '合格',       color: 'green'} },
+    { id: 'qualified',  position: { x: x12,  y: 0 }, ...nodeBase, data: { count: '1家', label: '合格',       color: 'green'} },
 
     // ════════════════════════════════════════
     // 第一行分支（y=-VGAP）：挂在各自上级上方
     // ════════════════════════════════════════
-    { id: 'not_opened',     position: { x: x1,      y: neg_branch_y }, ...nodeBase, data: { count: '0家', label: '未开通', color: 'dashed'} },
-    { id: 'not_collected', position: { x: x2,      y: neg_branch_y }, ...nodeBase, data: { count: '1家', label: '未采集', color: 'dashed'} },
-    { id: 'not_authorized',position: { x: x3,      y: neg_branch_y }, ...nodeBase, data: { count: '1家', label: '未授权', color: 'dashed'} },
+    { id: 'not_opened',     position: { x: x1,      y: branch_y }, ...nodeBase, data: { count: '0家', label: '未开通', color: 'dashed'} },
+    { id: 'not_collected', position: { x: x2,      y: branch_y }, ...nodeBase, data: { count: '1家', label: '未采集', color: 'dashed'} },
+    { id: 'not_authorized',position: { x: x3,      y: branch_y }, ...nodeBase, data: { count: '1家', label: '未授权', color: 'dashed'} },
 
     // ════════════════════════════════════════
     // 第二行：不合格跟进流程（y=VGAP）
     // ════════════════════════════════════════
     { id: 'unqualified',      position: { x: x6,  y: branch_y }, ...nodeBase, data: { count: '9家', label: '不合格',       color: 'amber' } },
     { id: 'has_todo',        position: { x: x7,  y: branch_y }, ...nodeBase, data: { count: '8家', label: '有待办',       color: 'amber' } },
-    { id: 'todo_unread',     position: { x: x8,  y: branch_y }, ...nodeBase, data: { count: '3家', label: '待办未读',     color: 'amber' } },
-    { id: 'enterprise_read', position: { x: x9,  y: branch_y }, ...nodeBase, data: { count: '3家', label: '企业已读',     color: 'amber' } },
-    { id: 'rectifying',     position: { x: x10,  y: branch_y }, ...nodeBase, data: { count: '2家', label: '整改中',       color: 'amber' } },
-    { id: 'expert_verify',  position: { x: x11, y: branch_y }, ...nodeBase, data: { count: '4家', label: '专家验收',     color: 'amber' } },
+    { id: 'enterprise_read', position: { x: x8,  y: branch_y }, ...nodeBase, data: { count: '3家', label: '企业已读',     color: 'amber' } },
+    { id: 'rectifying',     position: { x: x9,  y: branch_y }, ...nodeBase, data: { count: '2家', label: '整改中',       color: 'amber' } },
+    { id: 'expert_verify',  position: { x: x10, y: branch_y }, ...nodeBase, data: { count: '4家', label: '专家验收',     color: 'amber' } },
 
     // ════════════════════════════════════════
-    // 分支：待办未读（虚线，挂在有待办上方，表示企业未查看）
+    // 分支：待办未读（在有待办下方，表示企业未查看待办）
     // ════════════════════════════════════════
-    { id: 'todo_unread_dashed', position: { x: x7, y: neg_branch_y }, ...nodeBase, data: { count: '3家', label: '待办未读', color: 'dashed'} },
+    { id: 'todo_unread', position: { x: x8, y: sub_branch_y }, ...nodeBase, data: { count: '3家', label: '待办未读', color: 'amber'} },
 
     // ════════════════════════════════════════
     // 整改分叉分支（y=VGAP*1.5）：来自待办已读
     // ════════════════════════════════════════
-    { id: 'rectifying_ok',      position: { x: x10, y: sub_branch_y }, ...nodeBase, data: { count: '1家', label: '整改未逾期',  color: 'green'} },
-    { id: 'rectifying_overdue', position: { x: x10, y: sub_branch_y + 50 }, ...nodeBase, data: { count: '1家', label: '整改逾期',    color: 'red'} },
+    { id: 'rectifying_ok',      position: { x: x9, y: sub_branch_y }, ...nodeBase, data: { count: '1家', label: '整改未逾期',  color: 'green'} },
+    { id: 'rectifying_overdue', position: { x: x9, y: sub_branch_y + 80 }, ...nodeBase, data: { count: '1家', label: '整改逾期',    color: 'red'} },
 
     // ════════════════════════════════════════
     // 分支：无待办（挂在不合格下方）
@@ -496,7 +495,7 @@ function buildEdges(): Edge[] {
     // ─── 待办未读 → 企业已读 ───
     {
       id: 'e-todo_unread-enterprise_read',
-      source: 'todo_unread', target: 'enterprise_read',
+      source: 'has_todo', target: 'enterprise_read',
       style: { stroke: '#fbbf24', strokeWidth: 1.5 },
     },
 
@@ -555,13 +554,6 @@ function buildEdges(): Edge[] {
       style: { stroke: '#d4d4d8', strokeWidth: 1, strokeDasharray: '4 3' },
     },
 
-    // ─── 无待办（从有待办向下虚线）───
-    {
-      id: 'e-has_todo-no_todo',
-      source: 'has_todo', target: 'no_todo',
-      sourcePosition: 'bottom', targetPosition: 'top',
-      style: { stroke: '#d4d4d8', strokeWidth: 1, strokeDasharray: '4 3' },
-    },
 
   ]
 }
