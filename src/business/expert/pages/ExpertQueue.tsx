@@ -368,7 +368,9 @@ function buildNodes(onGotoQueue: () => void): StateNode[] {
   const x1 = x0 + NODE_W + HGAP                      // 已开通
   const x2 = x1 + NODE_W + HGAP                      // 已采集
   const x3 = x2 + NODE_W + HGAP                      // 数据已授权
-  const x4 = x3 + NODE_W + HGAP * 2.5                // 合格（右上角，y偏移-40）
+  const x3a = x3 + NODE_W + HGAP                     // 风险标签一致
+  const x3b = x3 + NODE_W + HGAP                     // 风险标签不一致
+  const x4 = x3b + NODE_W + HGAP * 1.5               // 合格（右上角，y偏移-40）
 
   // 第二行从 x3 开始（数据已授权下方）
   const x5 = x3                                      // 不合格（在数据已授权正下方）
@@ -388,44 +390,46 @@ function buildNodes(onGotoQueue: () => void): StateNode[] {
     // ════════════════════════════════════════
     // 第一行：主流程（y=0）
     // ════════════════════════════════════════
-    { id: 'all',        position: { x: x0,  y: 0 }, ...nodeBase, data: { count: '10家', label: '全部企业',   color: 'neutral' } },
-    { id: 'opened',     position: { x: x1,  y: 0 }, ...nodeBase, data: { count: '10家', label: '已开通',      color: 'neutral' } },
-    { id: 'collected',  position: { x: x2,  y: 0 }, ...nodeBase, data: { count: '9家',  label: '已采集',      color: 'neutral' } },
-    { id: 'authorized', position: { x: x3,  y: 0 }, ...nodeBase, data: { count: '9家',  label: '数据已授权',  color: 'neutral' } },
+    { id: 'all',        position: { x: x0,  y: 0 }, ...nodeBase, data: { count: '10', label: '全部企业',   color: 'neutral' } },
+    { id: 'opened',     position: { x: x1,  y: 0 }, ...nodeBase, data: { count: '10', label: '已开通',      color: 'neutral' } },
+    { id: 'collected',  position: { x: x2,  y: 0 }, ...nodeBase, data: { count: '9',  label: '已采集',      color: 'neutral' } },
+    { id: 'authorized', position: { x: x3,  y: 0 }, ...nodeBase, data: { count: '9',  label: '数据已授权',  color: 'neutral' } },
+    { id: 'risk_match',    position: { x: x3a, y: 0 }, ...nodeBase, data: { count: '7',  label: '风险标签一致',    color: 'green' } },
+    { id: 'risk_mismatch', position: { x: x3b, y:  branch_y }, ...nodeBase, data: { count: '2',  label: '风险标签不一致', color: 'red' } },
     // 合格（右上角，y偏移-40）
-    { id: 'qualified',  position: { x: x12,  y: 0 }, ...nodeBase, data: { count: '1家', label: '合格',       color: 'green'} },
+    { id: 'qualified',  position: { x: x12,  y: 0 }, ...nodeBase, data: { count: '1', label: '合格',       color: 'green'} },
 
     // ════════════════════════════════════════
     // 第一行分支（y=-VGAP）：挂在各自上级上方
     // ════════════════════════════════════════
-    { id: 'not_opened',     position: { x: x1,      y: branch_y }, ...nodeBase, data: { count: '0家', label: '未开通', color: 'dashed'} },
-    { id: 'not_collected', position: { x: x2,      y: branch_y }, ...nodeBase, data: { count: '1家', label: '未采集', color: 'dashed'} },
-    { id: 'not_authorized',position: { x: x3,      y: branch_y }, ...nodeBase, data: { count: '1家', label: '未授权', color: 'dashed'} },
+    { id: 'not_opened',     position: { x: x1,      y: branch_y }, ...nodeBase, data: { count: '0', label: '未开通', color: 'dashed'} },
+    { id: 'not_collected', position: { x: x2,      y: branch_y }, ...nodeBase, data: { count: '1', label: '未采集', color: 'dashed'} },
+    { id: 'not_authorized',position: { x: x3,      y: branch_y }, ...nodeBase, data: { count: '1', label: '未授权', color: 'dashed'} },
 
     // ════════════════════════════════════════
     // 第二行：不合格跟进流程（y=VGAP）
     // ════════════════════════════════════════
-    { id: 'unqualified',      position: { x: x6,  y: branch_y }, ...nodeBase, data: { count: '9家', label: '不合格',       color: 'amber' } },
-    { id: 'has_todo',        position: { x: x7,  y: branch_y }, ...nodeBase, data: { count: '8家', label: '有待办',       color: 'amber' } },
-    { id: 'enterprise_read', position: { x: x8,  y: branch_y }, ...nodeBase, data: { count: '3家', label: '企业已读',     color: 'amber' } },
-    { id: 'rectifying',     position: { x: x9,  y: branch_y }, ...nodeBase, data: { count: '2家', label: '整改中',       color: 'amber' } },
-    { id: 'expert_verify',  position: { x: x10, y: branch_y }, ...nodeBase, data: { count: '4家', label: '专家验收',     color: 'amber' } },
+    { id: 'unqualified',      position: { x: x7,  y: branch_y }, ...nodeBase, data: { count: '9', label: '不合格',       color: 'amber' } },
+    { id: 'has_todo',        position: { x: x8,  y: branch_y }, ...nodeBase, data: { count: '8', label: '有待办',       color: 'amber' } },
+    { id: 'enterprise_read', position: { x: x9,  y: branch_y }, ...nodeBase, data: { count: '3', label: '企业已读',     color: 'amber' } },
+    { id: 'rectifying',     position: { x: x10,  y: branch_y }, ...nodeBase, data: { count: '2', label: '整改中',       color: 'amber' } },
+    { id: 'expert_verify',  position: { x: x11, y: branch_y }, ...nodeBase, data: { count: '4', label: '专家验收',     color: 'amber' } },
 
     // ════════════════════════════════════════
     // 分支：待办未读（在有待办下方，表示企业未查看待办）
     // ════════════════════════════════════════
-    { id: 'todo_unread', position: { x: x8, y: sub_branch_y }, ...nodeBase, data: { count: '3家', label: '待办未读', color: 'amber'} },
+    { id: 'todo_unread', position: { x: x9, y: sub_branch_y }, ...nodeBase, data: { count: '3', label: '待办未读', color: 'amber'} },
 
     // ════════════════════════════════════════
     // 整改分叉分支（y=VGAP*1.5）：来自待办已读
     // ════════════════════════════════════════
-    { id: 'rectifying_ok',      position: { x: x9, y: sub_branch_y }, ...nodeBase, data: { count: '1家', label: '整改未逾期',  color: 'green'} },
-    { id: 'rectifying_overdue', position: { x: x9, y: sub_branch_y + 80 }, ...nodeBase, data: { count: '1家', label: '整改逾期',    color: 'red'} },
+    { id: 'rectifying_ok',      position: { x: x10, y: sub_branch_y }, ...nodeBase, data: { count: '1', label: '整改未逾期',  color: 'green'} },
+    { id: 'rectifying_overdue', position: { x: x10, y: sub_branch_y + 80 }, ...nodeBase, data: { count: '1', label: '整改逾期',    color: 'red'} },
 
     // ════════════════════════════════════════
     // 分支：无待办（挂在不合格下方）
     // ════════════════════════════════════════
-    { id: 'no_todo', position: { x: x7, y: sub_branch_y }, ...nodeBase, data: { count: '1家', label: '无待办', color: 'dashed'} },
+    { id: 'no_todo', position: { x: x8, y: sub_branch_y }, ...nodeBase, data: { count: '1', label: '无待办', color: 'dashed'} },
   ]
 }
 
@@ -448,20 +452,33 @@ function buildEdges(): Edge[] {
       style: { stroke: '#d4d4d8', strokeWidth: 1.5 },
     },
 
-    // ─── 数据已授权 → 合格（右上角，绿粗线，向右向上）───
+    // ─── 数据已授权 → 风险标签一致/不一致（分叉）───
     {
-      id: 'e-auth-qualified',
-      source: 'authorized', target: 'qualified',
+      id: 'e-auth-risk_match',
+      source: 'authorized', target: 'risk_match',
+      sourcePosition: 'right', targetPosition: 'left',
+      style: { stroke: '#6ee7b7', strokeWidth: 2 },
+    },
+    {
+      id: 'e-auth-risk_mismatch',
+      source: 'authorized', target: 'risk_mismatch',
+      sourcePosition: 'right', targetPosition: 'left',
+      style: { stroke: '#fca5a5', strokeWidth: 2 },
+    },
+
+    // ─── 风险标签一致 → 合格（右上角，绿粗线）───
+    {
+      id: 'e-risk_match-qualified',
+      source: 'risk_match', target: 'qualified',
       sourcePosition: 'right', targetPosition: 'left',
       style: { stroke: '#6ee7b7', strokeWidth: 2.5 },
-      // label: '合格', labelStyle: { fill: '#6ee7b7', fontSize: 10 },
       labelBgStyle: { fill: 'white' },
     },
 
-    // ─── 数据已授权 → 不合格（垂直向下，橙线）───
+    // ─── 风险标签不一致 → 不合格（垂直向下，橙线）───
     {
-      id: 'e-auth-unqualified',
-      source: 'authorized', target: 'unqualified',
+      id: 'e-risk_mismatch-unqualified',
+      source: 'risk_match', target: 'unqualified',
       sourcePosition: 'bottom', targetPosition: 'top',
       style: { stroke: '#fbbf24', strokeWidth: 2 },
     },
@@ -484,12 +501,6 @@ function buildEdges(): Edge[] {
       id: 'e-has_todo-todo_unread',
       source: 'has_todo', target: 'todo_unread',
       style: { stroke: '#fbbf24', strokeWidth: 1.5 },
-    },
-    {
-      id: 'e-has_todo-todo_unread_dashed',
-      source: 'has_todo', target: 'todo_unread_dashed',
-      sourcePosition: 'top', targetPosition: 'top',
-      style: { stroke: '#d4d4d8', strokeWidth: 1, strokeDasharray: '4 3' },
     },
 
     // ─── 待办未读 → 企业已读 ───
@@ -563,36 +574,36 @@ function StateNode({ data }: { data: StateNodeData }) {
   const colorMap = {
     neutral: {
       bg: 'bg-zinc-50',
-      border: data.label === '全部企业' ? 'border-zinc-300' : 'border-zinc-200',
-      text: 'text-zinc-600',
+      border: data.label === '全部企业' ? 'border-zinc-500' : 'border-zinc-400',
+      text: 'text-zinc-800',
       countSize: data.label === '全部企业' ? 'text-[15px]' : 'text-[13px]',
       bold: data.label === '全部企业' ? 'font-bold' : 'font-semibold',
     },
     green: {
       bg: 'bg-emerald-50',
-      border: 'border-emerald-300',
-      text: 'text-emerald-700',
+      border: 'border-emerald-500',
+      text: 'text-emerald-900',
       countSize: 'text-[13px]',
       bold: 'font-bold',
     },
     amber: {
       bg: 'bg-amber-50',
-      border: 'border-amber-300',
-      text: 'text-amber-700',
+      border: 'border-amber-500',
+      text: 'text-amber-900',
       countSize: 'text-[13px]',
       bold: 'font-bold',
     },
     red: {
       bg: 'bg-red-50',
-      border: 'border-red-300',
-      text: 'text-red-700',
+      border: 'border-red-500',
+      text: 'text-red-900',
       countSize: 'text-[13px]',
       bold: 'font-bold',
     },
     dashed: {
       bg: 'bg-zinc-50',
-      border: 'border-dashed border-zinc-300',
-      text: 'text-zinc-400',
+      border: 'border-dashed border-zinc-500',
+      text: 'text-zinc-600',
       countSize: 'text-[13px]',
       bold: 'font-semibold',
     },
@@ -604,14 +615,14 @@ function StateNode({ data }: { data: StateNodeData }) {
   const isClickable = data.clickable
 
   return (
-    <div className={`px-3 py-2 rounded-lg border-2 relative ${isClickable ? 'cursor-pointer hover:shadow-md hover:scale-105 transition-all' : ''}`}>
+    <div className={`rounded-lg border-2 ${c.border} ${c.bg} relative ${isClickable ? 'cursor-pointer hover:shadow-md hover:scale-105 transition-all' : ''} ${isWarning ? 'ring-2 ring-red-300 ring-offset-1' : ''}`}>
       {/* React Flow Handles — 横向布局：左进右出 */}
       <Handle type="target" position={Position.Left} style={{ width: 8, height: 8, background: '#d4d4d8', border: '1px solid #a1a1aa' }} />
       <Handle type="source" position={Position.Right} style={{ width: 8, height: 8, background: '#d4d4d8', border: '1px solid #a1a1aa' }} />
 
-      <div className={`${c.bg} ${c.border} rounded-lg px-3 py-2 ${isWarning ? 'ring-2 ring-red-300 ring-offset-1' : ''} ${isClickable ? 'cursor-pointer' : ''}`}>
+      <div className={`px-3 py-2 rounded-lg ${isClickable ? 'cursor-pointer' : ''}`}>
         <div className={`${c.countSize} ${c.bold} ${c.text} text-center leading-tight`}>{data.count}</div>
-        <div className={`text-[10px] ${c.text} text-center opacity-70 leading-tight mt-0.5`}>{data.label}</div>
+        <div className={`text-[11px] ${c.bold} ${c.text} text-center leading-tight mt-0.5`}>{data.label}</div>
         {data.subLabel && (
           <div className={`text-[10px] ${c.text} text-center opacity-50 leading-tight`}>{data.subLabel}</div>
         )}
@@ -637,7 +648,7 @@ function EnterpriseStatePath({ onGotoQueue }: { onGotoQueue: () => void }) {
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 })
 
   // 所有带数字的节点都可点击
-  const clickableIds = ['all', 'opened', 'collected', 'authorized', 'qualified', 'unqualified', 'has_todo', 'todo_unread', 'todo_unread_dashed', 'enterprise_read', 'rectifying', 'rectifying_ok', 'rectifying_overdue', 'expert_verify', 'not_opened', 'not_collected', 'not_authorized', 'no_todo']
+  const clickableIds = ['all', 'opened', 'collected', 'authorized', 'risk_match', 'risk_mismatch', 'qualified', 'unqualified', 'has_todo', 'todo_unread', 'enterprise_read', 'rectifying', 'rectifying_ok', 'rectifying_overdue', 'expert_verify', 'not_opened', 'not_collected', 'not_authorized', 'no_todo']
 
   const handleNodeClick = useCallback((nodeId: string) => {
     const node = nodes.find(n => n.id === nodeId)
@@ -782,22 +793,7 @@ function EnterpriseStatePath({ onGotoQueue }: { onGotoQueue: () => void }) {
         )}
       </div>
 
-      {/* 逾期提示条 */}
-      <div className="px-4 py-3 border-t border-zinc-100 flex items-center gap-2 text-[11px] text-amber-600 bg-amber-50">
-        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span>
-          当前有 <span className="font-semibold">2条隐患已逾期</span>（hz-001 消防通道、hz-002 危化品双锁），
-          另有 <span className="font-semibold">1家（ent-004天成建材）自查逾期 60天以上</span> 未提交
-        </span>
-        <button
-          onClick={onGotoQueue}
-          className="ml-auto text-[11px] font-medium text-amber-700 underline hover:text-amber-800">
-          去处理
-        </button>
-      </div>
-    </div>
+          </div>
   )
 }
 
@@ -1027,101 +1023,6 @@ function PerformanceBoard({ onGotoQueue }: { onGotoQueue: () => void }) {
 
       {/* ===== 企业状态路径图 ===== */}
       <EnterpriseStatePath onGotoQueue={onGotoQueue} />
-
-      {/* ===== 专家全局资产概览 ===== */}
-      <div className="mb-6 bg-white rounded-xl border border-zinc-200/60 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-4 h-4 rounded bg-zinc-700 flex items-center justify-center">
-            <svg width="8" height="8" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-            </svg>
-          </div>
-          <h3 className="text-sm font-semibold text-zinc-700">我的责任池</h3>
-          <span className="text-[11px] text-zinc-400 ml-1">专家全局统计 · 实时</span>
-        </div>
-
-        <div className="grid grid-cols-6 gap-3">
-          {/* 服务企业数 */}
-          <div className="flex flex-col items-center justify-center py-2 px-3 bg-zinc-50 rounded-lg border border-zinc-100">
-            <span className="text-2xl font-bold font-mono text-zinc-800">{expertSummary.totalEnterprises}</span>
-            <span className="text-[11px] text-zinc-400 mt-0.5">服务企业</span>
-          </div>
-
-          {/* 风险分布 */}
-          <div className="flex flex-col justify-center py-2 px-3 bg-zinc-50 rounded-lg border border-zinc-100">
-            <div className="flex items-center gap-1 mb-1.5">
-              {expertSummary.enterpriseRiskBreakdown.map(r => (
-                <span key={r.level} className={`inline-flex items-center gap-0.5`}>
-                  <span className={`w-2 h-2 rounded-full ${r.color}`} />
-                </span>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-x-2">
-              {expertSummary.enterpriseRiskBreakdown.map(r => (
-                <span key={r.level} className="text-[11px] text-zinc-500">
-                  <span className="font-mono font-semibold text-zinc-700">{r.count}</span>
-                  <span className="text-zinc-400 ml-0.5">{r.level.replace('风险', '')}</span>
-                </span>
-              ))}
-            </div>
-            <span className="text-[10px] text-zinc-400 mt-1">风险分布</span>
-          </div>
-
-          {/* 待整改隐患 */}
-          <div className="flex flex-col items-center justify-center py-2 px-3 bg-red-50 rounded-lg border border-red-100">
-            <div className="flex items-center gap-1">
-              <span className="text-2xl font-bold font-mono text-red-600">{expertSummary.openHazards}</span>
-              {expertSummary.openHazards > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1 animate-pulse" />
-              )}
-            </div>
-            <span className="text-[11px] text-red-500 mt-0.5">待整改隐患</span>
-          </div>
-
-          {/* 待复核 */}
-          <div className="flex flex-col items-center justify-center py-2 px-3 bg-amber-50 rounded-lg border border-amber-100">
-            <div className="flex items-center gap-1">
-              <span className="text-2xl font-bold font-mono text-amber-600">{expertSummary.pendingVerifications}</span>
-              {expertSummary.pendingVerifications > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1 animate-pulse" />
-              )}
-            </div>
-            <span className="text-[11px] text-amber-600 mt-0.5">待复核</span>
-          </div>
-
-          {/* 待核对 */}
-          <div className="flex flex-col items-center justify-center py-2 px-3 bg-violet-50 rounded-lg border border-violet-100">
-            <div className="flex items-center gap-1">
-              <span className="text-2xl font-bold font-mono text-violet-600">{expertSummary.pendingRiskChecks}</span>
-              {expertSummary.pendingRiskChecks > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1 animate-pulse" />
-              )}
-            </div>
-            <span className="text-[11px] text-violet-600 mt-0.5">待核对</span>
-          </div>
-
-          {/* AI待评 */}
-          <div className="flex flex-col items-center justify-center py-2 px-3 bg-sky-50 rounded-lg border border-sky-100">
-            <div className="flex items-center gap-1">
-              <span className="text-2xl font-bold font-mono text-sky-600">{expertSummary.pendingAiEvaluations}</span>
-              {expertSummary.pendingAiEvaluations > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1 animate-pulse" />
-              )}
-            </div>
-            <span className="text-[11px] text-sky-600 mt-0.5">AI待评</span>
-          </div>
-        </div>
-
-        {/* 底部逾期任务提示 */}
-        {expertSummary.overdueTasks > 0 && (
-          <div className="mt-3 flex items-center gap-2 text-[12px] text-red-500 bg-red-50 rounded-lg px-3 py-2 border border-red-100">
-            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>当前有 <span className="font-semibold">{expertSummary.overdueTasks} 项任务已逾期</span>，需优先处理</span>
-          </div>
-        )}
-      </div>
 
       {/* ===== 7维度环形进度指标面板 ===== */}
       <div className="grid grid-cols-4 gap-4 mb-6">
