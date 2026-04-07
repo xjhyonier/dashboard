@@ -3,11 +3,10 @@ import { type QueueTask } from '../mock'
 
 interface Props { task: QueueTask; onBack: () => void; onComplete: () => void }
 
-const TASK_TITLES = {
+const TASK_TITLES: Record<string, string> = {
   risk_check: '风险评级核对',
+  todo_issue: '待办下发',
   hazard_review: '隐患复核',
-  consultation_reply: '咨询回复',
-  routine_check: '例行检查',
 }
 
 export function ExpertExecutionDetail({ task, onBack, onComplete }: Props) {
@@ -31,7 +30,7 @@ export function ExpertExecutionDetail({ task, onBack, onComplete }: Props) {
   const submit = () => {
     if (task.type === 'risk_check' && (!riskLevel || riskReason.length < 10)) return
     if (task.type === 'hazard_review' && !hazardConclusion[task.hazardId || '']) return
-    if (task.type === 'consultation_reply' && replyText.length < 5) return
+    // todo_issue 是等待企业状态，提交即表示"已联系推进"
     setDone(true)
   }
 
@@ -39,8 +38,7 @@ export function ExpertExecutionDetail({ task, onBack, onComplete }: Props) {
     switch (task.type) {
       case 'risk_check': return riskLevel !== '' && riskReason.length >= 10
       case 'hazard_review': return !!hazardConclusion[task.hazardId || '']
-      case 'consultation_reply': return replyText.length >= 5
-      case 'routine_check': return true
+      case 'todo_issue': return true
     }
   }
 
@@ -119,7 +117,17 @@ export function ExpertExecutionDetail({ task, onBack, onComplete }: Props) {
                   <div className="h-10 w-px bg-zinc-200" />
                   <div>
                     <div className="text-[11px] text-zinc-400 mb-1">专家标注</div>
-                    <div className="text-[13px] text-zinc-400 mt-1">未标注</div>
+                    {riskLevel ? (
+                      <div className={`text-xl font-bold leading-none ${
+                        riskLevel === '重大风险' ? 'text-red-600' :
+                        riskLevel === '较大风险' ? 'text-orange-500' :
+                        riskLevel === '一般风险' ? 'text-amber-500' : 'text-emerald-500'
+                      }`}>
+                        {riskLevel}
+                      </div>
+                    ) : (
+                      <div className="text-[13px] text-zinc-400 mt-1">请在下方选择</div>
+                    )}
                   </div>
                 </div>
                 {task.aiReasoning && (
@@ -137,7 +145,7 @@ export function ExpertExecutionDetail({ task, onBack, onComplete }: Props) {
                   <span className="text-[13px] font-semibold text-zinc-800">最终判定</span>
                 </div>
                 <div className="grid grid-cols-4 gap-2.5 mb-4">
-                  {['重大风险', '较大风险', '一般风险', '较低风险'].map(l => (
+                  {['重大风险', '较大风险', '一般风险', '低风险'].map(l => (
                     <button
                       key={l}
                       onClick={() => setRiskLevel(l)}
@@ -232,69 +240,62 @@ export function ExpertExecutionDetail({ task, onBack, onComplete }: Props) {
             </>
           )}
 
-          {/* ===== 咨询回复 ===== */}
-          {task.type === 'consultation_reply' && (
+          {/* ===== 待办下发 ===== */}
+          {task.type === 'todo_issue' && (
             <>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-0.5 h-4 bg-amber-500 rounded-full" />
-                <span className="text-[13px] font-semibold text-zinc-800">收到消息</span>
+                <div className={`w-0.5 h-4 rounded-full ${task.issueSource === 'hazard' ? 'bg-red-500' : 'bg-blue-500'}`} />
+                <span className="text-[13px] font-semibold text-zinc-800">
+                  {task.issueSource === 'hazard' ? '隐患单' : '指导服务待办'}
+                </span>
+                {task.hazardLevel && (
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium
+                    ${task.hazardLevel === 'major' ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
+                    {task.hazardLevel === 'major' ? '重大隐患' : '一般隐患'}
+                  </span>
+                )}
               </div>
-              <div className="bg-white rounded-xl border border-zinc-200/80 p-5 mb-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-9 h-9 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 text-[14px] font-semibold">
-                    {task.officerName?.[0] ?? '安'}
+
+              <div className="bg-white rounded-xl border border-zinc-200/80 p-5 mb-5 shadow-sm">
+                {task.hazardDescription && (
+                  <div className="mb-3">
+                    <div className="text-[11px] font-medium uppercase tracking-widest text-zinc-400 mb-1.5">事项内容</div>
+                    <div className="text-[14px] text-zinc-800 leading-relaxed">{task.hazardDescription}</div>
                   </div>
-                  <div>
-                    <div className="text-[13px] font-semibold text-zinc-800">{task.officerName}</div>
-                    <div className="text-[11px] text-zinc-400 font-mono">{task.messageTime}</div>
+                )}
+                {task.hazardLocation && (
+                  <div className="mb-3">
+                    <div className="text-[11px] font-medium uppercase tracking-widest text-zinc-400 mb-1.5">位置</div>
+                    <div className="text-[13px] text-zinc-600">{task.hazardLocation}</div>
                   </div>
-                </div>
-                <div className="bg-zinc-50 rounded-lg border border-zinc-200/60 p-4 text-[13px] text-zinc-700 leading-relaxed">
-                  {task.messageContent}
-                </div>
+                )}
+                {task.rectifyDeadline && (
+                  <div className="flex items-center gap-2">
+                    <div className="text-[11px] font-medium uppercase tracking-widest text-zinc-400">整改期限</div>
+                    <div className="text-[13px] font-mono text-zinc-600">{task.rectifyDeadline?.slice(0, 10)}</div>
+                    {task.overdueDays && task.overdueDays > 0 && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200 font-medium">
+                        已逾期{task.overdueDays}天
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-0.5 h-4 bg-zinc-800 rounded-full" />
-                  <span className="text-[13px] font-semibold text-zinc-800">输入回复</span>
+                  <span className="text-[13px] font-semibold text-zinc-800">跟进记录</span>
                 </div>
                 <textarea
                   value={replyText}
                   onChange={e => setReplyText(e.target.value)}
-                  placeholder="输入您的专业回复意见..."
-                  rows={5}
+                  placeholder="记录本次跟进情况（选填）..."
+                  rows={3}
                   className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-xl text-[13px] resize-none
                     placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900/20 focus:border-zinc-400
                     transition-colors duration-150 leading-relaxed"
                 />
-              </div>
-            </>
-          )}
-
-          {/* ===== 例行检查 ===== */}
-          {task.type === 'routine_check' && (
-            <>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-0.5 h-4 bg-zinc-500 rounded-full" />
-                <span className="text-[13px] font-semibold text-zinc-800">本次检查项目</span>
-              </div>
-              <div className="bg-white rounded-xl border border-zinc-200/80 p-5 mb-6 shadow-sm">
-                {task.checkItems?.map((item, i) => (
-                  <div key={i} className="flex items-center gap-3 py-2.5 border-b border-zinc-100 last:border-0">
-                    <div className="w-4 h-4 rounded border-2 border-zinc-300 flex items-center justify-center flex-shrink-0">
-                      <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-transparent">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                      </svg>
-                    </div>
-                    <span className="text-[13px] text-zinc-700">{item}</span>
-                  </div>
-                ))}
-                {task.lastCheckDate && (
-                  <div className="text-[11px] text-zinc-400 mt-3 pt-2 border-t border-zinc-100">
-                    上次检查：{task.lastCheckDate}
-                  </div>
-                )}
               </div>
             </>
           )}
