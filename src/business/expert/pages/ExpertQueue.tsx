@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { type QueueTask, type TaskType } from '../mock'
 import expertMock from '../mock'
 import { AiEvaluationModal } from '../components/AiEvaluationModal'
@@ -375,6 +375,7 @@ function buildNodes(onGotoQueue: () => void): StateNode[] {
   const x8 = x7 + NODE_W + HGAP                      // 已整改
   const x9 = x8 + NODE_W + HGAP                      // 待验收
   const x10 = x9 + NODE_W + HGAP                     // 已闭环
+  const x11 = x10 + NODE_W + HGAP                    // 已闭环（延伸）
 
   const branch_y = VGAP  // 第二行 y 坐标
   const sub_branch_y = VGAP * 2  // 分支节点（无待办等）的 y 坐标
@@ -388,29 +389,28 @@ function buildNodes(onGotoQueue: () => void): StateNode[] {
     { id: 'collected', position: { x: x2,  y: 0 }, ...nodeBase, data: { count: '10家', label: '已采集',      color: 'neutral' } },
     { id: 'authorized',position: { x: x3,  y: 0 }, ...nodeBase, data: { count: '9家',  label: '数据已授权',  color: 'neutral' } },
     // 合格（右上角，y偏移-40）
-    { id: 'qualified',  position: { x: x4,  y: -40 }, ...nodeBase, data: { count: '1家', label: '合格',       color: 'green', subLabel: '免打扰' } },
+    { id: 'qualified',  position: { x: x11,  y: 0 }, ...nodeBase, data: { count: '1家', label: '合格',       color: 'green'} },
 
     // ════════════════════════════════════════
     // 第二行：不合格跟进流程（y=VGAP）
     // ════════════════════════════════════════
-    { id: 'unqualified', position: { x: x5,  y: branch_y }, ...nodeBase, data: { count: '9家', label: '不合格',      color: 'amber' } },
-    { id: 'has_todo',    position: { x: x6,  y: branch_y }, ...nodeBase, data: { count: '8家', label: '有待办',      color: 'amber' } },
-    { id: 'read',        position: { x: x7,  y: branch_y }, ...nodeBase, data: { count: '3家', label: '已读取',      color: 'red',    clickable: true, warning: true } },
-    { id: 'rectified',   position: { x: x8,  y: branch_y }, ...nodeBase, data: { count: '5家', label: '已整改',      color: 'amber' } },
-    { id: 'pending_verify', position: { x: x9, y: branch_y }, ...nodeBase, data: { count: '4家', label: '待验收',    color: 'amber' } },
-    { id: 'closed',      position: { x: x10, y: branch_y }, ...nodeBase, data: { count: '1家', label: '已闭环',      color: 'green' } },
+    { id: 'unqualified', position: { x: x6,  y: branch_y }, ...nodeBase, data: { count: '9家', label: '不合格',      color: 'amber' } },
+    { id: 'has_todo',    position: { x: x7,  y: branch_y }, ...nodeBase, data: { count: '8家', label: '有待办',      color: 'amber' } },
+    { id: 'read',        position: { x: x8,  y: branch_y }, ...nodeBase, data: { count: '3家', label: '已读取',      color: 'amber' } },
+    { id: 'rectified',   position: { x: x9,  y: branch_y }, ...nodeBase, data: { count: '5家', label: '已整改',      color: 'amber' } },
+    { id: 'pending_verify', position: { x: x10, y: branch_y }, ...nodeBase, data: { count: '4家', label: '待验收',    color: 'amber' } },
 
     // ════════════════════════════════════════
     // 分支节点（y=sub_branch_y）：挂在各自上级下方
     // ════════════════════════════════════════
     // 未开通（从全部企业向下）
-    { id: 'not_opened', position: { x: x0, y: sub_branch_y }, ...nodeBase, data: { count: '0家', label: '未开通', color: 'dashed', subLabel: '未注册' } },
+    { id: 'not_opened', position: { x: x1, y: branch_y }, ...nodeBase, data: { count: '0家', label: '未开通', color: 'dashed'} },
     // 未采集（从已开通向下）
-    { id: 'not_collected', position: { x: x1, y: sub_branch_y }, ...nodeBase, data: { count: '0家', label: '未采集', color: 'dashed', subLabel: '待填写' } },
+    { id: 'not_collected', position: { x: x2, y: branch_y }, ...nodeBase, data: { count: '0家', label: '未采集', color: 'dashed' } },
     // 未授权（从已采集向下）
-    { id: 'not_authorized',position: { x: x2, y: sub_branch_y }, ...nodeBase, data: { count: '1家', label: '未授权', color: 'dashed', subLabel: '待授权' } },
-    // 无待办（从有待办向下）
-    { id: 'no_todo', position: { x: x6, y: sub_branch_y }, ...nodeBase, data: { count: '1家', label: '无待办', color: 'dashed', subLabel: '无需跟进' } },
+    { id: 'not_authorized',position: { x: x3, y: branch_y }, ...nodeBase, data: { count: '1家', label: '未授权', color: 'dashed' } },
+    // 无待办（从不合格向下）
+    { id: 'no_todo', position: { x: x7, y: sub_branch_y }, ...nodeBase, data: { count: '1家', label: '无待办', color: 'dashed' } },
   ]
 }
 
@@ -439,7 +439,7 @@ function buildEdges(): Edge[] {
       source: 'authorized', target: 'qualified',
       sourcePosition: 'right', targetPosition: 'left',
       style: { stroke: '#6ee7b7', strokeWidth: 2.5 },
-      label: '合格', labelStyle: { fill: '#6ee7b7', fontSize: 10 },
+      // label: '合格', labelStyle: { fill: '#6ee7b7', fontSize: 10 },
       labelBgStyle: { fill: 'white' },
     },
 
@@ -473,9 +473,10 @@ function buildEdges(): Edge[] {
       style: { stroke: '#d4d4d8', strokeWidth: 1.5 },
     },
     {
-      id: 'e-pv-closed',
-      source: 'pending_verify', target: 'closed',
-      style: { stroke: '#6ee7b7', strokeWidth: 1.5 },
+      id: 'e-pv-qualified',
+      source: 'pending_verify', target: 'qualified',
+      sourcePosition: 'top', targetPosition: 'bottom',
+      style: { stroke: '#6ee7b7', strokeWidth: 2 },
     },
 
     // ─── 未开通（从全部企业垂直向下虚线）───
@@ -502,23 +503,14 @@ function buildEdges(): Edge[] {
       style: { stroke: '#d4d4d8', strokeWidth: 1, strokeDasharray: '4 3' },
     },
 
-    // ─── 无待办（从有待办垂直向下虚线）───
+    // ─── 无待办（从不合格垂直向下虚线）───
     {
-      id: 'e-has_todo-no_todo',
-      source: 'has_todo', target: 'no_todo',
+      id: 'e-unqualified-no_todo',
+      source: 'unqualified', target: 'no_todo',
       sourcePosition: 'bottom', targetPosition: 'top',
       style: { stroke: '#d4d4d8', strokeWidth: 1, strokeDasharray: '4 3' },
     },
 
-    // ─── 回流 → 合格（虚线，从 closed 向上回到 qualified）───
-    {
-      id: 'e-closed-qualified',
-      source: 'closed', target: 'qualified',
-      sourcePosition: 'top', targetPosition: 'bottom',
-      style: { stroke: '#6ee7b7', strokeWidth: 1.5, strokeDasharray: '4 3' },
-      label: '→合格', labelStyle: { fill: '#6ee7b7', fontSize: 10 },
-      labelBgStyle: { fill: 'white' },
-    },
   ]
 }
 
@@ -565,14 +557,15 @@ function StateNode({ data }: { data: StateNodeData }) {
   const c = colorMap[data.color]
   const isRoot = data.label === '全部企业'
   const isWarning = data.warning
+  const isClickable = data.clickable
 
   return (
-    <div className="px-3 py-2 rounded-lg border-2 relative">
+    <div className={`px-3 py-2 rounded-lg border-2 relative ${isClickable ? 'cursor-pointer hover:shadow-md hover:scale-105 transition-all' : ''}`}>
       {/* React Flow Handles — 横向布局：左进右出 */}
       <Handle type="target" position={Position.Left} style={{ width: 8, height: 8, background: '#d4d4d8', border: '1px solid #a1a1aa' }} />
       <Handle type="source" position={Position.Right} style={{ width: 8, height: 8, background: '#d4d4d8', border: '1px solid #a1a1aa' }} />
 
-      <div className={`${c.bg} ${c.border} rounded-lg px-3 py-2 ${isWarning ? 'ring-2 ring-red-300 ring-offset-1' : ''}`}>
+      <div className={`${c.bg} ${c.border} rounded-lg px-3 py-2 ${isWarning ? 'ring-2 ring-red-300 ring-offset-1' : ''} ${isClickable ? 'cursor-pointer' : ''}`}>
         <div className={`${c.countSize} ${c.bold} ${c.text} text-center leading-tight`}>{data.count}</div>
         <div className={`text-[10px] ${c.text} text-center opacity-70 leading-tight mt-0.5`}>{data.label}</div>
         {data.subLabel && (
@@ -595,8 +588,24 @@ function EnterpriseStatePath({ onGotoQueue }: { onGotoQueue: () => void }) {
   const [nodes, , onNodesChange] = useNodesState(initNodes)
   const [edges, , onEdgesChange] = useEdgesState(initEdges)
 
-  // 找到"已读取"节点，添加点击处理
-  const readNode = nodes.find(n => n.id === 'read')
+  // 浮层状态
+  const [selectedNode, setSelectedNode] = useState<{ id: string; label: string; count: string } | null>(null)
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 })
+
+  // 所有带数字的节点都可点击
+  const clickableIds = ['all', 'opened', 'collected', 'authorized', 'qualified', 'unqualified', 'has_todo', 'read', 'rectified', 'pending_verify', 'not_opened', 'not_collected', 'not_authorized', 'no_todo']
+
+  const handleNodeClick = useCallback((nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId)
+    if (node && node.data.count && node.data.count !== '—') {
+      setSelectedNode({ id: node.id, label: node.data.label, count: node.data.count })
+      // 计算浮层位置（居中偏上）
+      const rect = document.querySelector('.react-flow')?.getBoundingClientRect()
+      if (rect) {
+        setPopupPosition({ x: rect.width / 2, y: rect.height / 2 - 100 })
+      }
+    }
+  }, [nodes])
 
   return (
     <div className="mb-6 bg-white rounded-xl border border-zinc-200/60 overflow-hidden">
@@ -623,14 +632,15 @@ function EnterpriseStatePath({ onGotoQueue }: { onGotoQueue: () => void }) {
       <div className="relative" style={{ height: 480 }}>
         <ReactFlow
           nodes={nodes.map(n => {
-            if (n.id === 'read') {
+            if (clickableIds.includes(n.id)) {
               return {
                 ...n,
-                data: { ...n.data, onClick: onGotoQueue },
+                data: { ...n.data, clickable: true },
               }
             }
             return n
           })}
+          onNodeClick={(_, node) => handleNodeClick(node.id)}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
@@ -663,13 +673,67 @@ function EnterpriseStatePath({ onGotoQueue }: { onGotoQueue: () => void }) {
           />
         </ReactFlow>
 
-        {/* 已读取节点点击提示浮层 */}
-        {readNode && (
-          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 pointer-events-none flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 text-[11px] text-red-600">
-            <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672z" />
-            </svg>
-            点击「已读取」节点可跳转队列
+        {/* 企业列表浮层 */}
+        {selectedNode && (
+          <div
+            className="absolute bg-white rounded-xl shadow-2xl border border-zinc-200/80 overflow-hidden z-50"
+            style={{ left: popupPosition.x, top: popupPosition.y, transform: 'translate(-50%, 0)', minWidth: 320, maxWidth: 400 }}
+          >
+            {/* 浮层头部 */}
+            <div className="px-4 py-3 bg-zinc-50 border-b border-zinc-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded bg-emerald-500 flex items-center justify-center">
+                  <svg width="10" height="10" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-zinc-800">{selectedNode.label}</div>
+                  <div className="text-[11px] text-zinc-400">共 {selectedNode.count}</div>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedNode(null)}
+                className="w-6 h-6 rounded hover:bg-zinc-200 flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-colors"
+              >
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {/* 企业列表 */}
+            <div className="max-h-80 overflow-y-auto">
+              {/* Mock 数据 */}
+              <div className="p-2 space-y-1">
+                <div className="px-3 py-2 rounded-lg hover:bg-zinc-50 cursor-pointer flex items-center justify-between group">
+                  <div>
+                    <div className="text-sm font-medium text-zinc-700">浙江天成科技有限公司</div>
+                    <div className="text-[11px] text-zinc-400">行业：一般工贸 · 风险等级：较大风险</div>
+                  </div>
+                  <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                </div>
+                <div className="px-3 py-2 rounded-lg hover:bg-zinc-50 cursor-pointer flex items-center justify-between group">
+                  <div>
+                    <div className="text-sm font-medium text-zinc-700">杭州恒通纺织有限公司</div>
+                    <div className="text-[11px] text-zinc-400">行业：生产企业 · 风险等级：一般风险</div>
+                  </div>
+                  <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                </div>
+                <div className="px-3 py-2 rounded-lg hover:bg-zinc-50 cursor-pointer flex items-center justify-between group">
+                  <div>
+                    <div className="text-sm font-medium text-zinc-700">宁波华欣建材有限公司</div>
+                    <div className="text-[11px] text-zinc-400">行业：一般工贸 · 风险等级：低风险</div>
+                  </div>
+                  <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+                </div>
+              </div>
+            </div>
+            {/* 底部操作 */}
+            <div className="px-4 py-2 border-t border-zinc-100 bg-zinc-50">
+              <button className="w-full text-center text-[12px] font-medium text-emerald-600 hover:text-emerald-700">
+                查看全部企业 →
+              </button>
+            </div>
           </div>
         )}
       </div>
