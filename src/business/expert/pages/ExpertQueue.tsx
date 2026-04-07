@@ -360,25 +360,29 @@ function buildNodes(onGotoQueue: () => void): StateNode[] {
 
   // ─── 图片布局：两行结构 ───
   // 第一行（y=0）：全部企业 → 已开通 → 已采集 → 数据已授权 → 合格（右上角）
-  // 第二行（y=VGAP）：不合格 → 有待办 → 已读取 → 已整改 → 待验收 → 已闭环
-  // 分支节点：未开通/未采集/未授权/无待办 挂在各自上级下方
+  //   分支（y=-VGAP）：未开通/未采集/未授权
+  // 第二行（y=VGAP）：不合格 → 有待办 → 待办未读 → 已读取 → 整改中 → 已整改 → 待验收 → 已闭环
+  //   分支（y=-VGAP）：待办未读（挂在 有待办 上方）
+  //   分支（y=VGAP*2）：无待办/整改未逾期/整改逾期
   const x0 = 0                                        // 全部企业
   const x1 = x0 + NODE_W + HGAP                      // 已开通
   const x2 = x1 + NODE_W + HGAP                      // 已采集
   const x3 = x2 + NODE_W + HGAP                      // 数据已授权
   const x4 = x3 + NODE_W + HGAP * 2.5                // 合格（右上角，y偏移-40）
-  
+
   // 第二行从 x3 开始（数据已授权下方）
   const x5 = x3                                      // 不合格（在数据已授权正下方）
   const x6 = x5 + NODE_W + HGAP                      // 有待办
-  const x7 = x6 + NODE_W + HGAP                      // 已读取
-  const x8 = x7 + NODE_W + HGAP                      // 已整改
-  const x9 = x8 + NODE_W + HGAP                      // 待验收
-  const x10 = x9 + NODE_W + HGAP                     // 已闭环
-  const x11 = x10 + NODE_W + HGAP                    // 已闭环（延伸）
+  const x7 = x6 + NODE_W + HGAP                      // 待办未读
+  const x8 = x7 + NODE_W + HGAP                      // 已读取
+  const x9 = x8 + NODE_W + HGAP                      // 整改中
+  const x10 = x9 + NODE_W + HGAP                     // 已整改
+  const x11 = x10 + NODE_W + HGAP                    // 待验收
+  const x12 = x11 + NODE_W + HGAP                    // 已闭环
 
-  const branch_y = VGAP  // 第二行 y 坐标
-  const sub_branch_y = VGAP * 2  // 分支节点（无待办等）的 y 坐标
+  const branch_y = VGAP        // 第二行 y 坐标
+  const neg_branch_y = -VGAP  // 分支节点（未开通/未采集/未授权/待办未读）y 坐标（上方）
+  const sub_branch_y = VGAP * 2  // 分支节点（无待办/整改未逾期/整改逾期）y 坐标（下方）
 
   return [
     // ════════════════════════════════════════
@@ -386,31 +390,43 @@ function buildNodes(onGotoQueue: () => void): StateNode[] {
     // ════════════════════════════════════════
     { id: 'all',        position: { x: x0,  y: 0 }, ...nodeBase, data: { count: '10家', label: '全部企业',   color: 'neutral' } },
     { id: 'opened',     position: { x: x1,  y: 0 }, ...nodeBase, data: { count: '10家', label: '已开通',      color: 'neutral' } },
-    { id: 'collected', position: { x: x2,  y: 0 }, ...nodeBase, data: { count: '10家', label: '已采集',      color: 'neutral' } },
-    { id: 'authorized',position: { x: x3,  y: 0 }, ...nodeBase, data: { count: '9家',  label: '数据已授权',  color: 'neutral' } },
+    { id: 'collected',  position: { x: x2,  y: 0 }, ...nodeBase, data: { count: '9家',  label: '已采集',      color: 'neutral' } },
+    { id: 'authorized', position: { x: x3,  y: 0 }, ...nodeBase, data: { count: '9家',  label: '数据已授权',  color: 'neutral' } },
     // 合格（右上角，y偏移-40）
-    { id: 'qualified',  position: { x: x11,  y: 0 }, ...nodeBase, data: { count: '1家', label: '合格',       color: 'green'} },
+    { id: 'qualified',  position: { x: x12,  y: -40 }, ...nodeBase, data: { count: '1家', label: '合格',       color: 'green'} },
+
+    // ════════════════════════════════════════
+    // 第一行分支（y=-VGAP）：挂在各自上级上方
+    // ════════════════════════════════════════
+    { id: 'not_opened',     position: { x: x1,      y: neg_branch_y }, ...nodeBase, data: { count: '0家', label: '未开通', color: 'dashed'} },
+    { id: 'not_collected', position: { x: x2,      y: neg_branch_y }, ...nodeBase, data: { count: '1家', label: '未采集', color: 'dashed'} },
+    { id: 'not_authorized',position: { x: x3,      y: neg_branch_y }, ...nodeBase, data: { count: '1家', label: '未授权', color: 'dashed'} },
 
     // ════════════════════════════════════════
     // 第二行：不合格跟进流程（y=VGAP）
     // ════════════════════════════════════════
-    { id: 'unqualified', position: { x: x6,  y: branch_y }, ...nodeBase, data: { count: '9家', label: '不合格',      color: 'amber' } },
-    { id: 'has_todo',    position: { x: x7,  y: branch_y }, ...nodeBase, data: { count: '8家', label: '有待办',      color: 'amber' } },
-    { id: 'read',        position: { x: x8,  y: branch_y }, ...nodeBase, data: { count: '3家', label: '已读取',      color: 'amber' } },
-    { id: 'rectified',   position: { x: x9,  y: branch_y }, ...nodeBase, data: { count: '5家', label: '已整改',      color: 'amber' } },
-    { id: 'pending_verify', position: { x: x10, y: branch_y }, ...nodeBase, data: { count: '4家', label: '待验收',    color: 'amber' } },
+    { id: 'unqualified',      position: { x: x6,  y: branch_y }, ...nodeBase, data: { count: '9家', label: '不合格',       color: 'amber' } },
+    { id: 'has_todo',        position: { x: x7,  y: branch_y }, ...nodeBase, data: { count: '8家', label: '有待办',       color: 'amber' } },
+    { id: 'todo_unread',     position: { x: x8,  y: branch_y }, ...nodeBase, data: { count: '3家', label: '待办未读',     color: 'amber' } },
+    { id: 'enterprise_read', position: { x: x9,  y: branch_y }, ...nodeBase, data: { count: '3家', label: '企业已读',     color: 'amber' } },
+    { id: 'rectifying',     position: { x: x10,  y: branch_y }, ...nodeBase, data: { count: '2家', label: '整改中',       color: 'amber' } },
+    { id: 'expert_verify',  position: { x: x11, y: branch_y }, ...nodeBase, data: { count: '4家', label: '专家验收',     color: 'amber' } },
 
     // ════════════════════════════════════════
-    // 分支节点（y=sub_branch_y）：挂在各自上级下方
+    // 分支：待办未读（虚线，挂在有待办上方，表示企业未查看）
     // ════════════════════════════════════════
-    // 未开通（从全部企业向下）
-    { id: 'not_opened', position: { x: x1, y: branch_y }, ...nodeBase, data: { count: '0家', label: '未开通', color: 'dashed'} },
-    // 未采集（从已开通向下）
-    { id: 'not_collected', position: { x: x2, y: branch_y }, ...nodeBase, data: { count: '0家', label: '未采集', color: 'dashed' } },
-    // 未授权（从已采集向下）
-    { id: 'not_authorized',position: { x: x3, y: branch_y }, ...nodeBase, data: { count: '1家', label: '未授权', color: 'dashed' } },
-    // 无待办（从不合格向下）
-    { id: 'no_todo', position: { x: x7, y: sub_branch_y }, ...nodeBase, data: { count: '1家', label: '无待办', color: 'dashed' } },
+    { id: 'todo_unread_dashed', position: { x: x7, y: neg_branch_y }, ...nodeBase, data: { count: '3家', label: '待办未读', color: 'dashed'} },
+
+    // ════════════════════════════════════════
+    // 整改分叉分支（y=VGAP*1.5）：来自待办已读
+    // ════════════════════════════════════════
+    { id: 'rectifying_ok',      position: { x: x10, y: sub_branch_y }, ...nodeBase, data: { count: '1家', label: '整改未逾期',  color: 'green'} },
+    { id: 'rectifying_overdue', position: { x: x10, y: sub_branch_y + 50 }, ...nodeBase, data: { count: '1家', label: '整改逾期',    color: 'red'} },
+
+    // ════════════════════════════════════════
+    // 分支：无待办（挂在不合格下方）
+    // ════════════════════════════════════════
+    { id: 'no_todo', position: { x: x7, y: sub_branch_y }, ...nodeBase, data: { count: '1家', label: '无待办', color: 'dashed'} },
   ]
 }
 
@@ -451,62 +467,98 @@ function buildEdges(): Edge[] {
       style: { stroke: '#fbbf24', strokeWidth: 2 },
     },
 
-    // ─── 第二行横向流程：不合格 → 有待办 → 已读取 → 已整改 → 待验收 → 已闭环 ───
+    // ─── 不合格 → 有待办 / 无待办 ───
     {
       id: 'e-unq-has_todo',
       source: 'unqualified', target: 'has_todo',
       style: { stroke: '#fbbf24', strokeWidth: 1.5 },
     },
     {
-      id: 'e-has_todo-read',
-      source: 'has_todo', target: 'read',
-      style: { stroke: '#fca5a5', strokeWidth: 1.5 },
-    },
-    {
-      id: 'e-read-rectified',
-      source: 'read', target: 'rectified',
-      style: { stroke: '#d4d4d8', strokeWidth: 1.5 },
-    },
-    {
-      id: 'e-rectified-pv',
-      source: 'rectified', target: 'pending_verify',
-      style: { stroke: '#d4d4d8', strokeWidth: 1.5 },
-    },
-    {
-      id: 'e-pv-qualified',
-      source: 'pending_verify', target: 'qualified',
-      sourcePosition: 'top', targetPosition: 'bottom',
-      style: { stroke: '#6ee7b7', strokeWidth: 2 },
+      id: 'e-unq-no_todo',
+      source: 'unqualified', target: 'no_todo',
+      sourcePosition: 'bottom', targetPosition: 'top',
+      style: { stroke: '#d4d4d8', strokeWidth: 1, strokeDasharray: '4 3' },
     },
 
-    // ─── 未开通（从全部企业垂直向下虚线）───
+    // ─── 有待办 → 待办未读（实线主流程）+ 待办未读虚线分支 ───
+    {
+      id: 'e-has_todo-todo_unread',
+      source: 'has_todo', target: 'todo_unread',
+      style: { stroke: '#fbbf24', strokeWidth: 1.5 },
+    },
+    {
+      id: 'e-has_todo-todo_unread_dashed',
+      source: 'has_todo', target: 'todo_unread_dashed',
+      sourcePosition: 'top', targetPosition: 'top',
+      style: { stroke: '#d4d4d8', strokeWidth: 1, strokeDasharray: '4 3' },
+    },
+
+    // ─── 待办未读 → 企业已读 ───
+    {
+      id: 'e-todo_unread-enterprise_read',
+      source: 'todo_unread', target: 'enterprise_read',
+      style: { stroke: '#fbbf24', strokeWidth: 1.5 },
+    },
+
+    // ─── 企业已读 → 整改三态（全部来自待办已读）───
+    // 1. 整改中（正在整改，尚未到期）
+    {
+      id: 'e-enterprise_read-rectifying',
+      source: 'enterprise_read', target: 'rectifying',
+      style: { stroke: '#d4d4d8', strokeWidth: 1.5 },
+    },
+    // 2. 整改未逾期（整改完成，未逾期）
+    {
+      id: 'e-enterprise_read-rectifying_ok',
+      source: 'enterprise_read', target: 'rectifying_ok',
+      sourcePosition: 'bottom', targetPosition: 'top',
+      style: { stroke: '#6ee7b7', strokeWidth: 1.5 },
+    },
+    // 3. 整改逾期（已逾期）
+    {
+      id: 'e-enterprise_read-rectifying_overdue',
+      source: 'enterprise_read', target: 'rectifying_overdue',
+      sourcePosition: 'bottom', targetPosition: 'top',
+      style: { stroke: '#fca5a5', strokeWidth: 1.5 },
+    },
+
+    // ─── 整改中 → 专家验收 → 合格 ───
+    {
+      id: 'e-rectifying-expert_verify',
+      source: 'rectifying', target: 'expert_verify',
+      style: { stroke: '#d4d4d8', strokeWidth: 1.5 },
+    },
+    {
+      id: 'e-expert_verify-qualified',
+      source: 'expert_verify', target: 'qualified',
+      sourcePosition: 'top', targetPosition: 'bottom',
+      style: { stroke: '#6ee7b7', strokeWidth: 2.5 },
+    },
+
+    // ─── 未开通/未采集/未授权（从各自上级向上虚线）───
     {
       id: 'e-all-not_opened',
       source: 'all', target: 'not_opened',
-      sourcePosition: 'bottom', targetPosition: 'top',
+      sourcePosition: 'top', targetPosition: 'bottom',
       style: { stroke: '#d4d4d8', strokeWidth: 1, strokeDasharray: '4 3' },
     },
-
-    // ─── 未采集（从已开通垂直向下虚线）───
     {
       id: 'e-opened-not_collected',
       source: 'opened', target: 'not_collected',
-      sourcePosition: 'bottom', targetPosition: 'top',
+      sourcePosition: 'top', targetPosition: 'bottom',
       style: { stroke: '#d4d4d8', strokeWidth: 1, strokeDasharray: '4 3' },
     },
-
-    // ─── 未授权（从已采集垂直向下虚线）───
     {
       id: 'e-collected-not_authorized',
       source: 'collected', target: 'not_authorized',
-      sourcePosition: 'bottom', targetPosition: 'top',
+      sourcePosition: 'top', targetPosition: 'bottom',
       style: { stroke: '#d4d4d8', strokeWidth: 1, strokeDasharray: '4 3' },
     },
 
-    // ─── 无待办（从不合格垂直向下虚线）───
+    // ─── 无待办（从有待办向下虚线）───
     {
-      id: 'e-unqualified-no_todo',
-      source: 'unqualified', target: 'no_todo',
+      id: 'e-has_todo-no_todo',
+      source: 'has_todo', target: 'no_todo',
       sourcePosition: 'bottom', targetPosition: 'top',
       style: { stroke: '#d4d4d8', strokeWidth: 1, strokeDasharray: '4 3' },
     },
@@ -593,7 +645,7 @@ function EnterpriseStatePath({ onGotoQueue }: { onGotoQueue: () => void }) {
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 })
 
   // 所有带数字的节点都可点击
-  const clickableIds = ['all', 'opened', 'collected', 'authorized', 'qualified', 'unqualified', 'has_todo', 'read', 'rectified', 'pending_verify', 'not_opened', 'not_collected', 'not_authorized', 'no_todo']
+  const clickableIds = ['all', 'opened', 'collected', 'authorized', 'qualified', 'unqualified', 'has_todo', 'todo_unread', 'todo_unread_dashed', 'enterprise_read', 'rectifying', 'rectifying_ok', 'rectifying_overdue', 'expert_verify', 'not_opened', 'not_collected', 'not_authorized', 'no_todo']
 
   const handleNodeClick = useCallback((nodeId: string) => {
     const node = nodes.find(n => n.id === nodeId)
@@ -620,9 +672,9 @@ function EnterpriseStatePath({ onGotoQueue }: { onGotoQueue: () => void }) {
         <span className="text-[11px] text-zinc-400 ml-1">实时 · 全量</span>
         {/* 图例 */}
         <div className="ml-auto flex items-center gap-3 text-[10px] text-zinc-400">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-400 inline-block" />合格</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-400 inline-block" />不合格</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-400 inline-block" />已读取</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-400 inline-block" />合格/闭环</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-400 inline-block" />不合格/待办</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-400 inline-block" />整改逾期</span>
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-zinc-300 inline-block" />未X（断路）</span>
           <span className="text-zinc-300">· 可拖拽节点调整布局</span>
         </div>
