@@ -1,3 +1,352 @@
+// ==================== 站长指挥中心 Mock 数据 ====================
+
+// ---------- 七维度治理效果 ----------
+
+export interface DimensionScore {
+  name: string
+  score: number          // 当月辖区均分 0-100
+  prevScore: number      // 上月均分，用于计算环比
+  trend: 'up' | 'down' | 'stable'
+  trendDelta: number     // 环比 delta（绝对值）
+  // 钻取：各分值段企业数量
+  distribution: {
+    label: string        // '优秀(≥80)' | '良好(60-79)' | '关注(30-59)' | '危险(<30)'
+    count: number
+    color: string
+  }[]
+  // 钻取：得分最低 3 家企业
+  bottomEnterprises: {
+    name: string
+    score: number
+    change: number       // 较上月变化
+  }[]
+  // 历史 6 个月趋势
+  history: { month: string; score: number }[]
+}
+
+export const dimensionScores: DimensionScore[] = [
+  {
+    name: '事故管理', score: 85, prevScore: 81, trend: 'up', trendDelta: 4,
+    distribution: [
+      { label: '优秀(≥80)', count: 312, color: '#16a34a' },
+      { label: '良好(60-79)', count: 120, color: '#4f46e5' },
+      { label: '关注(30-59)', count: 45, color: '#d97706' },
+      { label: '危险(<30)', count: 23, color: '#dc2626' },
+    ],
+    bottomEnterprises: [
+      { name: '天成建材有限公司', score: 10, change: -5 },
+      { name: '鑫达化工有限公司', score: 15, change: -8 },
+      { name: '鑫源金属制品有限公司', score: 18, change: -3 },
+    ],
+    history: [
+      { month: '10月', score: 79 }, { month: '11月', score: 80 }, { month: '12月', score: 80 },
+      { month: '1月', score: 81 }, { month: '2月', score: 82 }, { month: '3月', score: 85 },
+    ],
+  },
+  {
+    name: '双重预防', score: 78, prevScore: 75, trend: 'up', trendDelta: 3,
+    distribution: [
+      { label: '优秀(≥80)', count: 264, color: '#16a34a' },
+      { label: '良好(60-79)', count: 155, color: '#4f46e5' },
+      { label: '关注(30-59)', count: 62, color: '#d97706' },
+      { label: '危险(<30)', count: 19, color: '#dc2626' },
+    ],
+    bottomEnterprises: [
+      { name: '天成建材有限公司', score: 15, change: -2 },
+      { name: '鑫达化工有限公司', score: 20, change: -5 },
+      { name: '永安制药有限公司', score: 28, change: 0 },
+    ],
+    history: [
+      { month: '10月', score: 70 }, { month: '11月', score: 71 }, { month: '12月', score: 72 },
+      { month: '1月', score: 73 }, { month: '2月', score: 75 }, { month: '3月', score: 78 },
+    ],
+  },
+  {
+    name: '应急管理', score: 82, prevScore: 82, trend: 'stable', trendDelta: 0,
+    distribution: [
+      { label: '优秀(≥80)', count: 288, color: '#16a34a' },
+      { label: '良好(60-79)', count: 140, color: '#4f46e5' },
+      { label: '关注(30-59)', count: 52, color: '#d97706' },
+      { label: '危险(<30)', count: 20, color: '#dc2626' },
+    ],
+    bottomEnterprises: [
+      { name: '华通物流有限公司', score: 25, change: -10 },
+      { name: '天成建材有限公司', score: 20, change: 0 },
+      { name: '鑫达化工有限公司', score: 30, change: 2 },
+    ],
+    history: [
+      { month: '10月', score: 81 }, { month: '11月', score: 82 }, { month: '12月', score: 82 },
+      { month: '1月', score: 82 }, { month: '2月', score: 82 }, { month: '3月', score: 82 },
+    ],
+  },
+  {
+    name: '机构职责', score: 90, prevScore: 88, trend: 'up', trendDelta: 2,
+    distribution: [
+      { label: '优秀(≥80)', count: 380, color: '#16a34a' },
+      { label: '良好(60-79)', count: 80, color: '#4f46e5' },
+      { label: '关注(30-59)', count: 30, color: '#d97706' },
+      { label: '危险(<30)', count: 10, color: '#dc2626' },
+    ],
+    bottomEnterprises: [
+      { name: '宏基机械制造有限公司', score: 40, change: 0 },
+      { name: '万通木业有限公司', score: 45, change: 5 },
+      { name: '恒盛食品加工厂', score: 50, change: -2 },
+    ],
+    history: [
+      { month: '10月', score: 85 }, { month: '11月', score: 86 }, { month: '12月', score: 87 },
+      { month: '1月', score: 87 }, { month: '2月', score: 88 }, { month: '3月', score: 90 },
+    ],
+  },
+  {
+    name: '教育培训', score: 75, prevScore: 78, trend: 'down', trendDelta: 3,
+    distribution: [
+      { label: '优秀(≥80)', count: 245, color: '#16a34a' },
+      { label: '良好(60-79)', count: 178, color: '#4f46e5' },
+      { label: '关注(30-59)', count: 58, color: '#d97706' },
+      { label: '危险(<30)', count: 19, color: '#dc2626' },
+    ],
+    bottomEnterprises: [
+      { name: '恒盛食品加工厂', score: 30, change: -8 },
+      { name: '万通木业有限公司', score: 35, change: -5 },
+      { name: '宏基机械制造有限公司', score: 40, change: -3 },
+    ],
+    history: [
+      { month: '10月', score: 80 }, { month: '11月', score: 80 }, { month: '12月', score: 79 },
+      { month: '1月', score: 79 }, { month: '2月', score: 78 }, { month: '3月', score: 75 },
+    ],
+  },
+  {
+    name: '安全投入', score: 88, prevScore: 85, trend: 'up', trendDelta: 3,
+    distribution: [
+      { label: '优秀(≥80)', count: 340, color: '#16a34a' },
+      { label: '良好(60-79)', count: 110, color: '#4f46e5' },
+      { label: '关注(30-59)', count: 35, color: '#d97706' },
+      { label: '危险(<30)', count: 15, color: '#dc2626' },
+    ],
+    bottomEnterprises: [
+      { name: '永安制药有限公司', score: 35, change: -5 },
+      { name: '宏基机械制造有限公司', score: 50, change: 2 },
+      { name: '天成建材有限公司', score: 25, change: 0 },
+    ],
+    history: [
+      { month: '10月', score: 82 }, { month: '11月', score: 83 }, { month: '12月', score: 84 },
+      { month: '1月', score: 84 }, { month: '2月', score: 85 }, { month: '3月', score: 88 },
+    ],
+  },
+  {
+    name: '安全制度', score: 81, prevScore: 81, trend: 'stable', trendDelta: 0,
+    distribution: [
+      { label: '优秀(≥80)', count: 295, color: '#16a34a' },
+      { label: '良好(60-79)', count: 130, color: '#4f46e5' },
+      { label: '关注(30-59)', count: 48, color: '#d97706' },
+      { label: '危险(<30)', count: 27, color: '#dc2626' },
+    ],
+    bottomEnterprises: [
+      { name: '恒盛食品加工厂', score: 40, change: -2 },
+      { name: '鑫达化工有限公司', score: 45, change: 0 },
+      { name: '万通木业有限公司', score: 50, change: 3 },
+    ],
+    history: [
+      { month: '10月', score: 80 }, { month: '11月', score: 81 }, { month: '12月', score: 81 },
+      { month: '1月', score: 81 }, { month: '2月', score: 81 }, { month: '3月', score: 81 },
+    ],
+  },
+]
+
+// ---------- 转化路径漏斗 ----------
+
+export interface FunnelStage {
+  stage: string
+  count: number
+  rate?: number      // 该阶段 / 第一阶段的比率，用于视觉漏斗宽度
+  dropCount?: number // 流失数量（当前阶段 - 下一阶段）
+  color: string
+}
+
+const buildFunnel = (stages: { stage: string; count: number; color: string }[]): FunnelStage[] => {
+  const total = stages[0].count
+  return stages.map((s, i) => ({
+    ...s,
+    rate: Math.round((s.count / total) * 100),
+    dropCount: i < stages.length - 1 ? s.count - stages[i + 1].count : 0,
+  }))
+}
+
+export const teamFunnel: FunnelStage[] = buildFunnel([
+  { stage: '发现隐患', count: 500, color: '#4f46e5' },
+  { stage: '下发整改', count: 450, color: '#06b6d4' },
+  { stage: '整改完成', count: 380, color: '#16a34a' },
+  { stage: '复核通过', count: 320, color: '#16a34a' },
+  { stage: '完全闭环', count: 300, color: '#16a34a' },
+])
+
+// 按专家分组的漏斗，用于对比
+export interface ExpertFunnel {
+  expertId: string
+  expertName: string
+  stages: FunnelStage[]
+}
+
+export const expertFunnels: ExpertFunnel[] = [
+  {
+    expertId: 'ep-001', expertName: '今卓',
+    stages: buildFunnel([
+      { stage: '发现隐患', count: 68, color: '#4f46e5' },
+      { stage: '下发整改', count: 65, color: '#06b6d4' },
+      { stage: '整改完成', count: 58, color: '#16a34a' },
+      { stage: '复核通过', count: 52, color: '#16a34a' },
+      { stage: '完全闭环', count: 50, color: '#16a34a' },
+    ]),
+  },
+  {
+    expertId: 'ep-002', expertName: '李雷',
+    stages: buildFunnel([
+      { stage: '发现隐患', count: 55, color: '#4f46e5' },
+      { stage: '下发整改', count: 50, color: '#06b6d4' },
+      { stage: '整改完成', count: 40, color: '#16a34a' },
+      { stage: '复核通过', count: 32, color: '#16a34a' },
+      { stage: '完全闭环', count: 28, color: '#16a34a' },
+    ]),
+  },
+  {
+    expertId: 'ep-003', expertName: '韩梅梅',
+    stages: buildFunnel([
+      { stage: '发现隐患', count: 72, color: '#4f46e5' },
+      { stage: '下发整改', count: 70, color: '#06b6d4' },
+      { stage: '整改完成', count: 65, color: '#16a34a' },
+      { stage: '复核通过', count: 60, color: '#16a34a' },
+      { stage: '完全闭环', count: 58, color: '#16a34a' },
+    ]),
+  },
+]
+
+// ---------- 专家团队效能 ----------
+
+export interface ExpertMember {
+  id: string
+  name: string
+  avatar: string   // 首字，用于头像渲染
+  grade: 'A' | 'B' | 'C'   // A=优秀, B=良好, C=关注
+  // 核心指标
+  totalTasks: number          // 本月处理任务总数
+  avgClosureDays: number      // 平均闭环天数
+  closureRate: number         // 隐患一次性复核通过率（%）
+  riskAccuracy: number        // 风险评级准确率（%）
+  enterpriseCount: number     // 负责企业数
+  // 7维度绩效得分（对应 performanceDimensions）
+  performanceScore: number    // 综合绩效分 0-100
+  performanceDimensions: {
+    name: string
+    score: number
+    weight: number
+  }[]
+  // 本月/上月对比
+  taskGrowth: number         // 较上月任务量变化（%）
+  closureRateGrowth: number  // 较上月闭环率变化（百分点）
+  // 工作量趋势（近6周）
+  weeklyTasks: { week: string; count: number }[]
+}
+
+export const expertTeam: ExpertMember[] = [
+  {
+    id: 'ep-001', name: '今卓', avatar: '今', grade: 'A',
+    totalTasks: 125, avgClosureDays: 3.5, closureRate: 96, riskAccuracy: 92, enterpriseCount: 38,
+    performanceScore: 88,
+    performanceDimensions: [
+      { name: '企业基础覆盖度', score: 85, weight: 10 },
+      { name: '制度数字化完善度', score: 72, weight: 10 },
+      { name: '风险识别精准度', score: 92, weight: 10 },
+      { name: '检查计划科学度', score: 80, weight: 10 },
+      { name: '自查执行活跃度', score: 65, weight: 15 },
+      { name: '隐患闭环治理度', score: 78, weight: 15 },
+      { name: '远程监管效能度', score: 90, weight: 30 },
+    ],
+    taskGrowth: 12, closureRateGrowth: 3,
+    weeklyTasks: [
+      { week: 'W1', count: 18 }, { week: 'W2', count: 22 }, { week: 'W3', count: 20 },
+      { week: 'W4', count: 25 }, { week: 'W5', count: 21 }, { week: 'W6', count: 19 },
+    ],
+  },
+  {
+    id: 'ep-002', name: '李雷', avatar: '李', grade: 'B',
+    totalTasks: 98, avgClosureDays: 4.8, closureRate: 88, riskAccuracy: 85, enterpriseCount: 32,
+    performanceScore: 72,
+    performanceDimensions: [
+      { name: '企业基础覆盖度', score: 78, weight: 10 },
+      { name: '制度数字化完善度', score: 60, weight: 10 },
+      { name: '风险识别精准度', score: 85, weight: 10 },
+      { name: '检查计划科学度', score: 70, weight: 10 },
+      { name: '自查执行活跃度', score: 55, weight: 15 },
+      { name: '隐患闭环治理度', score: 65, weight: 15 },
+      { name: '远程监管效能度', score: 78, weight: 30 },
+    ],
+    taskGrowth: -5, closureRateGrowth: -2,
+    weeklyTasks: [
+      { week: 'W1', count: 15 }, { week: 'W2', count: 18 }, { week: 'W3', count: 14 },
+      { week: 'W4', count: 17 }, { week: 'W5', count: 16 }, { week: 'W6', count: 18 },
+    ],
+  },
+  {
+    id: 'ep-003', name: '韩梅梅', avatar: '韩', grade: 'A',
+    totalTasks: 142, avgClosureDays: 2.9, closureRate: 98, riskAccuracy: 95, enterpriseCount: 45,
+    performanceScore: 94,
+    performanceDimensions: [
+      { name: '企业基础覆盖度', score: 95, weight: 10 },
+      { name: '制度数字化完善度', score: 88, weight: 10 },
+      { name: '风险识别精准度', score: 95, weight: 10 },
+      { name: '检查计划科学度', score: 92, weight: 10 },
+      { name: '自查执行活跃度', score: 85, weight: 15 },
+      { name: '隐患闭环治理度', score: 90, weight: 15 },
+      { name: '远程监管效能度', score: 98, weight: 30 },
+    ],
+    taskGrowth: 18, closureRateGrowth: 5,
+    weeklyTasks: [
+      { week: 'W1', count: 22 }, { week: 'W2', count: 25 }, { week: 'W3', count: 24 },
+      { week: 'W4', count: 28 }, { week: 'W5', count: 22 }, { week: 'W6', count: 21 },
+    ],
+  },
+  {
+    id: 'ep-004', name: '张峰', avatar: '张', grade: 'C',
+    totalTasks: 68, avgClosureDays: 7.2, closureRate: 72, riskAccuracy: 78, enterpriseCount: 28,
+    performanceScore: 55,
+    performanceDimensions: [
+      { name: '企业基础覆盖度', score: 60, weight: 10 },
+      { name: '制度数字化完善度', score: 45, weight: 10 },
+      { name: '风险识别精准度', score: 78, weight: 10 },
+      { name: '检查计划科学度', score: 50, weight: 10 },
+      { name: '自查执行活跃度', score: 38, weight: 15 },
+      { name: '隐患闭环治理度', score: 45, weight: 15 },
+      { name: '远程监管效能度', score: 58, weight: 30 },
+    ],
+    taskGrowth: -15, closureRateGrowth: -8,
+    weeklyTasks: [
+      { week: 'W1', count: 12 }, { week: 'W2', count: 10 }, { week: 'W3', count: 11 },
+      { week: 'W4', count: 12 }, { week: 'W5', count: 11 }, { week: 'W6', count: 12 },
+    ],
+  },
+  {
+    id: 'ep-005', name: '陈晨', avatar: '陈', grade: 'B',
+    totalTasks: 112, avgClosureDays: 4.1, closureRate: 91, riskAccuracy: 88, enterpriseCount: 35,
+    performanceScore: 78,
+    performanceDimensions: [
+      { name: '企业基础覆盖度', score: 82, weight: 10 },
+      { name: '制度数字化完善度', score: 70, weight: 10 },
+      { name: '风险识别精准度', score: 88, weight: 10 },
+      { name: '检查计划科学度', score: 75, weight: 10 },
+      { name: '自查执行活跃度', score: 62, weight: 15 },
+      { name: '隐患闭环治理度', score: 72, weight: 15 },
+      { name: '远程监管效能度', score: 82, weight: 30 },
+    ],
+    taskGrowth: 8, closureRateGrowth: 1,
+    weeklyTasks: [
+      { week: 'W1', count: 17 }, { week: 'W2', count: 20 }, { week: 'W3', count: 18 },
+      { week: 'W4', count: 20 }, { week: 'W5', count: 18 }, { week: 'W6', count: 19 },
+    ],
+  },
+]
+
+// ---------- 原有数据（保留，其他区块仍在使用）----------
+
 export const stationChiefMock = {
   // 核心结果指标
   coreResults: [
@@ -31,23 +380,13 @@ export const stationChiefMock = {
     }
   ],
 
-  // 隐患数量趋势
   hazardTrend: [
-    { label: '1月', value: 85 },
-    { label: '2月', value: 78 },
-    { label: '3月', value: 72 },
-    { label: '4月', value: 68 },
-    { label: '5月', value: 65 },
-    { label: '6月', value: 58 },
-    { label: '7月', value: 52 },
-    { label: '8月', value: 48 },
-    { label: '9月', value: 45 },
-    { label: '10月', value: 42 },
-    { label: '11月', value: 38 },
-    { label: '12月', value: 47 }
+    { label: '1月', value: 85 }, { label: '2月', value: 78 }, { label: '3月', value: 72 },
+    { label: '4月', value: 68 }, { label: '5月', value: 65 }, { label: '6月', value: 58 },
+    { label: '7月', value: 52 }, { label: '8月', value: 48 }, { label: '9月', value: 45 },
+    { label: '10月', value: 42 }, { label: '11月', value: 38 }, { label: '12月', value: 47 }
   ],
 
-  // 隐患等级分布
   hazardDistribution: [
     { label: '重大隐患', value: 12, color: '#dc2626' },
     { label: '较大隐患', value: 35, color: '#d97706' },
@@ -55,49 +394,21 @@ export const stationChiefMock = {
     { label: '低风险', value: 289, color: '#06b6d4' }
   ],
 
-  // 专家过程管理指标
   expertManagement: [
-    {
-      title: '专家任务完成率',
-      value: '92.3%',
-      unit: '',
-      trend: { value: 3.2, label: '较上周', type: 'up' as const }
-    },
-    {
-      title: '重点企业到访率',
-      value: '85.6%',
-      unit: '',
-      trend: { value: 7.8, label: '较上周', type: 'up' as const }
-    },
-    {
-      title: '重大隐患跟进率',
-      value: '100%',
-      unit: '',
-      trend: { value: 0, label: '保持', type: 'neutral' as const }
-    },
-    {
-      title: '专家推动整改率',
-      value: '76.8%',
-      unit: '',
-      trend: { value: 4.5, label: '较上周', type: 'up' as const }
-    }
+    { title: '专家任务完成率', value: '92.3%', trend: { value: 3.2, label: '较上周', type: 'up' as const } },
+    { title: '重点企业到访率', value: '85.6%', trend: { value: 7.8, label: '较上周', type: 'up' as const } },
+    { title: '重大隐患跟进率', value: '100%',  trend: { value: 0,   label: '保持',   type: 'neutral' as const } },
+    { title: '专家推动整改率', value: '76.8%', trend: { value: 4.5, label: '较上周', type: 'up' as const } }
   ],
 
-  // 专家工作量排名
   expertRanking: [
-    { rank: 1, label: '张三', value: '125家', trend: 'up' as const },
-    { rank: 2, label: '李四', value: '118家', trend: 'up' as const },
-    { rank: 3, label: '王五', value: '112家', trend: 'same' as const },
-    { rank: 4, label: '赵六', value: '108家', trend: 'up' as const },
-    { rank: 5, label: '钱七', value: '102家', trend: 'down' as const },
-    { rank: 6, label: '孙八', value: '98家', trend: 'up' as const },
-    { rank: 7, label: '周九', value: '95家', trend: 'same' as const },
-    { rank: 8, label: '吴十', value: '92家', trend: 'down' as const },
-    { rank: 9, label: '郑十一', value: '88家', trend: 'up' as const },
-    { rank: 10, label: '王十二', value: '85家', trend: 'up' as const }
+    { rank: 1, label: '韩梅梅', value: '142件', trend: 'up' as const },
+    { rank: 2, label: '今卓',   value: '125件', trend: 'up' as const },
+    { rank: 3, label: '陈晨',   value: '112件', trend: 'up' as const },
+    { rank: 4, label: '李雷',   value: '98件',  trend: 'down' as const },
+    { rank: 5, label: '张峰',   value: '68件',  trend: 'down' as const },
   ],
 
-  // 专家任务状态
   expertTaskStatus: [
     { label: '已完成', status: 'success' as const, count: 856 },
     { label: '进行中', status: 'warning' as const, count: 125 },
@@ -105,7 +416,6 @@ export const stationChiefMock = {
     { label: '待分配', status: 'neutral' as const, count: 45 }
   ],
 
-  // 重大隐患列表
   majorHazardColumns: [
     { key: 'enterprise', label: '企业名称', width: '180px' },
     { key: 'hazard', label: '隐患描述', width: '200px' },
@@ -114,51 +424,14 @@ export const stationChiefMock = {
     { key: 'status', label: '状态', width: '100px' },
     { key: 'days', label: '持续天数', width: '80px' }
   ],
-
   majorHazards: [
-    {
-      enterprise: '某化工厂',
-      hazard: '危化品存储区域消防设施不足',
-      level: '重大',
-      expert: '张三',
-      status: '整改中',
-      days: '15'
-    },
-    {
-      enterprise: '某纺织厂',
-      hazard: '疏散通道被堵塞',
-      level: '重大',
-      expert: '李四',
-      status: '已整改待复核',
-      days: '8'
-    },
-    {
-      enterprise: '某电子厂',
-      hazard: '电气线路老化严重',
-      level: '较大',
-      expert: '王五',
-      status: '整改中',
-      days: '12'
-    },
-    {
-      enterprise: '某机械厂',
-      hazard: '特种设备未按时检验',
-      level: '重大',
-      expert: '赵六',
-      status: '超期未整改',
-      days: '22'
-    },
-    {
-      enterprise: '某食品厂',
-      hazard: '消防控制室无人值守',
-      level: '较大',
-      expert: '钱七',
-      status: '整改中',
-      days: '6'
-    }
+    { enterprise: '鑫达化工有限公司',    hazard: '消防通道被原材料堵塞',        level: '重大', expert: '今卓',   status: '整改中',      days: '8' },
+    { enterprise: '天成建材有限公司',    hazard: '消防水带老化/灭火器过期',      level: '重大', expert: '今卓',   status: '超期未整改',  days: '5' },
+    { enterprise: '鑫源金属制品有限公司', hazard: 'VOCs超标/喷漆车间通风故障',  level: '重大', expert: '李雷',   status: '整改中',      days: '4' },
+    { enterprise: '华通物流有限公司',    hazard: '应急预案超期未更新',          level: '较大', expert: '韩梅梅', status: '整改中',      days: '14' },
+    { enterprise: '宏基机械制造有限公司', hazard: '冲压车间安全防护罩松动',     level: '一般', expert: '陈晨',   status: '已整改待复核', days: '7' },
   ],
 
-  // 企业风险等级分布
   enterpriseRiskDistribution: [
     { label: '重大风险', value: 8, color: '#dc2626' },
     { label: '较大风险', value: 23, color: '#d97706' },
@@ -166,11 +439,39 @@ export const stationChiefMock = {
     { label: '低风险', value: 313, color: '#06b6d4' }
   ],
 
-  // 辖区安全状态
   districtSafetyStatus: [
-    { label: '安全平稳', status: 'success' as const, count: 856 },
-    { label: '需要关注', status: 'warning' as const, count: 45 },
-    { label: '风险较高', status: 'danger' as const, count: 12 },
-    { label: '待排查', status: 'neutral' as const, count: 89 }
-  ]
+    { label: '隐患整改逾期', status: 'danger' as const, count: 8 },
+    { label: '从不自查企业', status: 'danger' as const, count: 15 },
+    { label: '风险评级待核对', status: 'warning' as const, count: 23 },
+    { label: '本周正常巡查', status: 'success' as const, count: 310 },
+  ],
+
+  // 七大维度治理效果（新版，引用上方详细数据）
+  governanceSevenDimensions: dimensionScores,
+
+  // 团队整体转化路径（新版）
+  conversionFunnel: teamFunnel,
+  expertFunnels,
+
+  // 专家效能（新版）
+  expertTeam,
+
+  // 企业状态路径（对应状态机：已开通→已采集→数据已授权→AI评估→合格/不合格分流）
+  enterpriseStatusPath: {
+    total: 500,
+    nodes: {
+      opened:      { label: '已开通',      count: 500, desc: '已注册登录小程序' },
+      collected:   { label: '已采集',      count: 420, desc: '完成信息采集表单' },
+      authorized:  { label: '数据已授权',  count: 380, desc: '授权一企一档给镇街' },
+      qualified:   { label: '合格',        count: 218, desc: 'AI评估7维度均正常' },
+      unqualified: { label: '不合格',      count: 162, desc: 'AI评估存在异常项' },
+      // 不合格分支
+      noTodo:      { label: '无需跟进',    count: 45,  desc: '专家判断无需待办' },
+      hasTodo:     { label: '已下发待办',  count: 117, desc: '专家已创建隐患/待办' },
+      unread:      { label: '待办未读',    count: 28,  desc: '企业尚未查看待办' },
+      inProgress:  { label: '整改中',      count: 52,  desc: '正在整改，期限内' },
+      overdue:     { label: '整改逾期',    count: 18,  desc: '超期未完成整改' },
+      reviewing:   { label: '专家验收',    count: 19,  desc: '企业提交，等待验收' },
+    },
+  },
 }
