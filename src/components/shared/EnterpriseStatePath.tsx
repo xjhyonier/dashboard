@@ -139,9 +139,14 @@ const EXPERT_RISK_DATA: Record<string, Record<string, Record<string, string>>> =
 }
 
 function getDataByExpert(expertId?: string): Record<string, string> {
+  // 支持专家工作台的专家ID格式 (expert-1, expert-2, expert-3)
   if (expertId === 'expert-1') return EXPERT_1_DATA
   if (expertId === 'expert-2') return EXPERT_2_DATA
   if (expertId === 'expert-3') return EXPERT_3_DATA
+  // 支持站长看板的专家ID格式 (ep-001, ep-002, ep-003, ep-004, ep-005)
+  if (expertId === 'ep-001') return EXPERT_1_DATA
+  if (expertId === 'ep-002') return EXPERT_2_DATA
+  if (expertId === 'ep-003' || expertId === 'ep-004' || expertId === 'ep-005') return EXPERT_3_DATA
   return ALL_DATA
 }
 
@@ -364,7 +369,7 @@ export function EnterpriseStatePath({ onGotoQueue: _onGotoQueue, height = 480, e
   }, [])
 
   return (
-    <div className="bg-white rounded-xl border border-zinc-200/60 overflow-hidden">
+    <div className="bg-white rounded-xl border border-zinc-200/60 overflow-hidden mb-8">
       {/* 标题栏 */}
       <div className="px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
         <div className="w-5 h-5 rounded bg-zinc-700 flex items-center justify-center flex-shrink-0">

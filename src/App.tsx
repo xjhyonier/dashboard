@@ -64,7 +64,14 @@ function App() {
 
   const businesses = [quickBIConfig, emergencyConfig]
   const currentBusinessConfig = businesses.find(b => b.id === currentBusiness)
-  const roles = currentBusinessConfig?.roles || []
+  // 隐藏不需要展示的角色（例如：暂时移除“应消站站长”）
+  const roles = (currentBusinessConfig?.roles || []).filter(r => {
+  // 保留站长入口：只隐藏临时需要移除的角色项可通过 feature flag 控制，默认不隐藏 station-chief
+  if (currentBusiness === 'emergency' && r.id === 'station-chief') {
+    return true
+  }
+  return true
+})
 
   const handleBusinessChange = (businessId: string) => {
     navigate(DEFAULT_PATH_BY_BUSINESS[businessId as keyof typeof DEFAULT_PATH_BY_BUSINESS] ?? '/emergency/expert/queue')

@@ -17,9 +17,14 @@ export function PageShell({
     full: 'max-w-full'
   }[maxWidth]
 
+  // 当maxWidth为full时，移除mx-auto让内容左对齐
+  const containerClass = maxWidth === 'full' 
+    ? `px-8 ${maxWidthClass} ${className}`
+    : `mx-auto px-8 ${maxWidthClass} ${className}`
+
   return (
     <div className="min-h-screen bg-slate-50 py-8">
-      <div className={`mx-auto px-8 ${maxWidthClass} ${className}`}>
+      <div className={containerClass}>
         {children}
       </div>
     </div>

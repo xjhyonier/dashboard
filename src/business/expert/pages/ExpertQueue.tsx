@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react'
 import { type QueueTask, type TaskType } from '../mock'
 import expertMock from '../mock'
 import { AiEvaluationModal } from '../components/AiEvaluationModal'
-import { EnterpriseStatePath } from '../../../components/shared/EnterpriseStatePath'
 
 const TYPE_LABELS: Record<TaskType, string> = {
   risk_check: '风险核对',
@@ -554,9 +553,6 @@ function PerformanceBoard({ onGotoQueue }: { onGotoQueue: () => void }) {
         <h2 className="text-lg font-semibold text-zinc-800">今日工作成效</h2>
         <p className="text-sm text-zinc-500 mt-1">对标考核目标 · 权重最高优先 | 2026年4月5日</p>
       </div>
-
-      {/* ===== 企业状态路径图 ===== */}
-      <EnterpriseStatePath onGotoQueue={onGotoQueue} />
 
       {/* ===== 7维度环形进度指标面板 ===== */}
       <div className="grid grid-cols-4 gap-4 mb-6">

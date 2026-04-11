@@ -345,6 +345,198 @@ export const expertTeam: ExpertMember[] = [
   },
 ]
 
+// ---------- 工作组数据（用于工作组对比）----------
+
+export interface WorkGroup {
+  id: string
+  name: string
+  area: string
+  riskLevel: 'major' | 'high' | 'general' | 'safety'
+  leader: string
+  deputy: string
+  members: string[]
+  memberCount: number
+  // 考核指标
+  totalTasks: number
+  completedTasks: number
+  completionRate: number
+  avgClosureDays: number
+  hazardFound: number
+  hazardClosed: number
+  closureRate: number
+  overdueTasks: number
+  enterpriseCount: number
+  checkedEnterpriseCount: number
+  coverageRate: number
+  // 环比
+  taskGrowth: number
+  completionRateGrowth: number
+}
+
+export const workGroups: WorkGroup[] = [
+  {
+    id: 'wg-001', name: '物流片安全组', area: '物流片', riskLevel: 'safety',
+    leader: '陈伟', deputy: '张义', members: ['洪涛', '段晓辉', '吴灿刚'], memberCount: 5,
+    totalTasks: 156, completedTasks: 142, completionRate: 91.0,
+    avgClosureDays: 3.2, hazardFound: 68, hazardClosed: 62, closureRate: 91.2,
+    overdueTasks: 3, enterpriseCount: 45, checkedEnterpriseCount: 42, coverageRate: 93.3,
+    taskGrowth: 12, completionRateGrowth: 3
+  },
+  {
+    id: 'wg-002', name: '良渚片重大', area: '良渚片', riskLevel: 'major',
+    leader: '陈超', deputy: '张义', members: ['郑富彬', '吴灿刚'], memberCount: 4,
+    totalTasks: 128, completedTasks: 108, completionRate: 84.4,
+    avgClosureDays: 4.8, hazardFound: 52, hazardClosed: 42, closureRate: 80.8,
+    overdueTasks: 8, enterpriseCount: 38, checkedEnterpriseCount: 32, coverageRate: 84.2,
+    taskGrowth: -5, completionRateGrowth: -2
+  },
+  {
+    id: 'wg-003', name: '良渚片较大', area: '良渚片', riskLevel: 'high',
+    leader: '杨宇天', deputy: '张义', members: ['张平水', '吴灿刚'], memberCount: 4,
+    totalTasks: 142, completedTasks: 132, completionRate: 93.0,
+    avgClosureDays: 2.9, hazardFound: 58, hazardClosed: 55, closureRate: 94.8,
+    overdueTasks: 2, enterpriseCount: 42, checkedEnterpriseCount: 40, coverageRate: 95.2,
+    taskGrowth: 18, completionRateGrowth: 5
+  },
+  {
+    id: 'wg-004', name: '勾庄片重大', area: '勾庄片', riskLevel: 'major',
+    leader: '施伟奇', deputy: '张义', members: ['刘浩鑫', '吴灿刚'], memberCount: 4,
+    totalTasks: 98, completedTasks: 82, completionRate: 83.7,
+    avgClosureDays: 5.2, hazardFound: 45, hazardClosed: 36, closureRate: 80.0,
+    overdueTasks: 6, enterpriseCount: 35, checkedEnterpriseCount: 28, coverageRate: 80.0,
+    taskGrowth: -8, completionRateGrowth: -3
+  },
+  {
+    id: 'wg-005', name: '勾庄片较大', area: '勾庄片', riskLevel: 'high',
+    leader: '金锋永', deputy: '张义', members: ['李磊', '吴灿刚'], memberCount: 4,
+    totalTasks: 135, completedTasks: 125, completionRate: 92.6,
+    avgClosureDays: 3.5, hazardFound: 48, hazardClosed: 45, closureRate: 93.8,
+    overdueTasks: 4, enterpriseCount: 40, checkedEnterpriseCount: 38, coverageRate: 95.0,
+    taskGrowth: 8, completionRateGrowth: 2
+  },
+]
+
+// ---------- 政府人员数据（组长、副站长）----------
+
+export interface GovernmentMember {
+  id: string
+  name: string
+  role: 'leader' | 'deputy'   // leader=组长, deputy=副站长
+  avatar: string               // 首字，用于头像渲染
+  // 负责区域
+  areas: string[]              // 负责的片区列表
+  workGroups: string[]         // 负责的工作组名称列表
+  // 履职指标
+  enterprisesResponsible: number  // 负责多少家
+  enterprisesInspected: number    // 检查多少家
+  hazardsFound: number            // 发现隐患
+  majorHazards: number            // 重大隐患
+  hazardsRectified: number        // 已整改
+  rectificationRate: number       // 整改率（%）
+  inProgress: number              // 整改中
+  overdueUnrectified: number      // 逾期未整改
+}
+
+// 从 workGroups 中提取政府人员数据
+export const governmentMembers: GovernmentMember[] = [
+  {
+    id: 'gov-001',
+    name: '杨宇天',
+    role: 'leader',
+    avatar: '杨',
+    areas: ['良渚片'],
+    workGroups: ['良渚片较大'],
+    enterprisesResponsible: 42,
+    enterprisesInspected: 40,
+    hazardsFound: 58,
+    majorHazards: 6,
+    hazardsRectified: 55,
+    rectificationRate: 94.8,
+    inProgress: 2,
+    overdueUnrectified: 1,
+  },
+  {
+    id: 'gov-002',
+    name: '张义',
+    role: 'deputy',
+    avatar: '张',
+    areas: ['物流片', '良渚片', '勾庄片'],
+    workGroups: ['物流片安全组', '良渚片重大', '良渚片较大', '勾庄片重大', '勾庄片较大'],
+    enterprisesResponsible: 200,
+    enterprisesInspected: 179,
+    hazardsFound: 271,
+    majorHazards: 28,
+    hazardsRectified: 240,
+    rectificationRate: 88.6,
+    inProgress: 25,
+    overdueUnrectified: 6,
+  },
+  {
+    id: 'gov-003',
+    name: '陈伟',
+    role: 'leader',
+    avatar: '陈',
+    areas: ['物流片'],
+    workGroups: ['物流片安全组'],
+    enterprisesResponsible: 45,
+    enterprisesInspected: 42,
+    hazardsFound: 68,
+    majorHazards: 7,
+    hazardsRectified: 62,
+    rectificationRate: 91.2,
+    inProgress: 5,
+    overdueUnrectified: 1,
+  },
+  {
+    id: 'gov-004',
+    name: '陈超',
+    role: 'leader',
+    avatar: '陈',
+    areas: ['良渚片'],
+    workGroups: ['良渚片重大'],
+    enterprisesResponsible: 38,
+    enterprisesInspected: 32,
+    hazardsFound: 52,
+    majorHazards: 5,
+    hazardsRectified: 42,
+    rectificationRate: 80.8,
+    inProgress: 8,
+    overdueUnrectified: 2,
+  },
+  {
+    id: 'gov-005',
+    name: '施伟奇',
+    role: 'leader',
+    avatar: '施',
+    areas: ['勾庄片'],
+    workGroups: ['勾庄片重大'],
+    enterprisesResponsible: 35,
+    enterprisesInspected: 28,
+    hazardsFound: 45,
+    majorHazards: 4,
+    hazardsRectified: 36,
+    rectificationRate: 80.0,
+    inProgress: 7,
+    overdueUnrectified: 2,
+  },
+  {
+    id: 'gov-006',
+    name: '金锋永',
+    role: 'leader',
+    avatar: '金',
+    areas: ['勾庄片'],
+    workGroups: ['勾庄片较大'],
+    enterprisesResponsible: 40,
+    enterprisesInspected: 38,
+    hazardsFound: 48,
+    majorHazards: 4,
+    hazardsRectified: 45,
+    rectificationRate: 93.8,
+    inProgress: 2,
+    overdueUnrectified: 1,
+  },
+]
+
 // ---------- 原有数据（保留，其他区块仍在使用）----------
 
 export const stationChiefMock = {
@@ -456,6 +648,9 @@ export const stationChiefMock = {
   // 专家效能（新版）
   expertTeam,
 
+  // 政府人员（组长、副站长）
+  governmentMembers,
+
   // 企业状态路径（对应状态机：已开通→已采集→数据已授权→AI评估→合格/不合格分流）
   enterpriseStatusPath: {
     total: 500,
@@ -474,4 +669,269 @@ export const stationChiefMock = {
       reviewing:   { label: '专家验收',    count: 19,  desc: '企业提交，等待验收' },
     },
   },
+
+  // 专家工作行为统计（团队累计）
+  expertWorkBehavior: [
+    {
+      id: 'risk_annotated',
+      label: '风险标注',
+      desc: '完成风险评级核对',
+      count: 42,
+      unit: '次',
+      color: 'blue' as const,
+    },
+    {
+      id: 'hazard_created',
+      label: '隐患下发',
+      desc: '检查中发现并下发隐患',
+      count: 18,
+      unit: '次',
+      color: 'red' as const,
+    },
+    {
+      id: 'hazard_verified',
+      label: '隐患复核',
+      desc: '验收企业整改结果',
+      count: 56,
+      unit: '次',
+      color: 'emerald' as const,
+    },
+    {
+      id: 'onsite_inspect',
+      label: '现场巡查',
+      desc: '到企业现场检查',
+      count: 32,
+      unit: '次',
+      color: 'amber' as const,
+    },
+    {
+      id: 'video_inspect',
+      label: '视频巡查',
+      desc: '远程视频检查',
+      count: 48,
+      unit: '次',
+      color: 'violet' as const,
+    },
+    {
+      id: 'consult_replied',
+      label: '咨询回复',
+      desc: '回复企业提问',
+      count: 28,
+      unit: '次',
+      color: 'cyan' as const,
+    },
+    {
+      id: 'ledger_updated',
+      label: '台账更新',
+      desc: '服务记录写入台账',
+      count: 85,
+      unit: '次',
+      color: 'slate' as const,
+    },
+    {
+      id: 'enterprise_contact',
+      label: '企业互动',
+      desc: '电话/微信/平台联系',
+      count: 124,
+      unit: '次',
+      color: 'sky' as const,
+    },
+  ],
+
+  // 较大风险企业名单（对照企业端安全业务活动10维度）
+  highRiskEnterprises: [
+    {
+      id: 'ent_001',
+      name: '鑫达化工有限公司',
+      riskLevel: '重大风险',
+      aiScore: 25,
+      status: '整改中',
+      // 企业端安全业务活动10维度
+      infoCollection: true,              // 1. 信息采集
+      riskPointCount: 28,                // 2. 风险点识别
+      safetySystemBuilt: true,           // 3. 安全制度建立
+      inspectionPlanCount: 2,             // 4. 企业创建的检查任务（按周/月/季）
+      inspectionExecutionRate: 85,      // 5. 企业按计划检查
+      thirdPartySync: true,              // 6. 第三方平台账号同步
+      patrolCount: 12,                   // 7. 安全巡查/随手拍
+      trainingCount: 3,                  // 8. 教育培训
+      workPermitCount: 5,                // 9. 作业票报备
+      // 10. 隐患（分来源）
+      hazardSelfCheck: 5,               // 自查自纠隐患
+      hazardPlatform: 2,                 // 平台隐患（待办）
+      hazardMajor: 2,                    // 重大隐患
+    },
+    {
+      id: 'ent_002',
+      name: '天成建材有限公司',
+      riskLevel: '重大风险',
+      aiScore: 18,
+      status: '超期未整改',
+      infoCollection: true,
+      riskPointCount: 15,
+      safetySystemBuilt: false,
+      inspectionPlanCount: 1,
+      inspectionExecutionRate: 45,
+      thirdPartySync: false,
+      patrolCount: 3,
+      trainingCount: 1,
+      workPermitCount: 2,
+      hazardSelfCheck: 3,
+      hazardPlatform: 1,
+      hazardMajor: 3,
+    },
+    {
+      id: 'ent_003',
+      name: '鑫源金属制品有限公司',
+      riskLevel: '较大风险',
+      aiScore: 35,
+      status: '整改中',
+      infoCollection: true,
+      riskPointCount: 22,
+      safetySystemBuilt: true,
+      inspectionPlanCount: 3,
+      inspectionExecutionRate: 92,
+      thirdPartySync: true,
+      patrolCount: 18,
+      trainingCount: 4,
+      workPermitCount: 8,
+      hazardSelfCheck: 4,
+      hazardPlatform: 1,
+      hazardMajor: 0,
+    },
+    {
+      id: 'ent_004',
+      name: '华通物流有限公司',
+      riskLevel: '较大风险',
+      aiScore: 42,
+      status: '整改中',
+      infoCollection: true,
+      riskPointCount: 18,
+      safetySystemBuilt: true,
+      inspectionPlanCount: 2,
+      inspectionExecutionRate: 78,
+      thirdPartySync: true,
+      patrolCount: 9,
+      trainingCount: 2,
+      workPermitCount: 3,
+      hazardSelfCheck: 2,
+      hazardPlatform: 1,
+      hazardMajor: 0,
+    },
+    {
+      id: 'ent_005',
+      name: '永安制药有限公司',
+      riskLevel: '较大风险',
+      aiScore: 38,
+      status: '待下发',
+      infoCollection: true,
+      riskPointCount: 12,
+      safetySystemBuilt: false,
+      inspectionPlanCount: 1,
+      inspectionExecutionRate: 60,
+      thirdPartySync: false,
+      patrolCount: 5,
+      trainingCount: 1,
+      workPermitCount: 1,
+      hazardSelfCheck: 2,
+      hazardPlatform: 1,
+      hazardMajor: 0,
+    },
+    {
+      id: 'ent_006',
+      name: '宏基机械制造有限公司',
+      riskLevel: '较大风险',
+      aiScore: 45,
+      status: '已整改待复核',
+      infoCollection: true,
+      riskPointCount: 20,
+      safetySystemBuilt: true,
+      inspectionPlanCount: 3,
+      inspectionExecutionRate: 95,
+      thirdPartySync: true,
+      patrolCount: 15,
+      trainingCount: 5,
+      workPermitCount: 6,
+      hazardSelfCheck: 3,
+      hazardPlatform: 1,
+      hazardThirdParty: 0,
+      hazardMajor: 0,
+    },
+    {
+      id: 'ent_007',
+      name: '万通木业有限公司',
+      riskLevel: '一般风险',
+      aiScore: 62,
+      status: '正常',
+      infoCollection: true,
+      riskPointCount: 10,
+      safetySystemBuilt: false,
+      inspectionPlanCount: 1,
+      inspectionExecutionRate: 55,
+      thirdPartySync: false,
+      patrolCount: 4,
+      trainingCount: 1,
+      workPermitCount: 1,
+      hazardSelfCheck: 1,
+      hazardPlatform: 1,
+      hazardMajor: 0,
+    },
+    {
+      id: 'ent_008',
+      name: '恒盛食品加工厂',
+      riskLevel: '一般风险',
+      aiScore: 68,
+      status: '正常',
+      infoCollection: true,
+      riskPointCount: 8,
+      safetySystemBuilt: true,
+      inspectionPlanCount: 2,
+      inspectionExecutionRate: 75,
+      thirdPartySync: true,
+      patrolCount: 6,
+      trainingCount: 2,
+      workPermitCount: 0,
+      hazardSelfCheck: 2,
+      hazardPlatform: 0,
+      hazardMajor: 0,
+    },
+    {
+      id: 'ent_009',
+      name: '永安制药有限公司',
+      riskLevel: '较大风险',
+      aiScore: 38,
+      status: '待下发',
+      infoCollection: true,
+      riskPointCount: 12,
+      safetySystemBuilt: false,
+      inspectionPlanCount: 1,
+      inspectionExecutionRate: 60,
+      thirdPartySync: false,
+      patrolCount: 5,
+      trainingCount: 1,
+      workPermitCount: 1,
+      hazardSelfCheck: 2,
+      hazardPlatform: 1,
+      hazardMajor: 0,
+    },
+    {
+      id: 'ent_010',
+      name: '龙腾仓储有限公司',
+      riskLevel: '低风险',
+      aiScore: 88,
+      status: '正常',
+      infoCollection: true,
+      riskPointCount: 5,
+      safetySystemBuilt: true,
+      inspectionPlanCount: 2,
+      inspectionExecutionRate: 100,
+      thirdPartySync: true,
+      patrolCount: 20,
+      trainingCount: 4,
+      workPermitCount: 3,
+      hazardSelfCheck: 0,
+      hazardPlatform: 0,
+      hazardMajor: 0,
+    },
+  ],
 }
