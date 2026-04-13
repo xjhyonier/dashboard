@@ -53,6 +53,7 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
   )
   const [dimensionFilter, setDimensionFilter] = useState<string>('all')
   const [sourceFilter, setSourceFilter] = useState<string>('all')
+  const [hazardLevelFilter, setHazardLevelFilter] = useState<string>('all')
 
   // 加载数据库数据
   useEffect(() => {
@@ -112,13 +113,22 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
     return ['all', ...Array.from(set).sort()]
   }, [hazardRecords])
 
-  // 风险等级映射：筛选值 → 数据值
-  const riskLevelMap: Record<string, string> = {
-    major: 'major',
-    high: 'high',
-    medium: 'general',
-    low: 'general',
+  // 隐患等级筛选映射
+  const hazardLevelMap: Record<string, string> = {
+    '全部': 'all',
+    '重大隐患': '重大隐患',
+    '一般隐患': '一般隐患',
   }
+
+  // 各隐患等级统计
+  const hazardLevelCounts = useMemo(() => {
+    const counts = { all: hazardRecords.length, '重大隐患': 0, '一般隐患': 0 }
+    hazardRecords.forEach(r => {
+      if (r.level === '重大隐患') counts['重大隐患']++
+      if (r.level === '一般隐患') counts['一般隐患']++
+    })
+    return counts
+  }, [hazardRecords])
 
   // 计算逾期天数（只对已逾期的隐患显示正数）
   const getOverdueDays = (deadline: string, status: string) => {
@@ -134,13 +144,10 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
   // 过滤后的隐患列表
   const filtered = useMemo(() => {
     return hazardRecords.filter(r => {
-      // 风险等级筛选
-      if (riskLevel !== 'all' && selectedKpi !== 'serious') {
-        const mappedLevel = riskLevelMap[riskLevel]
-        if (r.level !== mappedLevel) return false
+      // 隐患等级筛选
+      if (hazardLevelFilter !== 'all') {
+        if (r.level !== hazardLevelFilter) return false
       }
-      // 重大隐患筛选
-      if (selectedKpi === 'serious' && r.level !== 'major') return false
       // 状态筛选
       if (statusFilter !== 'all' && r.status !== statusFilter) return false
       // 来源筛选
@@ -164,7 +171,7 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
       }
       return true
     })
-  }, [hazardRecords, riskLevel, selectedKpi, statusFilter, sourceFilter, industryFilter, teamFilter, expertFilter, dimensionFilter, keyword])
+  }, [hazardRecords, hazardLevelFilter, statusFilter, sourceFilter, industryFilter, teamFilter, expertFilter, dimensionFilter, keyword])
 
   // 复用排序 hook - 使用 discovered_at 作为排序字段
   const { sortedData, sort, handleSort } = useSortableTable(filtered, 'discovered_at', 'desc')
@@ -194,6 +201,42 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
     <div>
       {/* 筛选器 */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap' }}>
+        {/* 隐患等级筛选 */}
+        <div>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>
+            隐患等级 {hazardLevelFilter !== 'all' && <span style={{ color: '#4F46E5' }}>（已筛选）</span>}
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {(['全部', '重大隐患', '一般隐患'] as const).map(level => {
+              const cfg = level === '全部'
+                ? { label: '全部', color: '#4F46E5', bg: '#EEF2FF', textColor: '#3730A3' }
+                : level === '重大隐患'
+                  ? { label: '重大隐患', color: '#DC2626', bg: '#FEE2E2', textColor: '#991B1B' }
+                  : { label: '一般隐患', color: '#D97706', bg: '#FEF3C7', textColor: '#92400E' }
+              const active = hazardLevelFilter === level || (level === '全部' && hazardLevelFilter === 'all')
+              const count = level === '全部' ? hazardLevelCounts.all : hazardLevelCounts[level as '重大隐患' | '一般隐患']
+              return (
+                <button
+                  key={level}
+                  onClick={() => setHazardLevelFilter(level === '全部' ? 'all' : level)}
+                  style={{
+                    padding: '3px 10px',
+                    borderRadius: 4,
+                    border: `1px solid ${active ? cfg.color : '#D1D5DB'}`,
+                    background: active ? cfg.bg : 'white',
+                    color: active ? cfg.textColor : '#6B7280',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: active ? 600 : 400,
+                  }}
+                >
+                  {cfg.label} {count > 0 && `(${count})`}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {/* 状态筛选 */}
         <div>
           <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>
