@@ -192,7 +192,7 @@ export function StationChiefV2Dashboard() {
         {[
           { key: 'duty', label: '组织与人员' },
           { key: 'industry', label: '行业分析' },
-          { key: 'special', label: '专项检查' },
+          { key: 'special', label: '任务计划' },
           { key: 'state', label: '企业状态' },
           { key: 'hazard', label: '隐患详情' },
         ].map(tab => (

@@ -38,6 +38,34 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
     return Array.from(map.entries()).map(([name, s]) => ({ name, ...s }))
   }, [])
 
+  // 消防类型汇总（从 Enterprise10D 按 fire_type 聚合）
+  const fireTypes = useMemo(() => {
+    const map = new Map<string, { enterpriseCount: number; inspectedCount: number; hazardFound: number; seriousHazard: number; rectified: number; deadline: number; recheck: number; enforcement: number }>()
+    const fireTypeNames: Record<string, string> = {
+      '九小场所': '九小场所',
+      '消防重点单位': '消防重点单位',
+      '一般单位': '一般单位',
+      '未知': '未知',
+    }
+    enterprises10D.forEach(e => {
+      if (e.enterprise_type !== '消防场所' || !e.fire_type) return
+      const type = e.fire_type
+      if (!map.has(type)) map.set(type, { enterpriseCount: 0, inspectedCount: 0, hazardFound: 0, seriousHazard: 0, rectified: 0, deadline: 0, recheck: 0, enforcement: 0 })
+      const s = map.get(type)!
+      s.enterpriseCount++
+      s.inspectedCount += e.inspection_count || 0
+      s.hazardFound += (e.hazard_self_check || 0) + (e.hazard_platform || 0)
+      s.seriousHazard += e.hazard_major || 0
+      if (e.hazard_rectify_status === 'completed') s.rectified++
+      if (e.hazard_rectify_status === 'partial') s.deadline++
+      if (e.hazard_rectify_status === 'rectifying') s.recheck++
+      s.enforcement += e.enforcement_count || 0
+    })
+    // 按九小场所、消防重点单位、一般单位、未知的顺序排列
+    const order = ['九小场所', '消防重点单位', '一般单位', '未知']
+    return order.map(name => ({ name, ...(map.get(name) || { enterpriseCount: 0, inspectedCount: 0, hazardFound: 0, seriousHazard: 0, rectified: 0, deadline: 0, recheck: 0, enforcement: 0 }) }))
+  }, [])
+
   return (
     <div>
       {/* 责任主体类型汇总表 */}
@@ -83,6 +111,56 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
                   <td style={{ ...tdStyle, color: '#D97706' }}>{subjectTypes.reduce((sum, s) => sum + s.deadline, 0)}</td>
                   <td style={tdStyle}>{subjectTypes.reduce((sum, s) => sum + s.recheck, 0)}</td>
                   <td style={tdStyle}>{subjectTypes.reduce((sum, s) => sum + s.enforcement, 0)}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 消防类型汇总表 */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>消防类型统计表</div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 700 }}>
+            <thead>
+              <tr>
+                <th style={thStyle}>消防类型</th>
+                <th style={thStyle}>企业总数</th>
+                <th style={thStyle}>检查企业数</th>
+                <th style={thStyle}>发现隐患数</th>
+                <th style={thStyle}>重大隐患数</th>
+                <th style={thStyle}>已整改数</th>
+                <th style={thStyle}>限期整改数</th>
+                <th style={thStyle}>复查整改数</th>
+                <th style={thStyle}>整改指令书</th>
+              </tr>
+            </thead>
+            <tbody>
+              {fireTypes.map((s, i) => (
+                <tr key={s.name} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                  <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#1F2937' }}>{s.name}</td>
+                  <td style={tdStyle}>{s.enterpriseCount}</td>
+                  <td style={tdStyle}>{s.inspectedCount}</td>
+                  <td style={{ ...tdStyle, color: s.hazardFound > 50 ? '#DC2626' : '#374151' }}>{s.hazardFound}</td>
+                  <td style={{ ...tdStyle, color: '#DC2626', fontWeight: 600 }}>{s.seriousHazard}</td>
+                  <td style={{ ...tdStyle, color: '#059669' }}>{s.rectified}</td>
+                  <td style={{ ...tdStyle, color: '#D97706' }}>{s.deadline}</td>
+                  <td style={tdStyle}>{s.recheck}</td>
+                  <td style={tdStyle}>{s.enforcement}</td>
+                </tr>
+              ))}
+              {fireTypes.length > 0 && (
+                <tr style={{ background: '#F3F4F6', fontWeight: 600 }}>
+                  <td style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
+                  <td style={tdStyle}>{fireTypes.reduce((sum, s) => sum + s.enterpriseCount, 0)}</td>
+                  <td style={tdStyle}>{fireTypes.reduce((sum, s) => sum + s.inspectedCount, 0)}</td>
+                  <td style={tdStyle}>{fireTypes.reduce((sum, s) => sum + s.hazardFound, 0)}</td>
+                  <td style={{ ...tdStyle, color: '#DC2626' }}>{fireTypes.reduce((sum, s) => sum + s.seriousHazard, 0)}</td>
+                  <td style={{ ...tdStyle, color: '#059669' }}>{fireTypes.reduce((sum, s) => sum + s.rectified, 0)}</td>
+                  <td style={{ ...tdStyle, color: '#D97706' }}>{fireTypes.reduce((sum, s) => sum + s.deadline, 0)}</td>
+                  <td style={tdStyle}>{fireTypes.reduce((sum, s) => sum + s.recheck, 0)}</td>
+                  <td style={tdStyle}>{fireTypes.reduce((sum, s) => sum + s.enforcement, 0)}</td>
                 </tr>
               )}
             </tbody>

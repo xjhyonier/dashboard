@@ -22,7 +22,7 @@ export type EnterpriseCategory = '生产型企业' | '经营型企业' | '储存
 export type GovernmentPosition = '组长' | '副站长' | '组员'
 
 /** 隐患等级 */
-export type HazardLevel = 'major' | 'high' | 'general'
+export type HazardLevel = '重大隐患' | '一般隐患'
 
 /** 隐患状态 */
 export type HazardStatus = 'pending' | 'rectifying' | 'rectified' | 'verified' | 'rejected' | 'overdue' | 'closed'
@@ -49,7 +49,7 @@ export type CheckFrequency = '每日' | '每周' | '每月' | '每季度' | '每
 export type PlanType = 'weekly' | 'monthly' | 'quarterly' | 'none'
 
 /** 任务类型 */
-export type TaskType = '日常检查' | '专项检查' | '抽检任务'
+export type TaskType = '日常检查' | '专项检查' | '督查督办' | '抽检任务'
 
 /** 任务状态 */
 export type TaskStatus = '进行中' | '已完成' | '已过期'

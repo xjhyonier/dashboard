@@ -17,9 +17,8 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 }
 
 const LEVEL_CONFIG: Record<string, { label: string; color: string }> = {
-  general: { label: '一般隐患', color: '#D97706' },
-  high:    { label: '较大隐患', color: '#EA580C' },
-  major:   { label: '重大隐患', color: '#DC2626' },
+  '重大隐患': { label: '重大隐患', color: '#DC2626' },
+  '一般隐患': { label: '一般隐患', color: '#D97706' },
 }
 
 const DIMENSION_CONFIG: Record<string, { label: string; color: string }> = {

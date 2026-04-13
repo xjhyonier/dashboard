@@ -1835,6 +1835,7 @@ export interface Enterprise10D {
   name: string
   risk_level: string
   enterprise_type: '生产企业' | '消防场所'
+  fire_type?: '九小场所' | '消防重点单位' | '一般单位' | '未知'  // 消防场所子类
   ai_score: number
   work_group: string
   expert_id: string
@@ -1954,12 +1955,29 @@ function generateEnterprises10D(): Enterprise10D[] {
     const industryCategories = ['工业企业', '危化使用', '小微企业', '九小场所', '出租房', '仓储物流', '沿街店铺']
     const industry = industryCategories[Math.floor(Math.random() * industryCategories.length)]
     const enterprise_type: '生产企业' | '消防场所' = (industry === '工业企业' || industry === '危化使用') ? '生产企业' : '消防场所'
+    
+    // 消防场所细分类型
+    const fireTypes: Array<'九小场所' | '消防重点单位' | '一般单位' | '未知'> = ['九小场所', '消防重点单位', '一般单位', '未知']
+    const fireTypeWeights = [0.35, 0.25, 0.30, 0.10]  // 九小场所35%, 消防重点25%, 一般单位30%, 未知10%
+    let fire_type: '九小场所' | '消防重点单位' | '一般单位' | '未知' = '未知'
+    if (enterprise_type === '消防场所') {
+      const fireRand = Math.random()
+      let cumF = 0
+      for (let ft = 0; ft < fireTypes.length; ft++) {
+        cumF += fireTypeWeights[ft]
+        if (fireRand < cumF) {
+          fire_type = fireTypes[ft]
+          break
+        }
+      }
+    }
 
     result.push({
       id: `ent10d_${String(i + 1).padStart(3, '0')}`,
       name: `${areas[Math.floor(Math.random() * areas.length)]}企业${String(i + 1).padStart(3, '0')}`,
       risk_level: riskLevel,
       enterprise_type,
+      fire_type: enterprise_type === '消防场所' ? fire_type : undefined,
       ai_score,
       work_group: teams[Math.floor(Math.random() * teams.length)],
       expert_id: `exp_${String(Math.floor(Math.random() * 12) + 1).padStart(3, '0')}`,

@@ -34,22 +34,23 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
   const [entKeyword, setEntKeyword] = useState('')
 
   // 路径节点 -> 筛选条件的映射
+  // 字段名与数据库 EnterpriseDimensions 对应
   const nodeIdToFilter = (nodeId: string) => {
     switch (nodeId) {
       case 'all':             return (_e: EnterpriseWithDimensions) => true
-      case 'opened':          return (e: EnterpriseWithDimensions) => e.dimensions?.data_opened === true
-      case 'collected':       return (e: EnterpriseWithDimensions) => e.dimensions?.data_collected === true
+      case 'opened':          return (e: EnterpriseWithDimensions) => e.dimensions?.info_collected === true
+      case 'collected':       return (e: EnterpriseWithDimensions) => e.dimensions?.info_collected === true
       case 'authorized':      return (e: EnterpriseWithDimensions) => e.dimensions?.data_authorized === true
-      case 'risk_match':      return (e: EnterpriseWithDimensions) => e.dimensions?.risk_point_identified === true
-      case 'qualified':       return (e: EnterpriseWithDimensions) => e.dimensions?.risk_point_identified === true
-      case 'unqualified':     return (e: EnterpriseWithDimensions) => e.dimensions?.risk_point_identified === false
-      case 'has_todo':        return (e: EnterpriseWithDimensions) => (e.dimensions?.hazard_self_check || 0) > 0 || (e.dimensions?.hazard_platform || 0) > 0 || (e.dimensions?.hazard_major || 0) > 0
-      case 'no_todo':         return (e: EnterpriseWithDimensions) => !((e.dimensions?.hazard_self_check || 0) > 0 || (e.dimensions?.hazard_platform || 0) > 0 || (e.dimensions?.hazard_major || 0) > 0)
-      case 'rectifying':      return (e: EnterpriseWithDimensions) => e.dimensions?.hazard_rectify_status === 'rectifying'
-      case 'expert_verify':   return (e: EnterpriseWithDimensions) => e.dimensions?.hazard_rectify_status === 'expert_verify'
-      case 'rectifying_ok':   return (e: EnterpriseWithDimensions) => e.dimensions?.hazard_rectify_status === 'completed'
-      case 'rectifying_overdue': return (e: EnterpriseWithDimensions) => e.dimensions?.hazard_rectify_status === 'overdue'
-      case 'todo_unread':     return (e: EnterpriseWithDimensions) => (e.dimensions?.hazard_self_check || 0) > 0
+      case 'risk_match':      return (e: EnterpriseWithDimensions) => e.dimensions?.risk_identified === true
+      case 'qualified':       return (e: EnterpriseWithDimensions) => e.dimensions?.risk_identified === true
+      case 'unqualified':     return (e: EnterpriseWithDimensions) => e.dimensions?.risk_identified === false
+      case 'has_todo':        return (e: EnterpriseWithDimensions) => (e.dimensions?.hazard_self || 0) > 0 || (e.dimensions?.hazard_monitor || 0) > 0 || (e.dimensions?.hazard_major || 0) > 0
+      case 'no_todo':         return (e: EnterpriseWithDimensions) => !((e.dimensions?.hazard_self || 0) > 0 || (e.dimensions?.hazard_monitor || 0) > 0 || (e.dimensions?.hazard_major || 0) > 0)
+      case 'rectifying':      return (e: EnterpriseWithDimensions) => e.dimensions?.rectify_status === 'rectifying'
+      case 'expert_verify':   return (e: EnterpriseWithDimensions) => e.dimensions?.rectify_status === 'expert_verify'
+      case 'rectifying_ok':   return (e: EnterpriseWithDimensions) => e.dimensions?.rectify_status === 'completed'
+      case 'rectifying_overdue': return (e: EnterpriseWithDimensions) => e.dimensions?.rectify_status === 'overdue'
+      case 'todo_unread':     return (e: EnterpriseWithDimensions) => (e.dimensions?.hazard_self || 0) > 0
       default:                return (_e: EnterpriseWithDimensions) => true
     }
   }
@@ -64,16 +65,27 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
           getExperts(),
         ])
         
-        // 加载每个企业的维度数据
+        // 加载每个企业的维度数据，并合并到企业对象中
         const dimsMap: Record<string, EnterpriseDimensions> = {}
+        const enterprisesWithDims: EnterpriseWithDimensions[] = entList.map(ent => {
+          const dims = {} as EnterpriseDimensions
+          dimsMap[ent.id] = dims
+          return { ...ent, dimensions: dims }
+        })
+        
+        // 逐个加载维度数据（因为是 async 的）
         for (const ent of entList) {
           const dims = await getEnterpriseDimensions(ent.id)
           if (dims) {
             dimsMap[ent.id] = dims
+            const idx = enterprisesWithDims.findIndex(e => e.id === ent.id)
+            if (idx >= 0) {
+              enterprisesWithDims[idx].dimensions = dims
+            }
           }
         }
         
-        setEnterprises(entList)
+        setEnterprises(enterprisesWithDims)
         setExperts(expertList)
         setDimensionsMap(dimsMap)
       } catch (err) {
@@ -99,7 +111,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
   }
 
   // 过滤后的企业
-  const { sortedData: filteredEnterprises, sort, handleSort } = useSortableTable<Enterprise>(
+  const { sortedData: filteredEnterprises, sort, handleSort } = useSortableTable<EnterpriseWithDimensions>(
     useMemo(() => {
       let result = enterprises
       // 专家筛选
