@@ -58,12 +58,48 @@ const inputStyle: React.CSSProperties = {
 type Dimension = 'duty' | 'industry' | 'special' | 'monitor' | 'state' | 'hazard'
 const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'monitor', 'state', 'hazard']
 
+// ─────────────────────────────────────────────
+// 日期筛选相关
+// ─────────────────────────────────────────────
+type TimeRange = 'month' | 'quarter' | 'year' | 'custom'
+
+const TODAY = new Date()
+const fmtDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+// 本月
+const monthStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)
+const monthEnd = new Date(TODAY.getFullYear(), TODAY.getMonth() + 1, 0)
+
+// 本季
+const quarterMonth = Math.floor(TODAY.getMonth() / 3) * 3
+const quarterStart = new Date(TODAY.getFullYear(), quarterMonth, 1)
+const quarterEnd = new Date(TODAY.getFullYear(), quarterMonth + 3, 0)
+
+// 本年
+const yearStart = new Date(TODAY.getFullYear(), 0, 1)
+const yearEnd = new Date(TODAY.getFullYear(), 11, 31)
+
 export function StationChiefV2Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
-  
+
   // 从 URL 读取 tab 参数，默认 'duty'
   const urlDimension = searchParams.get('tab')
   const dimension: Dimension = VALID_DIMENSIONS.includes(urlDimension as Dimension) ? urlDimension as Dimension : 'duty'
+
+  // 日期筛选状态
+  const [timeRange, setTimeRange] = useState<TimeRange>('month')
+  const [customStart, setCustomStart] = useState<string>(fmtDate(monthStart))
+  const [customEnd, setCustomEnd] = useState<string>(fmtDate(monthEnd))
+
+  // 根据 timeRange 计算实际起止日期
+  const dateRange = useMemo((): { start: string; end: string } => {
+    switch (timeRange) {
+      case 'month':  return { start: fmtDate(monthStart),  end: fmtDate(monthEnd) }
+      case 'quarter': return { start: fmtDate(quarterStart), end: fmtDate(quarterEnd) }
+      case 'year':   return { start: fmtDate(yearStart),   end: fmtDate(yearEnd) }
+      case 'custom': return { start: customStart, end: customEnd }
+    }
+  }, [timeRange, customStart, customEnd])
 
   const handleDimensionChange = (key: Dimension) => {
     setSearchParams({ tab: key })
@@ -71,10 +107,10 @@ export function StationChiefV2Dashboard() {
 
   return (
     <div style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
-      <PageHeader title="维度二：组织与人员履职看板" subtitle="工作组 · 政府人员 · 专家履职情况统计" />
+      <PageHeader title="站长看板" />
 
       {/* 维度切换 */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         {[
           { key: 'duty', label: '履职维度' },
           { key: 'industry', label: '行业维度' },
@@ -103,9 +139,99 @@ export function StationChiefV2Dashboard() {
         ))}
       </div>
 
-      {dimension === 'duty' && <DutyDimension />}
-      {dimension === 'industry' && <IndustryDimension />}
-      {dimension === 'special' && <SpecialDimension />}
+      {/* 日期快捷筛选 */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        marginBottom: 20,
+        padding: '10px 14px',
+        background: '#F9FAFB',
+        border: '1px solid #E5E7EB',
+        borderRadius: 4,
+        flexWrap: 'wrap',
+      }}>
+        {/* 快捷日期按钮 */}
+        <div style={{ display: 'flex', gap: 6 }}>
+          {([
+            { key: 'month' as TimeRange, label: '本月' },
+            { key: 'quarter' as TimeRange, label: '本季' },
+            { key: 'year' as TimeRange, label: '本年' },
+            { key: 'custom' as TimeRange, label: '自定义' },
+          ]).map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => setTimeRange(opt.key)}
+              style={{
+                padding: '4px 12px',
+                borderRadius: 4,
+                border: '1px solid',
+                borderColor: timeRange === opt.key ? '#4F46E5' : '#D1D5DB',
+                background: timeRange === opt.key ? '#EEF2FF' : 'white',
+                color: timeRange === opt.key ? '#4F46E5' : '#6B7280',
+                cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: timeRange === opt.key ? 600 : 400,
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 分隔线 */}
+        <div style={{ width: 1, height: 24, background: '#E5E7EB' }} />
+
+        {/* 自定义日期范围 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, color: '#6B7280' }}>从</span>
+          <input
+            type="date"
+            value={timeRange === 'custom' ? customStart : dateRange.start}
+            onChange={e => { setTimeRange('custom'); setCustomStart(e.target.value) }}
+            style={{
+              padding: '4px 8px',
+              border: '1px solid #D1D5DB',
+              borderRadius: 4,
+              fontSize: 12,
+              color: '#374151',
+              outline: 'none',
+            }}
+          />
+          <span style={{ fontSize: 12, color: '#6B7280' }}>至</span>
+          <input
+            type="date"
+            value={timeRange === 'custom' ? customEnd : dateRange.end}
+            onChange={e => { setTimeRange('custom'); setCustomEnd(e.target.value) }}
+            style={{
+              padding: '4px 8px',
+              border: '1px solid #D1D5DB',
+              borderRadius: 4,
+              fontSize: 12,
+              color: '#374151',
+              outline: 'none',
+            }}
+          />
+        </div>
+
+        {/* 当前范围标签 */}
+        <div style={{
+          marginLeft: 'auto',
+          padding: '4px 10px',
+          background: '#EEF2FF',
+          border: '1px solid #C7D2FE',
+          borderRadius: 4,
+          fontSize: 12,
+          color: '#4F46E5',
+          fontWeight: 500,
+        }}>
+          当前范围：{dateRange.start} ~ {dateRange.end}
+        </div>
+      </div>
+
+      {dimension === 'duty' && <DutyDimension dateRange={dateRange} />}
+      {dimension === 'industry' && <IndustryDimension dateRange={dateRange} />}
+      {dimension === 'special' && <SpecialDimension dateRange={dateRange} />}
       {dimension === 'state' && (
         <div style={{ padding: '60px', textAlign: 'center', color: '#9CA3AF', fontSize: 13 }}>
           状态维度 — 建设中
@@ -116,7 +242,7 @@ export function StationChiefV2Dashboard() {
           日常监控维度 — 建设中
         </div>
       )}
-      {dimension === 'hazard' && <HazardDimension />}
+      {dimension === 'hazard' && <HazardDimension dateRange={dateRange} />}
     </div>
   )
 }
@@ -124,7 +250,7 @@ export function StationChiefV2Dashboard() {
 // ─────────────────────────────────────────────
 // 履职维度
 // ─────────────────────────────────────────────
-function DutyDimension() {
+function DutyDimension({ dateRange }: { dateRange: { start: string; end: string } }) {
   const [teamKeyword, setTeamKeyword] = useState('')
   const [memberKeyword, setMemberKeyword] = useState('')
   const [expertKeyword, setExpertKeyword] = useState('')
@@ -273,6 +399,16 @@ function DutyDimension() {
     ? workGroups.find(g => g.id === selectedTeamId)?.name
     : null
 
+  // 根据筛选范围计算限期整改和延期整改（从隐患记录中按日期过滤）
+  const hazardStatsByDateRange = useMemo(() => {
+    const { start, end } = dateRange
+    const filtered = hazardRecords.filter(r => r.recordTime >= start && r.recordTime <= end)
+    return {
+      deadline: filtered.filter(r => r.status === 'rectifying' || r.status === 'pending').length,
+      extended: filtered.filter(r => r.status === 'overdue').length,
+    }
+  }, [dateRange])
+
   // 汇总数据（根据选中的人员或工作组动态计算）
   const total = selectedMemberName
     ? (() => {
@@ -284,6 +420,8 @@ function DutyDimension() {
           closed: memberTeams.reduce((s, g) => s + g.hazardClosed, 0),
           overdue: memberTeams.reduce((s, g) => s + g.overdueUnrectified, 0),
           inProgress: memberTeams.reduce((s, g) => s + g.inProgress, 0),
+          deadline: hazardStatsByDateRange.deadline,
+          extended: hazardStatsByDateRange.extended,
         }
       })()
     : selectedTeamId
@@ -296,6 +434,8 @@ function DutyDimension() {
           closed: g.hazardClosed,
           overdue: g.overdueUnrectified,
           inProgress: g.inProgress,
+          deadline: hazardStatsByDateRange.deadline,
+          extended: hazardStatsByDateRange.extended,
         }
       })()
     : {
@@ -305,6 +445,8 @@ function DutyDimension() {
         closed: workGroups.reduce((s, g) => s + g.hazardClosed, 0),
         overdue: workGroups.reduce((s, g) => s + g.overdueUnrectified, 0),
         inProgress: workGroups.reduce((s, g) => s + g.inProgress, 0),
+        deadline: hazardStatsByDateRange.deadline,
+        extended: hazardStatsByDateRange.extended,
       }
 
   const memberTotal = filteredMembers.reduce((s, m) => ({
@@ -366,7 +508,7 @@ function DutyDimension() {
       {/* 汇总 */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(7, 1fr)',
+        gridTemplateColumns: 'repeat(8, 1fr)',
         gap: 12,
         marginBottom: 20,
         padding: '16px',
@@ -375,17 +517,18 @@ function DutyDimension() {
         borderRadius: 4,
       }}>
         {[
-          { label: '工作组', value: workGroups.length, unit: '个' },
-          { label: '检查企业', value: total.enterprise, unit: '家' },
-          { label: '隐患总数', value: total.hazard, unit: '处' },
-          { label: '重大隐患', value: total.serious, unit: '处' },
-          { label: '已整改', value: total.closed, unit: '处' },
-          { label: '逾期未整改', value: total.overdue, unit: '处' },
-          { label: '整改中', value: total.inProgress, unit: '处' },
+          { label: '检查企业', value: total.enterprise, unit: '家', color: '#374151' },
+          { label: '隐患总数', value: total.hazard, unit: '处', color: '#374151' },
+          { label: '重大隐患', value: total.serious, unit: '处', color: '#DC2626' },
+          { label: '已整改', value: total.closed, unit: '处', color: '#059669' },
+          { label: '整改中', value: total.inProgress, unit: '处', color: '#D97706' },
+          { label: '限期整改数', value: total.deadline, unit: '处', color: '#7C3AED' },
+          { label: '延期整改数', value: total.extended, unit: '处', color: '#DC2626' },
+          { label: '逾期未整改', value: total.overdue, unit: '处', color: '#DC2626' },
         ].map(item => (
           <div key={item.label} style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{item.label}</div>
-            <div style={{ fontSize: 20, fontWeight: 600, color: '#1F2937' }}>{item.value}</div>
+            <div style={{ fontSize: 20, fontWeight: 600, color: item.color }}>{item.value}</div>
             <div style={{ fontSize: 11, color: '#9CA3AF' }}>{item.unit}</div>
           </div>
         ))}
@@ -882,7 +1025,7 @@ const RISK_CONFIG: Record<string, { label: string; color: string }> = {
   major:   { label: '重大隐患', color: '#DC2626' },
 }
 
-function HazardDimension() {
+function HazardDimension({ dateRange }: { dateRange: { start: string; end: string } }) {
   const [statusFilter, setStatusFilter] = useState<HazardStatus | 'all'>('all')
   const [industryFilter, setIndustryFilter] = useState<string>('all')
   const [teamFilter, setTeamFilter] = useState<string>('all')
@@ -1076,7 +1219,7 @@ function HazardDimension() {
     </div>
   )
 }
-function IndustryDimension() {
+function IndustryDimension({ dateRange }: { dateRange: { start: string; end: string } }) {
   const [keyword, setKeyword] = useState('')
 
   const filtered = useMemo(() => {
@@ -1161,7 +1304,7 @@ function IndustryDimension() {
   )
 }
 
-function SpecialDimension() {
+function SpecialDimension({ dateRange }: { dateRange: { start: string; end: string } }) {
   const [keyword, setKeyword] = useState('')
 
   const filtered = useMemo(() => {
