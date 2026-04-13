@@ -7,9 +7,12 @@ import type { StateDimensionProps } from './types'
 import type { Enterprise10D } from '../mock/station-chief-v2'
 import { expertsFull, enterprises10D } from '../mock/station-chief-v2'
 
-export function StateDimension({ dateRange, riskLevel, timeRange }: StateDimensionProps) {
-  // 专家筛选
-  const [selectedExpert, setSelectedExpert] = useState<string>('all')
+export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams }: StateDimensionProps) {
+  // 专家筛选（支持 URL 参数）
+  const [selectedExpert, setSelectedExpert] = useState<string>(navigateParams?.expertName || 'all')
+
+  // 工作组筛选（支持 URL 参数）
+  const [selectedTeam, setSelectedTeam] = useState<string>(navigateParams?.teamName || 'all')
 
   // 风险等级筛选
   const [selectedRisk, setSelectedRisk] = useState<string>('all')

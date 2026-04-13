@@ -3,6 +3,7 @@
  * 每周一条数据，维度作为列
  * 展示：已建立 / 未建立 / 完善率
  */
+import React from 'react'
 
 import { useMemo, useState } from 'react'
 import { SectionBlock } from '../../../components/layout'
@@ -139,17 +140,17 @@ export function WeeklyDimensionStats({ expertId, onDimensionClick }: WeeklyDimen
             </tr>
             <tr className="bg-zinc-50/80">
               {DIMENSIONS.map((dim) => (
-                <>
-                  <th key={`${dim.key}-est`} className="py-1.5 px-1 text-center font-medium text-emerald-600 border-b border-zinc-200 text-[10px]">
+                <React.Fragment key={dim.key}>
+                  <th className="py-1.5 px-1 text-center font-medium text-emerald-600 border-b border-zinc-200 text-[10px]">
                     已建立
                   </th>
-                  <th key={`${dim.key}-not`} className="py-1.5 px-1 text-center font-medium text-zinc-500 border-b border-zinc-200 text-[10px]">
+                  <th className="py-1.5 px-1 text-center font-medium text-zinc-500 border-b border-zinc-200 text-[10px]">
                     未建立
                   </th>
-                  <th key={`${dim.key}-rate`} className="py-1.5 px-1 text-center font-medium text-zinc-500 border-b border-zinc-200 text-[10px]">
+                  <th className="py-1.5 px-1 text-center font-medium text-zinc-500 border-b border-zinc-200 text-[10px]">
                     完善率
                   </th>
-                </>
+                </React.Fragment>
               ))}
             </tr>
           </thead>

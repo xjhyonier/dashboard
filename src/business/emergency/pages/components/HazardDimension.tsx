@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { thStyle, tdStyle, inputStyle } from './styles'
 import type { HazardDimensionProps } from './types'
-import type { HazardStatus } from '../mock/station-chief-v2'
-import { hazardRecords } from '../mock/station-chief-v2'
+import type { Hazard, HazardStatus, HazardDimension, HazardSourceDetail } from '../../../../db/types'
+import { initDatabase, getHazards } from '../../../../db'
 import { useSortableTable } from './useSortableTable'
 import { SortableTh } from './SortableTh'
 
@@ -10,24 +10,66 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   pending:    { label: '待整改', color: '#6B7280', bg: '#F3F4F6', textColor: '#374151' },
   rectifying: { label: '整改中', color: '#D97706', bg: '#FEF3C7', textColor: '#92400E' },
   rectified:  { label: '已整改', color: '#059669', bg: '#D1FAE5', textColor: '#065F46' },
+  verified:   { label: '已验收', color: '#059669', bg: '#D1FAE5', textColor: '#065F46' },
+  rejected:   { label: '已驳回', color: '#DC2626', bg: '#FEE2E2', textColor: '#991B1B' },
   overdue:    { label: '已逾期', color: '#DC2626', bg: '#FEE2E2', textColor: '#991B1B' },
+  closed:     { label: '已闭环', color: '#4F46E5', bg: '#EEF2FF', textColor: '#3730A3' },
 }
 
-const RISK_CONFIG: Record<string, { label: string; color: string }> = {
+const LEVEL_CONFIG: Record<string, { label: string; color: string }> = {
   general: { label: '一般隐患', color: '#D97706' },
-  safety:  { label: '安全风险', color: '#059669' },
-  high:    { label: '较大隐患', color: '#D97706' },
+  high:    { label: '较大隐患', color: '#EA580C' },
   major:   { label: '重大隐患', color: '#DC2626' },
 }
 
-const RISK_CONFIG_FALLBACK = { label: '未知', color: '#6B7280' }
+const DIMENSION_CONFIG: Record<string, { label: string; color: string }> = {
+  '机构职责':  { label: '机构职责', color: '#7C3AED' },
+  '安全投入':  { label: '安全投入', color: '#0891B2' },
+  '教育培训':  { label: '教育培训', color: '#059669' },
+  '安全制度':  { label: '安全制度', color: '#DC2626' },
+  '双重预防':  { label: '双重预防', color: '#D97706' },
+  '事故管理':  { label: '事故管理', color: '#4F46E5' },
+  '应急管理':  { label: '应急管理', color: '#6B7280' },
+}
+
+const SOURCE_CONFIG: Record<string, { label: string; color: string }> = {
+  ai评估:  { label: 'AI评估', color: '#7C3AED' },
+  一企一档: { label: '一企一档', color: '#0891B2' },
+  视频看:  { label: '视频看', color: '#059669' },
+  现场看:  { label: '现场看', color: '#D97706' },
+  其他:    { label: '其他', color: '#6B7280' },
+}
 
 export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, setSelectedKpi, navigateParams }: HazardDimensionProps) {
-  // 初始化时使用 navigateParams 作为默认值
+  const [hazardRecords, setHazardRecords] = useState<Hazard[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // 筛选状态
   const [industryFilter, setIndustryFilter] = useState<string>('all')
   const [teamFilter, setTeamFilter] = useState<string>(navigateParams?.teamName || 'all')
+  const [expertFilter, setExpertFilter] = useState<string>(navigateParams?.expertName || 'all')
   const [keyword, setKeyword] = useState('')
-  const [localStatusFilter, setLocalStatusFilter] = useState<HazardStatus | 'all'>('all')
+  const [localStatusFilter, setLocalStatusFilter] = useState<HazardStatus | 'all'>(
+    navigateParams?.status ? (navigateParams.status as HazardStatus) : 'all'
+  )
+  const [dimensionFilter, setDimensionFilter] = useState<string>('all')
+  const [sourceFilter, setSourceFilter] = useState<string>('all')
+
+  // 加载数据库数据
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await initDatabase()
+        const data = await getHazards()
+        setHazardRecords(data)
+      } catch (err) {
+        console.error('Failed to load hazards:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
 
   // selectedKpi 映射到对应的隐患状态
   const kpiToStatus: Record<string, HazardStatus | null> = {
@@ -46,75 +88,108 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
 
   // 各状态统计
   const statusCounts = useMemo(() => {
-    const counts: Record<HazardStatus, number> = { pending: 0, rectifying: 0, rectified: 0, overdue: 0 }
-    hazardRecords.forEach(r => counts[r.status]++)
+    const counts: Record<string, number> = { pending: 0, rectifying: 0, rectified: 0, overdue: 0, all: hazardRecords.length }
+    hazardRecords.forEach(r => {
+      if (counts[r.status] !== undefined) counts[r.status]++
+    })
     return counts
-  }, [])
+  }, [hazardRecords])
 
   // 行业列表
   const industries = useMemo(() => {
-    const set = new Set(hazardRecords.map(r => r.industry))
-    return ['all', ...Array.from(set)]
-  }, [])
+    const set = new Set(hazardRecords.map(r => r.enterprise_industry).filter(Boolean) as string[])
+    return ['all', ...Array.from(set).sort()]
+  }, [hazardRecords])
 
   // 工作组列表
   const teams = useMemo(() => {
-    const set = new Set(hazardRecords.map(r => r.teamName))
-    return ['all', ...Array.from(set)]
-  }, [])
+    const set = new Set(hazardRecords.map(r => r.team_name).filter(Boolean) as string[])
+    return ['all', ...Array.from(set).sort()]
+  }, [hazardRecords])
+
+  // 维度列表
+  const dimensions = useMemo(() => {
+    const set = new Set(hazardRecords.map(r => r.dimension).filter(Boolean) as string[])
+    return ['all', ...Array.from(set).sort()]
+  }, [hazardRecords])
 
   // 风险等级映射：筛选值 → 数据值
   const riskLevelMap: Record<string, string> = {
     major: 'major',
     high: 'high',
-    medium: 'safety',
+    medium: 'general',
     low: 'general',
   }
 
-  // 计算逾期天数
-  const getOverdueDays = (deadline: string) => {
+  // 计算逾期天数（只对已逾期的隐患显示正数）
+  const getOverdueDays = (deadline: string, status: string) => {
+    if (status !== 'overdue') return null
     const today = new Date()
+    today.setHours(0, 0, 0, 0)
     const deadlineDate = new Date(deadline)
+    deadlineDate.setHours(0, 0, 0, 0)
     const diff = Math.floor((today.getTime() - deadlineDate.getTime()) / (1000 * 60 * 60 * 24))
-    return diff
+    return diff > 0 ? diff : 1 // 至少显示1天
   }
 
   // 过滤后的隐患列表
   const filtered = useMemo(() => {
     return hazardRecords.filter(r => {
+      // 风险等级筛选
       if (riskLevel !== 'all' && selectedKpi !== 'serious') {
         const mappedLevel = riskLevelMap[riskLevel]
-        if (r.riskLevel !== mappedLevel) return false
+        if (r.level !== mappedLevel) return false
       }
-      if (selectedKpi === 'serious' && r.riskLevel !== 'major') return false
+      // 重大隐患筛选
+      if (selectedKpi === 'serious' && r.level !== 'major') return false
+      // 状态筛选
       if (statusFilter !== 'all' && r.status !== statusFilter) return false
-      if (industryFilter !== 'all' && r.industry !== industryFilter) return false
-      if (teamFilter !== 'all' && r.teamName !== teamFilter) return false
+      // 来源筛选
+      if (sourceFilter !== 'all' && r.source_detail !== sourceFilter) return false
+      // 行业筛选
+      if (industryFilter !== 'all' && r.enterprise_industry !== industryFilter) return false
+      // 工作组筛选
+      if (teamFilter !== 'all' && r.team_name !== teamFilter) return false
+      // 专家筛选
+      if (expertFilter !== 'all' && r.expert_name !== expertFilter) return false
+      // 维度筛选
+      if (dimensionFilter !== 'all' && r.dimension !== dimensionFilter) return false
+      // 关键词搜索
       if (keyword.trim()) {
         const kw = keyword.trim().toLowerCase()
-        if (!r.enterpriseName.toLowerCase().includes(kw) &&
-            !r.hazardDesc.toLowerCase().includes(kw) &&
-            !(r.expertName?.toLowerCase().includes(kw))) return false
+        const enterpriseName = (r.enterprise_name || '').toLowerCase()
+        const title = (r.title || '').toLowerCase()
+        const description = (r.description || '').toLowerCase()
+        const expertName = (r.expert_name || '').toLowerCase()
+        if (!enterpriseName.includes(kw) && !title.includes(kw) && !description.includes(kw) && !expertName.includes(kw)) return false
       }
       return true
     })
-  }, [riskLevel, selectedKpi, statusFilter, industryFilter, teamFilter, keyword])
+  }, [hazardRecords, riskLevel, selectedKpi, statusFilter, sourceFilter, industryFilter, teamFilter, expertFilter, dimensionFilter, keyword])
 
-  // 复用排序 hook
-  const { sortedData, sort, handleSort } = useSortableTable(filtered, 'recordTime', 'desc')
+  // 复用排序 hook - 使用 discovered_at 作为排序字段
+  const { sortedData, sort, handleSort } = useSortableTable(filtered, 'discovered_at', 'desc')
+
+  // 分页
+  const PAGE_SIZE = 50
+  const [currentPage, setCurrentPage] = useState(1)
+  const totalPages = Math.ceil(sortedData.length / PAGE_SIZE)
+  const paginatedData = sortedData.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
+  // 筛选变化时重置页码
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [hazardRecords, riskLevel, selectedKpi, statusFilter, sourceFilter, industryFilter, teamFilter, dimensionFilter, keyword])
 
   const total = hazardRecords.length
 
-  // 列定义
-  const columns = [
-    { key: 'hazardDesc', label: '隐患描述' },
-    { key: 'riskLevel', label: '等级' },
-    { key: 'source', label: '来源' },
-    { key: 'enterpriseName', label: '企业' },
-    { key: 'industry', label: '行业' },
-    { key: 'status', label: '状态' },
-    { key: 'recordTime', label: '记录时间' },
-  ]
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 0', color: '#6B7280' }}>
+        加载中...
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -131,6 +206,7 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                 ? { label: '全部', color: '#4F46E5', bg: '#EEF2FF', textColor: '#3730A3' }
                 : STATUS_CONFIG[s]
               const active = statusFilter === s
+              const count = s === 'all' ? statusCounts.all : (statusCounts[s] || 0)
               return (
                 <button
                   key={s}
@@ -149,11 +225,44 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                     fontWeight: active ? 600 : 400,
                   }}
                 >
-                  {cfg.label} {s !== 'all' ? `(${statusCounts[s]})` : ''}
+                  {cfg.label} {count > 0 && `(${count})`}
                 </button>
               )
             })}
           </div>
+        </div>
+
+        {/* 主体责任类型筛选 */}
+        <div>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>
+            主体责任类型 {dimensionFilter !== 'all' && <span style={{ color: '#4F46E5' }}>（已筛选）</span>}
+          </div>
+          <select
+            value={dimensionFilter}
+            onChange={e => setDimensionFilter(e.target.value)}
+            style={{ padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4, fontSize: 12, color: '#374151', outline: 'none' }}
+          >
+            {dimensions.map(dim => (
+              <option key={dim} value={dim}>{dim === 'all' ? '全部类型' : dim}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* 来源筛选 */}
+        <div>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>来源 {sourceFilter !== 'all' && <span style={{ color: '#4F46E5' }}>（已筛选）</span>}</div>
+          <select
+            value={sourceFilter}
+            onChange={e => setSourceFilter(e.target.value)}
+            style={{ padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4, fontSize: 12, color: '#374151', outline: 'none' }}
+          >
+            <option value="all">全部来源</option>
+            <option value="ai评估">AI评估</option>
+            <option value="一企一档">一企一档</option>
+            <option value="视频看">视频看</option>
+            <option value="现场看">现场看</option>
+            <option value="其他">其他</option>
+          </select>
         </div>
 
         {/* 行业筛选 */}
@@ -195,6 +304,33 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
             style={inputStyle}
           />
         </div>
+
+        {/* 重置按钮 */}
+        <div style={{ marginLeft: 'auto' }}>
+          <button
+            onClick={() => {
+              setLocalStatusFilter('all')
+              setDimensionFilter('all')
+              setSourceFilter('all')
+              setIndustryFilter('all')
+              setTeamFilter('all')
+              setKeyword('')
+              setSelectedKpi(null)
+            }}
+            style={{
+              padding: '4px 12px',
+              border: '1px solid #D1D5DB',
+              borderRadius: 4,
+              background: 'white',
+              color: '#4F46E5',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 500,
+            }}
+          >
+            重置筛选
+          </button>
+        </div>
       </div>
 
       {/* 隐患列表 */}
@@ -206,40 +342,53 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
           </span>
         </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 950 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1100 }}>
             <thead>
               <tr>
                 <th style={thStyle}>序号</th>
-                {columns.map(col => (
-                  <SortableTh
-                    key={col.key}
-                    label={col.label}
-                    sortKey={col.key}
-                    sort={sort}
-                    onSort={handleSort}
-                  />
-                ))}
+                <SortableTh label="隐患描述" sortKey="title" sort={sort} onSort={handleSort} />
+                <SortableTh label="主体责任" sortKey="dimension" sort={sort} onSort={handleSort} />
+                <SortableTh label="等级" sortKey="level" sort={sort} onSort={handleSort} />
+                <SortableTh label="来源" sortKey="source_detail" sort={sort} onSort={handleSort} />
+                <SortableTh label="企业" sortKey="enterprise_name" sort={sort} onSort={handleSort} />
+                <SortableTh label="行业" sortKey="enterprise_industry" sort={sort} onSort={handleSort} />
+                <SortableTh label="状态" sortKey="status" sort={sort} onSort={handleSort} />
+                <SortableTh label="发现时间" sortKey="discovered_at" sort={sort} onSort={handleSort} />
                 <th style={thStyle}>整改期限</th>
                 <th style={thStyle}>逾期天数</th>
               </tr>
             </thead>
             <tbody>
-              {sortedData.length === 0 ? (
-                <tr><td colSpan={9} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>未找到匹配结果</td></tr>
-              ) : sortedData.map((r, i) => {
+              {paginatedData.length === 0 ? (
+                <tr><td colSpan={11} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>未找到匹配结果</td></tr>
+              ) : paginatedData.map((r, i) => {
                 const statusCfg = STATUS_CONFIG[r.status] || { label: '未知', color: '#6B7280', bg: '#F3F4F6', textColor: '#374151' }
-                const riskCfg = RISK_CONFIG[r.riskLevel] || RISK_CONFIG_FALLBACK
-                const overdueDays = r.status === 'overdue' ? getOverdueDays(r.rectifyDeadline) : null
-                const sourceLabel = r.source === 'expert' ? '专家提交' : '自查自纠'
-                const sourceColor = r.source === 'expert' ? '#4F46E5' : '#059669'
+                const levelCfg = LEVEL_CONFIG[r.level] || { label: '未知', color: '#6B7280' }
+                const dimCfg = DIMENSION_CONFIG[r.dimension] || { label: r.dimension || '未知', color: '#6B7280' }
+                const sourceCfg = SOURCE_CONFIG[r.source_detail] || { label: r.source_detail || '未知', color: '#6B7280' }
+                const overdueDays = getOverdueDays(r.deadline, r.status)
+                const rowIndex = (currentPage - 1) * PAGE_SIZE + i + 1
                 return (
                   <tr key={r.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                    <td style={{ ...tdStyle, color: '#9CA3AF', fontSize: 11 }}>{i + 1}</td>
-                    <td style={{ ...tdStyle, textAlign: 'left', color: '#374151', minWidth: 180 }}>{r.hazardDesc}</td>
-                    <td style={{ ...tdStyle, fontWeight: 600, color: riskCfg.color }}>{riskCfg.label}</td>
-                    <td style={{ ...tdStyle, color: sourceColor, fontWeight: 500, fontSize: 11 }}>{sourceLabel}</td>
-                    <td style={{ ...tdStyle, textAlign: 'left', color: '#6B7280', minWidth: 140 }}>{r.enterpriseName}</td>
-                    <td style={tdStyle}>{r.industry}</td>
+                    <td style={{ ...tdStyle, color: '#9CA3AF', fontSize: 11, width: 50 }}>{rowIndex}</td>
+                    <td style={{ ...tdStyle, textAlign: 'left', color: '#374151', minWidth: 200 }} title={r.description}>
+                      {r.title}
+                    </td>
+                    <td style={{ ...tdStyle, fontWeight: 500, color: dimCfg.color }}>
+                      {dimCfg.label}
+                    </td>
+                    <td style={{ ...tdStyle, fontWeight: 600, color: levelCfg.color }}>
+                      {levelCfg.label}
+                    </td>
+                    <td style={{ ...tdStyle, fontWeight: 500, color: sourceCfg.color }}>
+                      {sourceCfg.label}
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'left', color: '#6B7280', minWidth: 180 }}>
+                      {r.enterprise_name || '-'}
+                    </td>
+                    <td style={tdStyle}>
+                      {r.enterprise_industry || '-'}
+                    </td>
                     <td style={tdStyle}>
                       <span style={{
                         display: 'inline-block',
@@ -253,8 +402,8 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                         {statusCfg.label}
                       </span>
                     </td>
-                    <td style={tdStyle}>{r.recordTime}</td>
-                    <td style={{ ...tdStyle, color: r.status === 'overdue' ? '#DC2626' : '#374151' }}>{r.rectifyDeadline}</td>
+                    <td style={tdStyle}>{r.discovered_at}</td>
+                    <td style={{ ...tdStyle, color: r.status === 'overdue' ? '#DC2626' : '#374151' }}>{r.deadline}</td>
                     <td style={{ ...tdStyle, fontWeight: overdueDays ? 600 : 400, color: overdueDays ? '#DC2626' : '#9CA3AF' }}>
                       {overdueDays ? `${overdueDays}天` : '—'}
                     </td>
@@ -264,6 +413,108 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
             </tbody>
           </table>
         </div>
+
+        {/* 分页 */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '8px 0' }}>
+            <div style={{ fontSize: 12, color: '#6B7280' }}>
+              共 {sortedData.length} 条，当前第 {currentPage} / {totalPages} 页
+            </div>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                style={{
+                  padding: '4px 8px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: 4,
+                  background: currentPage === 1 ? '#F3F4F6' : 'white',
+                  color: currentPage === 1 ? '#9CA3AF' : '#374151',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  fontSize: 12,
+                }}
+              >
+                首页
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                style={{
+                  padding: '4px 8px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: 4,
+                  background: currentPage === 1 ? '#F3F4F6' : 'white',
+                  color: currentPage === 1 ? '#9CA3AF' : '#374151',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  fontSize: 12,
+                }}
+              >
+                上一页
+              </button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum: number
+                if (totalPages <= 5) {
+                  pageNum = i + 1
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i
+                } else {
+                  pageNum = currentPage - 2 + i
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    style={{
+                      padding: '4px 10px',
+                      border: '1px solid',
+                      borderColor: currentPage === pageNum ? '#4F46E5' : '#D1D5DB',
+                      borderRadius: 4,
+                      background: currentPage === pageNum ? '#EEF2FF' : 'white',
+                      color: currentPage === pageNum ? '#4F46E5' : '#374151',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: currentPage === pageNum ? 600 : 400,
+                    }}
+                  >
+                    {pageNum}
+                  </button>
+                )
+              })}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: '4px 8px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: 4,
+                  background: currentPage === totalPages ? '#F3F4F6' : 'white',
+                  color: currentPage === totalPages ? '#9CA3AF' : '#374151',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  fontSize: 12,
+                }}
+              >
+                下一页
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: '4px 8px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: 4,
+                  background: currentPage === totalPages ? '#F3F4F6' : 'white',
+                  color: currentPage === totalPages ? '#9CA3AF' : '#374151',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  fontSize: 12,
+                }}
+              >
+                末页
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

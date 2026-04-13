@@ -23,7 +23,7 @@ export function MonthlyReportDashboard() {
     <>
       <RoleIndicator
         title="月度运营报告"
-        description="展示"一起安"在良渚街道的使用情况和成效，包括企业底数、风险分布、检查覆盖率、隐患发现与整改等核心指标，为决策提供数据支撑。"
+        description={'展示"一起安"在良渚街道的使用情况和成效，包括企业底数、风险分布、检查覆盖率、隐患发现与整改等核心指标，为决策提供数据支撑。'}
         goals={[
           '全面掌握系统使用情况',
           '评估安全检查覆盖效果',
@@ -41,7 +41,7 @@ export function MonthlyReportDashboard() {
 
       <PageShell>
         <PageHeader
-          title="良渚街道"一起安"月度运营报告"
+          title={'良渚街道"一起安"月度运营报告'}
           subtitle="2024年3月运营数据分析"
           updateTime="2024-03-30 18:00"
         />

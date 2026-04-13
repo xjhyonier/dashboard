@@ -4,7 +4,8 @@ import { quickBIConfig, emergencyConfig } from './types/role'
 import { CEODashboard } from './business/quickbi/pages/CEODashboard'
 import { ProductDashboard } from './business/quickbi/pages/ProductDashboard'
 import { SalesDashboard } from './business/quickbi/pages/SalesDashboard'
-import { GovernmentLeaderDashboard } from './business/emergency/pages/GovernmentLeaderDashboard'
+// TODO: 修复 GovernmentLeaderDashboard.tsx 语法错误后恢复
+// import { GovernmentLeaderDashboard } from './business/emergency/pages/GovernmentLeaderDashboard'
 import { StationChiefDashboard } from './business/emergency/pages/StationChiefDashboard'
 import { StationChiefV2Dashboard } from './business/emergency/pages/StationChiefV2Dashboard'
 import { EnterpriseBossDashboard } from './business/emergency/pages/EnterpriseBossDashboard'
@@ -123,7 +124,7 @@ function App() {
           <Route path="/quickbi/sales" element={<SalesDashboard />} />
           <Route path="/quickbi/operation" element={<PlaceholderPage title="运营经理" />} />
 
-          <Route path="/emergency/government-leader" element={<GovernmentLeaderDashboard />} />
+          <Route path="/emergency/government-leader" element={<PlaceholderPage title="政府领导看板(建设中)" />} />
           <Route path="/emergency/station-chief" element={<StationChiefDashboard />} />
           <Route path="/emergency/station-chief-v2" element={<StationChiefV2Dashboard />} />
           <Route path="/emergency/expert/*" element={<ExpertApp />} />

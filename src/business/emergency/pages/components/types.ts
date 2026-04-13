@@ -35,6 +35,7 @@ export interface DutyDimensionProps {
   selectedKpi: string | null
   setSelectedKpi: (k: string | null) => void
   onNavigateToHazard?: (params: HazardNavigateParams) => void
+  onNavigateToState?: (params: { teamName?: string; riskLevel?: RiskLevel }) => void
 }
 
 export interface DimensionTableProps {
@@ -59,6 +60,12 @@ export interface StateDimensionProps {
   dateRange: { start: string; end: string }
   riskLevel: RiskLevel
   timeRange: TimeRange
+  navigateParams?: {
+    teamName?: string
+    enterpriseName?: string
+    expertName?: string
+    riskLevel?: RiskLevel
+  }
 }
 
 export interface HazardDimensionProps {

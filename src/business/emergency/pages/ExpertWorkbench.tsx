@@ -4,14 +4,14 @@ import { RoleIndicator } from '../../../components/common'
 import { expertertWorkbenchMock } from './mock/expert-workbench'
 
 export function ExpertWorkbenchDashboard() {
-  const [selectedTask, setSelectedTask] = useState<string | null>(  // 模拟任务执行
+  const [selectedTask, setSelectedTask] = useState<string | null>(null)  // 模拟任务执行
   const handleExecuteTask = (taskId: string) => {
     console.log('Executing task:', taskId)
     setSelectedTask(null)
   }
 
   const getStatus = () => {
-    const task = expertWorkbenchMock.todayTaskOverview.find(t => t => task.id === taskId)
+    const task = expertWorkbenchMock.todayTaskOverview.find(t => t.id === taskId)
     return selectedTask
   }
 
@@ -45,7 +45,7 @@ export function ExpertWorkbenchDashboard() {
     setSelectedTask(task)
   }
 
-  const handleRectify = (taskId: string, => {
+  const handleRectify = (taskId: string) => {
     console.log('Rectifying issue:', taskId)
     setSelectedTask(task)
   }
@@ -63,25 +63,27 @@ export function ExpertWorkbenchDashboard() {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-grid">
-      <StatusCard
-        title="任务状态统计"
-        items={expertWorkbenchMock.taskStatus || []}
-      />
-      <StatusCard
-        title="本周工作完成情况"
-        items={expertWorkbenchMock.weeklyResults || []}
-      />
-    </div>
+    <>
+      <div className="grid grid-cols-2 gap-grid">
+        <StatusCard
+          title="任务状态统计"
+          items={expertWorkbenchMock.taskStatus || []}
+        />
+        <StatusCard
+          title="本周工作完成情况"
+          items={expertWorkbenchMock.weeklyResults || []}
+        />
+      </div>
     
-    {/* 已完成任务列表 */}
-    <SectionBlock title="已完成任务">
-      <TableCard
-        title="已完成任务"
-        columns={expertWorkbenchMock.completedTaskColumns}
-        data={expertWorkbenchMock.completedTasks || []}
-      maxRows={10}
-      />
-    </div>
+      {/* 已完成任务列表 */}
+      <SectionBlock title="已完成任务">
+        <TableCard
+          title="已完成任务"
+          columns={expertWorkbenchMock.completedTaskColumns}
+          data={expertWorkbenchMock.completedTasks || []}
+          maxRows={10}
+        />
+      </SectionBlock>
+    </>
   )
 }

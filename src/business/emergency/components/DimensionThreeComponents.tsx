@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { SectionBlock } from '../../../components/layout/SectionBlock'
-import { getEnterprisesWithDimensions } from '../../../db'
+import { initDatabase, getEnterprisesWithDimensions } from '../../../db'
 
 // （一）总体情况
 export function EnterpriseResponsibilityOverview() {
@@ -12,6 +12,7 @@ export function EnterpriseResponsibilityOverview() {
   useEffect(() => {
     async function loadStats() {
       try {
+        await initDatabase()
         const enterprises = await getEnterprisesWithDimensions()
 
         // 维度配置

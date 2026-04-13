@@ -284,6 +284,7 @@ export function ExpertWorkbenchDashboard() {
                 ))}
               </div>
             </SectionBlock>
+            <SectionBlock title="跟进任务">
               <div className="space-y-3">
                 {[...expertWorkbenchMock.pendingTasks]
                   .filter(task => task.category === 'Follow-up')

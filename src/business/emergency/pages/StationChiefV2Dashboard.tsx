@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import type { Dimension, HazardNavigateParams } from './components/types'
@@ -9,10 +9,8 @@ import { HazardDimension } from './components/HazardDimension'
 import { IndustryDimension } from './components/IndustryDimension'
 import { SpecialDimension } from './components/SpecialDimension'
 
-import {
-  workGroups,
-  hazardRecords,
-} from './mock/station-chief-v2'
+import { initDatabase, getWorkGroups, getHazards, getEnterpriseStats } from '../../../db'
+import type { WorkGroup, Hazard } from '../../../db/types'
 
 const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'state', 'hazard']
 
@@ -32,6 +30,34 @@ type TimeRange = 'month' | 'quarter' | 'year' | 'custom'
 
 export function StationChiefV2Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
+
+  // 数据库数据状态
+  const [workGroups, setWorkGroups] = useState<WorkGroup[]>([])
+  const [hazardRecords, setHazardRecords] = useState<Hazard[]>([])
+  const [enterpriseCount, setEnterpriseCount] = useState(0)
+  const [loading, setLoading] = useState(true)
+
+  // 加载数据
+  useEffect(() => {
+    async function loadData() {
+      try {
+        await initDatabase()
+        const [groups, hazards, stats] = await Promise.all([
+          getWorkGroups(),
+          getHazards(),
+          getEnterpriseStats()
+        ])
+        setWorkGroups(groups)
+        setHazardRecords(hazards)
+        setEnterpriseCount(stats.total)
+      } catch (err) {
+        console.error('Failed to load data:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
 
   // 从 URL 读取 tab 参数，默认 'duty'
   const urlDimension = searchParams.get('tab')
@@ -61,18 +87,21 @@ export function StationChiefV2Dashboard() {
   // KPI 汇总数据（全局，不受子维度筛选影响）
   const kpiTotals = useMemo(() => {
     const { start, end } = dateRange
-    const inRange = hazardRecords.filter(r => r.recordTime >= start && r.recordTime <= end)
+    const inRange = hazardRecords.filter(h => {
+      const discoveredAt = h.discovered_at || h.created_at
+      return discoveredAt >= start && discoveredAt <= end
+    })
     return {
-      enterprise: workGroups.reduce((s, g) => s + g.enterpriseCount, 0),
-      hazard: workGroups.reduce((s, g) => s + g.hazardFound, 0),
-      serious: workGroups.reduce((s, g) => s + g.hazardSerious, 0),
-      closed: inRange.filter(r => r.status === 'rectified').length,
-      inProgress: workGroups.reduce((s, g) => s + g.inProgress, 0),
-      deadline: inRange.filter(r => r.status === 'pending' || r.status === 'rectifying').length,
-      extended: inRange.filter(r => r.status === 'overdue').length,
-      overdue: workGroups.reduce((s, g) => s + g.overdueUnrectified, 0),
+      enterprise: enterpriseCount || workGroups.reduce((s, g) => s + g.enterprise_count, 0),
+      hazard: workGroups.reduce((s, g) => s + g.enterprise_count * 2, 0) || hazardRecords.length,
+      serious: hazardRecords.filter(h => h.level === 'major').length,
+      closed: hazardRecords.filter(h => ['verified', 'closed'].includes(h.status)).length,
+      inProgress: hazardRecords.filter(h => h.status === 'rectifying').length,
+      deadline: hazardRecords.filter(h => h.status === 'pending' || h.status === 'rectifying').length,
+      extended: hazardRecords.filter(h => h.status === 'overdue').length,
+      overdue: hazardRecords.filter(h => h.status === 'overdue').length,
     }
-  }, [dateRange])
+  }, [dateRange, workGroups, hazardRecords, enterpriseCount])
 
   const handleDimensionChange = (key: Dimension) => {
     setSearchParams({ tab: key })
@@ -87,6 +116,25 @@ export function StationChiefV2Dashboard() {
     if (params.riskLevel && params.riskLevel !== 'all') newParams.riskLevel = params.riskLevel
     if (params.status) newParams.status = params.status
     setSearchParams(newParams)
+  }
+
+  // 跳转到企业状态维度并设置筛选条件
+  const handleNavigateToState = (params: { teamName?: string; riskLevel?: RiskLevel }) => {
+    const newParams: Record<string, string> = { tab: 'state' }
+    if (params.teamName) newParams.teamName = params.teamName
+    if (params.riskLevel && params.riskLevel !== 'all') newParams.riskLevel = params.riskLevel
+    setSearchParams(newParams)
+  }
+
+  if (loading) {
+    return (
+      <div style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
+        <PageHeader title="应急消防管理站看板" />
+        <div style={{ textAlign: 'center', padding: '48px', color: '#9CA3AF' }}>
+          加载数据中...
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -284,10 +332,13 @@ export function StationChiefV2Dashboard() {
         </div>
       </div>
 
-      {dimension === 'duty' && <DutyDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} onNavigateToHazard={handleNavigateToHazard} />}
+      {dimension === 'duty' && <DutyDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} onNavigateToHazard={handleNavigateToHazard} onNavigateToState={handleNavigateToState} />}
       {dimension === 'industry' && <IndustryDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} />}
       {dimension === 'special' && <SpecialDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} />}
-      {dimension === 'state' && <StateDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} />}
+      {dimension === 'state' && <StateDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} navigateParams={{
+        teamName: searchParams.get('teamName') || undefined,
+        enterpriseName: searchParams.get('enterpriseName') || undefined,
+      }} />}
       {dimension === 'hazard' && <HazardDimension
         dateRange={dateRange}
         riskLevel={searchParams.get('riskLevel') as any || riskLevel}
