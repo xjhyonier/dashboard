@@ -14,7 +14,7 @@ import {
   hazardRecords,
 } from './mock/station-chief-v2'
 
-const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'monitor', 'state', 'hazard']
+const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'state', 'hazard']
 
 // 日期工具
 const TODAY = new Date()
@@ -126,67 +126,127 @@ export function StationChiefV2Dashboard() {
       </div>
 
       {/* 维度切换 + 日期筛选 */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        {[
-          { key: 'duty', label: '履职维度' },
-          { key: 'industry', label: '行业维度' },
-          { key: 'special', label: '专项维度' },
-          { key: 'state', label: '状态维度' },
-          { key: 'monitor', label: '日常监控' },
-          { key: 'hazard', label: '隐患维度' },
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => handleDimensionChange(tab.key as Dimension)}
-            style={{
-              padding: '5px 14px',
-              borderRadius: 4,
-              border: '1px solid',
-              borderColor: dimension === tab.key ? '#4F46E5' : '#D1D5DB',
-              background: dimension === tab.key ? '#EEF2FF' : 'white',
-              color: dimension === tab.key ? '#4F46E5' : '#6B7280',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: 500,
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* 日期快捷筛选 */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 16,
-        marginBottom: 20,
-        padding: '10px 14px',
-        background: '#F9FAFB',
-        border: '1px solid #E5E7EB',
-        borderRadius: 4,
+        gap: 12,
+        marginBottom: 12,
         flexWrap: 'wrap',
       }}>
+        {/* 维度切换按钮 */}
         <div style={{ display: 'flex', gap: 6 }}>
-          {([
-            { key: 'month' as TimeRange,   label: '本月' },
-            { key: 'quarter' as TimeRange,  label: '本季' },
-            { key: 'year' as TimeRange,     label: '本年' },
-            { key: 'custom' as TimeRange,   label: '自定义' },
-          ]).map(opt => (
+          {[
+            { key: 'duty', label: '履职' },
+            { key: 'industry', label: '行业' },
+            { key: 'special', label: '专项' },
+            { key: 'state', label: '状态' },
+            { key: 'hazard', label: '隐患' },
+          ].map(tab => (
             <button
-              key={opt.key}
-              onClick={() => setTimeRange(opt.key)}
+              key={tab.key}
+              onClick={() => handleDimensionChange(tab.key as Dimension)}
               style={{
                 padding: '4px 12px',
                 borderRadius: 4,
                 border: '1px solid',
-                borderColor: timeRange === opt.key ? '#4F46E5' : '#D1D5DB',
+                borderColor: dimension === tab.key ? '#4F46E5' : '#D1D5DB',
+                background: dimension === tab.key ? '#EEF2FF' : 'white',
+                color: dimension === tab.key ? '#4F46E5' : '#6B7280',
+                cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: 500,
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
+
+        {/* 时间范围快捷筛选 */}
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: '#9CA3AF' }}>时间:</span>
+          {([
+            { key: 'month' as TimeRange, label: '本月' },
+            { key: 'quarter' as TimeRange, label: '本季' },
+            { key: 'year' as TimeRange, label: '本年' },
+          ] as const).map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => setTimeRange(opt.key)}
+              style={{
+                padding: '2px 8px',
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: timeRange === opt.key ? '#4F46E5' : '#E5E7EB',
                 background: timeRange === opt.key ? '#EEF2FF' : 'white',
                 color: timeRange === opt.key ? '#4F46E5' : '#6B7280',
                 cursor: 'pointer',
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: timeRange === opt.key ? 600 : 400,
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+          <button
+            onClick={() => setTimeRange('custom')}
+            style={{
+              padding: '2px 8px',
+              borderRadius: 3,
+              border: '1px solid',
+              borderColor: timeRange === 'custom' ? '#4F46E5' : '#E5E7EB',
+              background: timeRange === 'custom' ? '#EEF2FF' : 'white',
+              color: timeRange === 'custom' ? '#4F46E5' : '#6B7280',
+              cursor: 'pointer',
+              fontSize: 11,
+              fontWeight: timeRange === 'custom' ? 600 : 400,
+            }}
+          >
+            自定义
+          </button>
+          {timeRange === 'custom' && (
+            <>
+              <input
+                type="date"
+                value={customStart}
+                onChange={e => setCustomStart(e.target.value)}
+                style={{ padding: '2px 4px', border: '1px solid #E5E7EB', borderRadius: 3, fontSize: 11, color: '#374151', outline: 'none', width: 110 }}
+              />
+              <span style={{ fontSize: 11, color: '#9CA3AF' }}>至</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={e => setCustomEnd(e.target.value)}
+                style={{ padding: '2px 4px', border: '1px solid #E5E7EB', borderRadius: 3, fontSize: 11, color: '#374151', outline: 'none', width: 110 }}
+              />
+            </>
+          )}
+        </div>
+
+        {/* 风险等级筛选 */}
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: '#9CA3AF' }}>风险:</span>
+          {([
+            { key: 'all', label: '全部' },
+            { key: 'major', label: '重大' },
+            { key: 'high', label: '较大' },
+            { key: 'medium', label: '一般' },
+            { key: 'low', label: '低' },
+          ] as const).map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => {/* TODO: 实现风险等级筛选 */}}
+              style={{
+                padding: '2px 8px',
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: '#E5E7EB',
+                background: 'white',
+                color: '#6B7280',
+                cursor: 'pointer',
+                fontSize: 11,
               }}
             >
               {opt.label}
@@ -194,42 +254,16 @@ export function StationChiefV2Dashboard() {
           ))}
         </div>
 
-        <div style={{ width: 1, height: 24, background: '#E5E7EB' }} />
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, color: '#6B7280' }}>从</span>
-          <input
-            type="date"
-            value={timeRange === 'custom' ? customStart : dateRange.start}
-            onChange={e => { setTimeRange('custom'); setCustomStart(e.target.value) }}
-            style={{ padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4, fontSize: 12, color: '#374151', outline: 'none' }}
-          />
-          <span style={{ fontSize: 12, color: '#6B7280' }}>至</span>
-          <input
-            type="date"
-            value={timeRange === 'custom' ? customEnd : dateRange.end}
-            onChange={e => { setTimeRange('custom'); setCustomEnd(e.target.value) }}
-            style={{ padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4, fontSize: 12, color: '#374151', outline: 'none' }}
-          />
-        </div>
-
-        <div style={{
-          marginLeft: 'auto',
-          padding: '4px 10px',
-          background: '#EEF2FF',
-          border: '1px solid #C7D2FE',
-          borderRadius: 4,
-          fontSize: 12,
-          color: '#4F46E5',
-          fontWeight: 500,
-        }}>
-          当前范围：{dateRange.start} ~ {dateRange.end}
+        {/* 当前筛选状态 */}
+        <div style={{ marginLeft: 'auto', fontSize: 11, color: '#9CA3AF' }}>
+          {dateRange.start} ~ {dateRange.end}
           {selectedKpi && (
-            <span style={{ marginLeft: 8, color: '#7C3AED' }}>
-              | 已选：{(() => {
-                const map: Record<string, string> = { enterprise: '检查企业', hazard: '隐患总数', serious: '重大隐患', closed: '已整改', inProgress: '整改中', deadline: '限期整改数', extended: '延期整改数', overdue: '逾期未整改' }
-                return map[selectedKpi] || selectedKpi
-              })()}
+            <span style={{ marginLeft: 8, padding: '1px 6px', background: '#F3F4F6', borderRadius: 3, color: '#7C3AED' }}>
+              {{
+                enterprise: '检查企业', hazard: '隐患总数', serious: '重大隐患',
+                closed: '已整改', inProgress: '整改中', deadline: '限期整改',
+                extended: '延期整改', overdue: '逾期未改',
+              }[selectedKpi] || selectedKpi}
             </span>
           )}
         </div>
@@ -239,11 +273,6 @@ export function StationChiefV2Dashboard() {
       {dimension === 'industry' && <IndustryDimension dateRange={dateRange} selectedKpi={selectedKpi} />}
       {dimension === 'special' && <SpecialDimension dateRange={dateRange} selectedKpi={selectedKpi} />}
       {dimension === 'state' && <StateDimension dateRange={dateRange} />}
-      {dimension === 'monitor' && (
-        <div style={{ padding: '60px', textAlign: 'center', color: '#9CA3AF', fontSize: 13 }}>
-          日常监控维度 — 建设中
-        </div>
-      )}
       {dimension === 'hazard' && <HazardDimension dateRange={dateRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} />}
     </div>
   )

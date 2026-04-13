@@ -135,23 +135,6 @@ export function IndustryDimension({ dateRange, selectedKpi }: IndustryDimensionP
           </tbody>
         </table>
       </div>
-
-      {/* 汇总 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20, padding: '16px', background: '#FAFAFA', border: '1px solid #E5E7EB', borderRadius: 4 }}>
-        {[
-          { label: '行业数', value: industryHazardAnalysis.length, unit: '个' },
-          { label: '隐患总数', value: total.hazardCount, unit: '处' },
-          { label: '重大隐患', value: total.majorHazardCount, unit: '处' },
-          { label: '已整改', value: total.rectifiedCount, unit: '处' },
-          { label: '限期整改', value: total.deadlineCount, unit: '处' },
-        ].map(item => (
-          <div key={item.label} style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{item.label}</div>
-            <div style={{ fontSize: 20, fontWeight: 600, color: '#1F2937' }}>{item.value}</div>
-            <div style={{ fontSize: 11, color: '#9CA3AF' }}>{item.unit}</div>
-          </div>
-        ))}
-      </div>
     </div>
   )
 }

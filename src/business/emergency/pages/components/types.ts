@@ -61,4 +61,4 @@ export interface SpecialDimensionProps {
   selectedKpi: string | null
 }
 
-export type Dimension = 'duty' | 'industry' | 'special' | 'monitor' | 'state' | 'hazard'
+export type Dimension = 'duty' | 'industry' | 'special' | 'state' | 'hazard'

@@ -23,30 +23,6 @@ export function SpecialDimension({ dateRange, selectedKpi }: SpecialDimensionPro
 
   return (
     <div>
-      {/* 专项检查统计表 */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>专项检查进度统计表</div>
-          <input type="text" placeholder="搜索专项名称" value={keyword} onChange={e => setKeyword(e.target.value)} style={inputStyle} />
-        </div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 20, padding: '16px', background: '#FAFAFA', border: '1px solid #E5E7EB', borderRadius: 4 }}>
-        {[
-          { label: '专项数', value: specialInspections.length, unit: '个' },
-          { label: '覆盖企业', value: total.totalCount, unit: '家' },
-          { label: '已检查', value: total.checkedCount, unit: '家' },
-          { label: '隐患总数', value: total.hazardCount, unit: '处' },
-          { label: '重大隐患', value: total.majorHazardCount, unit: '处' },
-          { label: '已整改', value: total.rectifiedCount, unit: '处' },
-        ].map(item => (
-          <div key={item.label} style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{item.label}</div>
-            <div style={{ fontSize: 20, fontWeight: 600, color: '#1F2937' }}>{item.value}</div>
-            <div style={{ fontSize: 11, color: '#9CA3AF' }}>{item.unit}</div>
-          </div>
-        ))}
-      </div>
-
       {/* 表格 */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
