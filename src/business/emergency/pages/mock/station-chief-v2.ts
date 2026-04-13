@@ -35,6 +35,189 @@ export interface WorkGroup {
   }
 }
 
+
+// ─────────────────────────────────────────────
+// 行业隐患分析数据
+// ─────────────────────────────────────────────
+export interface IndustryHazardAnalysis {
+  id: string
+  industry: string
+  hazardCount: number
+  majorHazardCount: number
+  rectifiedCount: number
+  deadlineCount: number
+  topIssues: string[]
+  reboundEnterprises: string[]
+}
+
+export const industryHazardAnalysis: IndustryHazardAnalysis[] = [
+  {
+    id: 'ind-001',
+    industry: '工业企业',
+    hazardCount: 245,
+    majorHazardCount: 18,
+    rectifiedCount: 198,
+    deadlineCount: 12,
+    topIssues: ['机械防护缺失', '电气线路老化', '安全标识不足'],
+    reboundEnterprises: ['杭州鑫盛化工有限公司', '浙江华达机械制造厂', '余杭宏达建材厂'],
+  },
+  {
+    id: 'ind-002',
+    industry: '仓储物流',
+    hazardCount: 178,
+    majorHazardCount: 12,
+    rectifiedCount: 145,
+    deadlineCount: 8,
+    topIssues: ['消防通道堵塞', '货物堆放超高', '叉车作业违规'],
+    reboundEnterprises: ['良渚物流仓储中心', '勾庄货运站', '瓶窑快递分拣中心'],
+  },
+  {
+    id: 'ind-003',
+    industry: '小微企业',
+    hazardCount: 156,
+    majorHazardCount: 8,
+    rectifiedCount: 118,
+    deadlineCount: 15,
+    topIssues: ['灭火器配置不足', '疏散通道不畅', '员工培训缺失'],
+    reboundEnterprises: ['余杭小商品加工作坊', '良渚五金加工店', '勾庄服装加工厂'],
+  },
+  {
+    id: 'ind-004',
+    industry: '危化使用',
+    hazardCount: 89,
+    majorHazardCount: 15,
+    rectifiedCount: 67,
+    deadlineCount: 5,
+    topIssues: ['储存不规范', '应急器材不足', '警示标识缺失'],
+    reboundEnterprises: ['杭州化工原料公司', '浙江新材料科技', '余杭电镀厂'],
+  },
+  {
+    id: 'ind-005',
+    industry: '九小场所',
+    hazardCount: 134,
+    majorHazardCount: 6,
+    rectifiedCount: 102,
+    deadlineCount: 11,
+    topIssues: ['电线私拉乱接', '安全出口锁闭', '消防器材过期'],
+    reboundEnterprises: ['良渚小餐馆', '勾庄理发店', '瓶窑小旅馆'],
+  },
+  {
+    id: 'ind-006',
+    industry: '出租房',
+    hazardCount: 112,
+    majorHazardCount: 9,
+    rectifiedCount: 85,
+    deadlineCount: 7,
+    topIssues: ['电动车违规充电', '疏散通道堵塞', '私拉电线'],
+    reboundEnterprises: ['良渚群租房A栋', '勾庄公寓楼', '瓶窑农民房'],
+  },
+  {
+    id: 'ind-007',
+    industry: '沿街店铺',
+    hazardCount: 98,
+    majorHazardCount: 4,
+    rectifiedCount: 76,
+    deadlineCount: 9,
+    topIssues: ['货物占用通道', '电气线路混乱', '住人现象'],
+    reboundEnterprises: ['良渚商业街3号', '勾庄市场摊位', '瓶窑临街商铺'],
+  },
+]
+
+// ─────────────────────────────────────────────
+// 专项维度数据
+// ─────────────────────────────────────────────
+export interface SpecialInspectionData {
+  id: string
+  name: string
+  enterpriseCount: number
+  hazardFound: number
+  hazardSerious: number
+  hazardClosed: number
+  closureRate: number
+  overdue: number
+  inProgress: number
+}
+
+export const specialInspectionData: SpecialInspectionData[] = [
+  {
+    id: 'sp_001',
+    name: '日常巡查',
+    enterpriseCount: 156,
+    hazardFound: 186,
+    hazardSerious: 28,
+    hazardClosed: 158,
+    closureRate: 84.9,
+    overdue: 12,
+    inProgress: 16,
+  },
+  {
+    id: 'sp_002',
+    name: '重大危险源',
+    enterpriseCount: 42,
+    hazardFound: 68,
+    hazardSerious: 25,
+    hazardClosed: 55,
+    closureRate: 80.9,
+    overdue: 6,
+    inProgress: 7,
+  },
+  {
+    id: 'sp_003',
+    name: '消防安全专项',
+    enterpriseCount: 88,
+    hazardFound: 105,
+    hazardSerious: 18,
+    hazardClosed: 88,
+    closureRate: 83.8,
+    overdue: 8,
+    inProgress: 9,
+  },
+  {
+    id: 'sp_004',
+    name: '特种设备专项',
+    enterpriseCount: 52,
+    hazardFound: 62,
+    hazardSerious: 12,
+    hazardClosed: 52,
+    closureRate: 83.9,
+    overdue: 4,
+    inProgress: 6,
+  },
+  {
+    id: 'sp_005',
+    name: '危化品专项整治',
+    enterpriseCount: 48,
+    hazardFound: 78,
+    hazardSerious: 22,
+    hazardClosed: 65,
+    closureRate: 83.3,
+    overdue: 6,
+    inProgress: 7,
+  },
+  {
+    id: 'sp_006',
+    name: '防汛防台专项',
+    enterpriseCount: 62,
+    hazardFound: 45,
+    hazardSerious: 5,
+    hazardClosed: 40,
+    closureRate: 88.9,
+    overdue: 2,
+    inProgress: 3,
+  },
+  {
+    id: 'sp_007',
+    name: '节前安全检查',
+    enterpriseCount: 95,
+    hazardFound: 82,
+    hazardSerious: 15,
+    hazardClosed: 70,
+    closureRate: 85.4,
+    overdue: 5,
+    inProgress: 7,
+  },
+]
+
 export const workGroups: WorkGroup[] = [
   {
     id: 'team_001',
@@ -637,7 +820,7 @@ export const governmentMembers: GovernmentMember[] = [
     memberId: 'gov_018',
     memberName: '张义',
     teamIds: ['team_005', 'team_006', 'team_007', 'team_008'],  // 负责多个工作组
-    position: '站长',
+    position: '副站长',
     phone: '138xxxx0018',
     planCount: 100,
     planCompleted: 82,
@@ -651,7 +834,7 @@ export const governmentMembers: GovernmentMember[] = [
     inProgress: 18,
     overdueUnrectified: 10,
     lastInspectionDate: '2026-04-12',
-    role: 'leader',
+    role: 'deputy',
   },
 ]
 
