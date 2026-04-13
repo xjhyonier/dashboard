@@ -20,7 +20,7 @@ const RISK_CONFIG: Record<string, { label: string; color: string }> = {
 
 const RISK_CONFIG_FALLBACK = { label: '未知', color: '#6B7280' }
 
-export function HazardDimension({ dateRange, selectedKpi, setSelectedKpi }: HazardDimensionProps) {
+export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, setSelectedKpi }: HazardDimensionProps) {
   const [industryFilter, setIndustryFilter] = useState<string>('all')
   const [teamFilter, setTeamFilter] = useState<string>('all')
   const [keyword, setKeyword] = useState('')
@@ -56,9 +56,22 @@ export function HazardDimension({ dateRange, selectedKpi, setSelectedKpi }: Haza
     return ['all', ...Array.from(set)]
   }, [])
 
+  // 风险等级映射：筛选值 → 数据值
+  const riskLevelMap: Record<string, string> = {
+    major: 'major',
+    high: 'high',
+    medium: 'safety',
+    low: 'general',
+  }
+
   // 过滤后的隐患列表
   const filtered = useMemo(() => {
     return hazardRecords.filter(r => {
+      // 按风险等级筛选（除非 selectedKpi 是 serious，已经按 major 过滤了）
+      if (riskLevel !== 'all' && selectedKpi !== 'serious') {
+        const mappedLevel = riskLevelMap[riskLevel]
+        if (r.riskLevel !== mappedLevel) return false
+      }
       if (selectedKpi === 'serious' && r.riskLevel !== 'major') return false
       if (statusFilter !== 'all' && r.status !== statusFilter) return false
       if (industryFilter !== 'all' && r.industry !== industryFilter) return false
@@ -71,7 +84,7 @@ export function HazardDimension({ dateRange, selectedKpi, setSelectedKpi }: Haza
       }
       return true
     })
-  }, [selectedKpi, statusFilter, industryFilter, teamFilter, keyword])
+  }, [riskLevel, selectedKpi, statusFilter, industryFilter, teamFilter, keyword])
 
   const total = hazardRecords.length
 

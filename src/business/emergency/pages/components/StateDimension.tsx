@@ -7,7 +7,7 @@ import type { StateDimensionProps } from './types'
 import type { Enterprise10D } from '../mock/station-chief-v2'
 import { expertsFull, enterprises10D } from '../mock/station-chief-v2'
 
-export function StateDimension({ dateRange }: StateDimensionProps) {
+export function StateDimension({ dateRange, riskLevel, timeRange }: StateDimensionProps) {
   // 专家筛选
   const [selectedExpert, setSelectedExpert] = useState<string>('all')
 

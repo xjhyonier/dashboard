@@ -55,6 +55,9 @@ export function StationChiefV2Dashboard() {
   // 全局 KPI 筛选状态
   const [selectedKpi, setSelectedKpi] = useState<string | null>(null)
 
+  // 风险等级筛选状态
+  const [riskLevel, setRiskLevel] = useState<'all' | 'major' | 'high' | 'medium' | 'low'>('all')
+
   // KPI 汇总数据（全局，不受子维度筛选影响）
   const kpiTotals = useMemo(() => {
     const { start, end } = dateRange
@@ -128,11 +131,11 @@ export function StationChiefV2Dashboard() {
       {/* 维度切换按钮 */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
         {[
-          { key: 'duty', label: '履职' },
-          { key: 'industry', label: '行业' },
-          { key: 'special', label: '专项' },
-          { key: 'state', label: '状态' },
-          { key: 'hazard', label: '隐患' },
+          { key: 'duty', label: '组织与人员' },
+          { key: 'industry', label: '行业分析' },
+          { key: 'special', label: '专项检查' },
+          { key: 'state', label: '企业状态' },
+          { key: 'hazard', label: '隐患详情' },
         ].map(tab => (
           <button
             key={tab.key}
@@ -229,24 +232,25 @@ export function StationChiefV2Dashboard() {
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#9CA3AF' }}>风险:</span>
           {([
-            { key: 'all', label: '全部' },
-            { key: 'major', label: '重大' },
-            { key: 'high', label: '较大' },
-            { key: 'medium', label: '一般' },
-            { key: 'low', label: '低' },
-          ] as const).map(opt => (
+            { key: 'all' as const, label: '全部' },
+            { key: 'major' as const, label: '重大风险' },
+            { key: 'high' as const, label: '较大风险' },
+            { key: 'medium' as const, label: '一般风险' },
+            { key: 'low' as const, label: '低风险' },
+          ]).map(opt => (
             <button
               key={opt.key}
-              onClick={() => {}}
+              onClick={() => setRiskLevel(opt.key)}
               style={{
                 padding: '2px 8px',
                 borderRadius: 3,
                 border: '1px solid',
-                borderColor: '#E5E7EB',
-                background: 'white',
-                color: '#6B7280',
+                borderColor: riskLevel === opt.key ? '#4F46E5' : '#E5E7EB',
+                background: riskLevel === opt.key ? '#EEF2FF' : 'white',
+                color: riskLevel === opt.key ? '#4F46E5' : '#6B7280',
                 cursor: 'pointer',
                 fontSize: 12,
+                fontWeight: riskLevel === opt.key ? 600 : 400,
               }}
             >
               {opt.label}
@@ -269,11 +273,11 @@ export function StationChiefV2Dashboard() {
         </div>
       </div>
 
-      {dimension === 'duty' && <DutyDimension dateRange={dateRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} />}
-      {dimension === 'industry' && <IndustryDimension dateRange={dateRange} selectedKpi={selectedKpi} />}
-      {dimension === 'special' && <SpecialDimension dateRange={dateRange} selectedKpi={selectedKpi} />}
-      {dimension === 'state' && <StateDimension dateRange={dateRange} />}
-      {dimension === 'hazard' && <HazardDimension dateRange={dateRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} />}
+      {dimension === 'duty' && <DutyDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} />}
+      {dimension === 'industry' && <IndustryDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} />}
+      {dimension === 'special' && <SpecialDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} />}
+      {dimension === 'state' && <StateDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} />}
+      {dimension === 'hazard' && <HazardDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} />}
     </div>
   )
 }

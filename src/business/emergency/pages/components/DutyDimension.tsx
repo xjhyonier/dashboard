@@ -8,7 +8,7 @@ import {
   hazardRecords,
 } from '../mock/station-chief-v2'
 
-export function DutyDimension({ dateRange, selectedKpi, setSelectedKpi }: DutyDimensionProps) {
+export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, setSelectedKpi }: DutyDimensionProps) {
   const [teamKeyword, setTeamKeyword] = useState('')
   const [memberKeyword, setMemberKeyword] = useState('')
   const [expertKeyword, setExpertKeyword] = useState('')
@@ -32,12 +32,25 @@ export function DutyDimension({ dateRange, selectedKpi, setSelectedKpi }: DutyDi
     return Array.from(ids)
   }, [selectedMemberName])
 
-  // 过滤工作组：按关键词 + 按选中人员负责的组 + KPI筛选 + 排序
+  // 风险等级映射：筛选值 → 数据值
+  const riskLevelMap: Record<string, string> = {
+    major: 'major',
+    high: 'high',
+    medium: 'safety',
+    low: 'general',
+  }
+
+  // 过滤工作组：按关键词 + 风险等级 + 按选中人员负责的组 + KPI筛选 + 排序
   const filteredTeams = useMemo(() => {
     let result = workGroups
     // 按选中人员负责的组过滤
     if (selectedMemberName && selectedMemberTeamIds.length > 0) {
       result = result.filter(g => selectedMemberTeamIds.includes(g.id))
+    }
+    // 按风险等级筛选
+    if (riskLevel !== 'all') {
+      const mappedLevel = riskLevelMap[riskLevel]
+      result = result.filter(g => g.riskLevel === mappedLevel)
     }
     // 按关键词过滤
     if (teamKeyword.trim()) {
@@ -72,7 +85,7 @@ export function DutyDimension({ dateRange, selectedKpi, setSelectedKpi }: DutyDi
       })
     }
     return result
-  }, [teamKeyword, selectedMemberName, selectedMemberTeamIds, selectedKpi, teamSortKey, teamSortDir])
+  }, [teamKeyword, selectedMemberName, selectedMemberTeamIds, riskLevel, selectedKpi, teamSortKey, teamSortDir])
 
   // 过滤人员：按选中的工作组或人员负责的组过滤 + 关键词过滤 + KPI筛选 + 按姓名去重并合并 teamIds
   const filteredMembers = useMemo(() => {

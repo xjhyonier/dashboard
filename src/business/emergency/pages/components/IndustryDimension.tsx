@@ -3,7 +3,7 @@ import { thStyle, tdStyle, inputStyle } from './styles'
 import type { IndustryDimensionProps } from './types'
 import { industryHazardAnalysis, enterprises10D } from '../mock/station-chief-v2'
 
-export function IndustryDimension({ dateRange, selectedKpi }: IndustryDimensionProps) {
+export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi }: IndustryDimensionProps) {
   const [keyword, setKeyword] = useState('')
 
   const filtered = useMemo(() => {

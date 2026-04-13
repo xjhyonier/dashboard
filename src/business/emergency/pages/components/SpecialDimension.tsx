@@ -3,7 +3,7 @@ import { thStyle, tdStyle, inputStyle } from './styles'
 import type { SpecialDimensionProps } from './types'
 import { specialInspections } from '../mock/station-chief-v2'
 
-export function SpecialDimension({ dateRange, selectedKpi }: SpecialDimensionProps) {
+export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi }: SpecialDimensionProps) {
   const [keyword, setKeyword] = useState('')
 
   const filtered = useMemo(() => {

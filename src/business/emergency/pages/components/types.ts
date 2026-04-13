@@ -4,6 +4,8 @@
 import type { Enterprise10D } from '../mock/station-chief-v2'
 
 export type SortDirection = 'asc' | 'desc' | null
+export type RiskLevel = 'all' | 'major' | 'high' | 'medium' | 'low'
+export type TimeRange = 'month' | 'quarter' | 'year' | 'custom'
 
 export interface SortState<T> {
   key: keyof T | null
@@ -19,6 +21,8 @@ export interface SortableThProps {
 
 export interface DutyDimensionProps {
   dateRange: { start: string; end: string }
+  riskLevel: RiskLevel
+  timeRange: TimeRange
   selectedKpi: string | null
   setSelectedKpi: (k: string | null) => void
 }
@@ -43,21 +47,29 @@ export interface DimensionTableProps {
 
 export interface StateDimensionProps {
   dateRange: { start: string; end: string }
+  riskLevel: RiskLevel
+  timeRange: TimeRange
 }
 
 export interface HazardDimensionProps {
   dateRange: { start: string; end: string }
+  riskLevel: RiskLevel
+  timeRange: TimeRange
   selectedKpi: string | null
   setSelectedKpi: (k: string | null) => void
 }
 
 export interface IndustryDimensionProps {
   dateRange: { start: string; end: string }
+  riskLevel: RiskLevel
+  timeRange: TimeRange
   selectedKpi: string | null
 }
 
 export interface SpecialDimensionProps {
   dateRange: { start: string; end: string }
+  riskLevel: RiskLevel
+  timeRange: TimeRange
   selectedKpi: string | null
 }
 
