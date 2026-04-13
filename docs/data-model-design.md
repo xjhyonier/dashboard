@@ -543,29 +543,51 @@ AI巡查
 
 ---
 
-### 2.8 SpecialInspection（专项检查）
+### 2.8 Task（任务）
+
+任务分为三种类型：日常检查、专项检查、抽检任务。
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | id | string | ✅ | 主键，UUID |
-| name | string | ✅ | 专项名称 |
-| type | string | | 专项类型：危化/消防/粉尘/有限空间/其他 |
+| name | string | ✅ | 任务名称 |
+| type | enum | ✅ | 任务类型：日常检查/专项检查/抽检任务 |
+| publish_unit | string | | 发布单位：良渚街道 |
+| target | string | | 走访对象：企业 |
+| total_count | number | ✅ | 任务数量（覆盖企业数） |
+| completed_count | number | | 已完成数 |
+| completion_rate | number | | 完成率 % |
+| creator | string | | 创建人 |
 | start_date | date | ✅ | 开始时间 |
 | end_date | date | ✅ | 结束时间 |
+| status | enum | | 状态：进行中/已完成/已过期 |
+| risk_level | enum | | 关联风险等级（日常任务用） |
+| work_group | string | | 负责工作组 |
 | enterprise_ids | string[] | | 覆盖企业ID列表 |
-| target_count | number | | 目标检查企业数 |
-| checked_count | number | | 实际检查企业数 |
 | hazard_count | number | | 发现隐患数 |
 | major_hazard_count | number | | 重大隐患数 |
-| status | enum | | 专项状态：进行中/已完成 |
+| created_at | date | | 创建时间 |
 
-#### 专项类型（type）
+#### 任务类型（type）
 ```
-危化使用
-消防重点
-粉尘涉爆
-有限空间作业
-其他
+日常检查  // 按风险等级自动/人工生成的周期性任务
+专项检查  // 临时性的专项任务
+抽检任务  // 按比例抽查一般/低风险企业
+```
+
+#### 日常检查任务（按风险等级）
+```
+重大风险企业：每季度1次
+较大风险企业：每半年1次
+一般风险企业：每季度1次
+低风险企业：每半年1次（按10%比例抽查）
+```
+
+#### 任务状态（status）
+```
+进行中  // 任务执行中
+已完成  // 任务已完成
+已过期  // 任务已过期
 ```
 
 ---
@@ -770,14 +792,14 @@ getWorkGroups(): Promise<WorkGroup[]>
 getWorkGroupStats(): Promise<WorkGroupStats[]>
 ```
 
-### 5.6 专项检查相关
+### 5.6 任务相关
 
 ```typescript
-// 获取专项检查列表
-getSpecialInspections(): Promise<SpecialInspection[]>
+// 获取任务列表（支持按类型筛选）
+getTasks(filters?: { type?: '日常检查' | '专项检查' | '抽检任务' }): Promise<Task[]>
 
-// 获取专项详情（含覆盖企业）
-getSpecialInspectionById(id: string): Promise<SpecialInspectionDetail>
+// 获取任务详情
+getTaskById(id: string): Promise<Task | undefined>
 ```
 
 ---
@@ -824,20 +846,17 @@ getSpecialInspectionById(id: string): Promise<SpecialInspectionDetail>
 5. WorkGroup（工作组）
 6. EnterpriseDimensions（企业维度）
 7. EnterpriseStatePath（状态路径）
+8. Task（任务）日常检查/专项检查/抽检任务
 
 ### P1 - 重要数据
 1. RiskPoint（风险点）
-2. SpecialInspection（专项检查）
-3. ExpertWorkload（专家工作量）
-4. 各类统计聚合
+2. ExpertWorkload（专家工作量）
+3. 各类统计聚合
 
 ### P2 - 扩展功能
 1. 事故记录
 2. 执法记录
 3. 历史变更记录
-
-### P2 - 扩展功能
-1. 事故记录
 2. 执法记录
 3. 历史变更记录
 

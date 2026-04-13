@@ -20,7 +20,7 @@ import {
   ExpertWorkload,
   GovernmentMember,
   WorkGroup,
-  SpecialInspection,
+  Task,
   EnterpriseStats,
   HazardStats,
   WorkGroupStats,
@@ -541,16 +541,20 @@ class EmergencyDatabase {
     })
   }
 
-  // ==================== 专项检查相关 ====================
+  // ==================== 任务相关 ====================
 
-  async getSpecialInspections(): Promise<SpecialInspection[]> {
+  async getTasks(filters?: { type?: string }): Promise<Task[]> {
     const db = this.ensureInit()
-    return [...db.specialInspections]
+    let result = [...db.tasks]
+    if (filters?.type) {
+      result = result.filter(t => t.type === filters.type)
+    }
+    return result
   }
 
-  async getSpecialInspectionById(id: string): Promise<SpecialInspection | undefined> {
+  async getTaskById(id: string): Promise<Task | undefined> {
     const db = this.ensureInit()
-    return db.specialInspections.find(si => si.id === id)
+    return db.tasks.find(t => t.id === id)
   }
 
   // ==================== 聚合查询 ====================

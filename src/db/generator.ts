@@ -21,7 +21,7 @@ import {
   ExpertWorkload,
   GovernmentMember,
   WorkGroup,
-  SpecialInspection,
+  Task,
   HazardDimension,
   HazardSourceDetail,
   // 枚举
@@ -207,12 +207,30 @@ const RISK_POINT_NAMES = [
   '生产车间', '喷涂作业区', '酸碱储存区', '燃气调压站', '空压机房',
 ]
 
-// 专项检查名称
-const SPECIAL_INSPECTION_NAMES = [
-  '危化品使用专项检查', '消防安全专项检查', '粉尘涉爆专项检查',
-  '有限空间作业专项检查', '特种设备专项检查', '用电安全专项检查',
-  '高温季节安全专项检查', '冬季防冻防滑专项检查',
-]
+// 任务名称
+const TASK_NAMES = {
+  '日常检查': [
+    '2026年01月-2026年06月重大风险检查任务',
+    '2026年01月-2026年06月较大风险检查任务',
+    '2026年01月-2026年06月一般风险检查任务',
+    '2026年01月-2026年06月低风险检查任务',
+  ],
+  '专项检查': [
+    '2025年冷库全链条安全管理专项整治',
+    '2025年危化品储存安全专项整治',
+    '2025年消防安全专项整治',
+    '2025年粉尘涉爆专项整治',
+    '2025年有限空间作业专项整治',
+    '2025年特种设备专项整治',
+  ],
+  '抽检任务': [
+    '一般风险企业抽查任务',
+    '低风险企业抽查任务',
+  ],
+}
+
+// 专家姓名（用于任务创建人）
+const TASK_CREATORS = ['范嘉杰', '杨涛', '张建国', '李红梅', '王志强', '刘文华']
 
 // ==================== 工作组数据 ====================
 
@@ -296,7 +314,7 @@ export interface GeneratedData {
   expertDimensions: ExpertDimensionScore[]
   expertPlatformBehaviors: ExpertPlatformBehavior[]
   expertWorkloads: ExpertWorkload[]
-  specialInspections: SpecialInspection[]
+  tasks: Task[]
 }
 
 export function generateAllData(): GeneratedData {
@@ -738,27 +756,102 @@ export function generateAllData(): GeneratedData {
     })
   }
 
-  // ==================== 专项检查 ====================
-  const specialInspections: SpecialInspection[] = SPECIAL_INSPECTION_NAMES.map((name, index) => {
-    const startDate = randomPastDate(60)
-    const endDate = new Date(new Date(startDate).getTime() + randomInt(7, 30) * 86400000)
-    const targetCount = randomInt(20, 50)
-    const checkedCount = Math.floor(targetCount * (0.6 + Math.random() * 0.4))
+  // ==================== 任务 ====================
+  const tasks: Task[] = []
+  
+  // 日常检查任务（按风险等级）
+  const riskLevelTasks: Record<string, string> = {
+    '重大': '重大风险',
+    '较大': '较大风险',
+    '一般': '一般风险',
+    '低': '低风险',
+  }
+  
+  Object.entries(riskLevelTasks).forEach(([level, levelName]) => {
+    const year = new Date().getFullYear()
+    const name = `${year}年01月-${year}年06月${levelName}检查任务`
+    const startDate = `${year}-01-01`
+    const endDate = `${year}-06-30`
+    const relatedEnterprises = enterprises.filter(e => e.risk_level === level)
+    const totalCount = relatedEnterprises.length
+    const completedCount = Math.floor(totalCount * (0.5 + Math.random() * 0.5))
     
-    return {
-      id: `si-${String(index + 1).padStart(3, '0')}`,
+    tasks.push({
+      id: `task-daily-${level}`,
       name,
-      type: pickEnum(['危化使用', '消防重点', '粉尘涉爆', '有限空间作业', '其他']),
+      type: '日常检查',
+      publish_unit: '良渚街道',
+      target: '企业',
+      total_count: totalCount,
+      completed_count: completedCount,
+      completion_rate: Math.round((completedCount / totalCount) * 100),
+      creator: TASK_CREATORS[randomInt(0, TASK_CREATORS.length - 1)],
       start_date: startDate,
-      end_date: endDate.toISOString().split('T')[0],
-      enterprise_ids: enterprises.slice(randomInt(0, 100), randomInt(20, 50)).map(e => e.id),
-      target_count: targetCount,
-      checked_count: checkedCount,
-      hazard_count: randomInt(5, checkedCount),
-      major_hazard_count: Math.random() < 0.3 ? randomInt(0, 3) : 0,
-      status: new Date() > endDate ? '已完成' : '进行中',
+      end_date: endDate,
+      status: '进行中',
+      risk_level: level as RiskLevel,
+      enterprise_ids: relatedEnterprises.map(e => e.id),
+      hazard_count: randomInt(10, 50),
+      major_hazard_count: level === '重大' || level === '较大' ? randomInt(1, 5) : 0,
       created_at: startDate,
-    }
+    })
+  })
+  
+  // 专项检查任务
+  TASK_NAMES['专项检查'].forEach((name, index) => {
+    const startDate = `${new Date().getFullYear() - 1}-${String(randomInt(1, 12)).padStart(2, '0')}-01`
+    const endYear = new Date() > new Date(startDate) ? new Date().getFullYear() : new Date().getFullYear() - 1
+    const endDate = `${endYear}-12-31`
+    const totalCount = randomInt(30, 80)
+    const completedCount = Math.floor(totalCount * (0.1 + Math.random() * 0.5))
+    
+    tasks.push({
+      id: `task-special-${index + 1}`,
+      name,
+      type: '专项检查',
+      publish_unit: '良渚街道',
+      target: '企业',
+      total_count: totalCount,
+      completed_count: completedCount,
+      completion_rate: Math.round((completedCount / totalCount) * 100),
+      creator: TASK_CREATORS[randomInt(0, TASK_CREATORS.length - 1)],
+      start_date: startDate,
+      end_date: endDate,
+      status: new Date() > new Date(endDate) ? '已完成' : '进行中',
+      enterprise_ids: enterprises.slice(randomInt(0, 50), randomInt(30, 80)).map(e => e.id),
+      hazard_count: randomInt(20, 60),
+      major_hazard_count: randomInt(1, 8),
+      created_at: startDate,
+    })
+  })
+  
+  // 抽检任务
+  TASK_NAMES['抽检任务'].forEach((name, index) => {
+    const year = new Date().getFullYear()
+    const startDate = `${year}-01-01`
+    const endDate = `${year}-12-31`
+    const targetEnterprises = enterprises.filter(e => e.risk_level === (index === 0 ? '一般' : '低'))
+    const totalCount = Math.floor(targetEnterprises.length * 0.1) // 10% 抽查
+    const completedCount = Math.floor(totalCount * (0.3 + Math.random() * 0.5))
+    
+    tasks.push({
+      id: `task-sample-${index + 1}`,
+      name,
+      type: '抽检任务',
+      publish_unit: '良渚街道',
+      target: '企业',
+      total_count: Math.max(totalCount, 5),
+      completed_count: completedCount,
+      completion_rate: Math.round((completedCount / Math.max(totalCount, 5)) * 100),
+      creator: TASK_CREATORS[randomInt(0, TASK_CREATORS.length - 1)],
+      start_date: startDate,
+      end_date: endDate,
+      status: '进行中',
+      enterprise_ids: targetEnterprises.slice(0, Math.max(totalCount, 5)).map(e => e.id),
+      hazard_count: randomInt(5, 20),
+      major_hazard_count: 0,
+      created_at: startDate,
+    })
   })
 
   return {
@@ -776,6 +869,6 @@ export function generateAllData(): GeneratedData {
     expertDimensions,
     expertPlatformBehaviors,
     expertWorkloads,
-    specialInspections,
+    tasks,
   }
 }

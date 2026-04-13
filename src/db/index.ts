@@ -182,18 +182,15 @@ export async function getWorkGroupStats(): Promise<WorkGroupStats[]> {
   return db.getWorkGroupStats()
 }
 
-// ==================== 专项检查相关接口 ====================
+// ==================== 任务相关接口 ====================
 
-import { SpecialInspection } from './types'
-
-export async function getSpecialInspections(): Promise<SpecialInspection[]> {
-  return db.getSpecialInspections()
+import { Task, TaskType } from './types'
+export async function getTasks(filters?: { type?: TaskType }): Promise<Task[]> {
+  return db.getTasks(filters)
 }
-
-export async function getSpecialInspectionById(id: string): Promise<SpecialInspection | undefined> {
-  return db.getSpecialInspectionById(id)
+export async function getTaskById(id: string): Promise<Task | undefined> {
+  return db.getTaskById(id)
 }
-
 // ==================== 聚合查询接口 ====================
 
 export async function getWeeklyAggregation(expertId?: string): Promise<{

@@ -48,11 +48,11 @@ export type CheckFrequency = '每日' | '每周' | '每月' | '每季度' | '每
 /** 检查计划类型 */
 export type PlanType = 'weekly' | 'monthly' | 'quarterly' | 'none'
 
-/** 专项检查类型 */
-export type SpecialInspectionType = '危化使用' | '消防重点' | '粉尘涉爆' | '有限空间作业' | '其他'
+/** 任务类型 */
+export type TaskType = '日常检查' | '专项检查' | '抽检任务'
 
-/** 专项检查状态 */
-export type SpecialInspectionStatus = '进行中' | '已完成'
+/** 任务状态 */
+export type TaskStatus = '进行中' | '已完成' | '已过期'
 
 /** 整改状态 */
 export type RectifyStatus = 'completed' | 'uncompleted' | 'partial' | 'overdue'
@@ -331,20 +331,29 @@ export interface RiskPointRecord {
   note: string
 }
 
-// ==================== 专项检查 ====================
+// ==================== 任务 ====================
 
-export interface SpecialInspection {
+/**
+ * 任务（日常检查/专项检查/抽检任务）
+ */
+export interface Task {
   id: string
-  name: string
-  type: SpecialInspectionType
-  start_date: string
-  end_date: string
-  enterprise_ids: string[]
-  target_count: number
-  checked_count: number
-  hazard_count: number
-  major_hazard_count: number
-  status: SpecialInspectionStatus
+  name: string                           // 任务名称
+  type: TaskType                         // 任务类型: 日常检查 / 专项检查 / 抽检任务
+  publish_unit: string                    // 发布单位: 良渚街道
+  target: string                         // 走访对象: 企业
+  total_count: number                    // 任务数量（覆盖企业数）
+  completed_count: number                 // 已完成数
+  completion_rate: number                // 完成率
+  creator: string                         // 创建人
+  start_date: string                     // 开始时间
+  end_date: string                       // 结束时间
+  status: TaskStatus                     // 状态: 进行中 / 已完成 / 已过期
+  risk_level?: RiskLevel                // 关联风险等级（日常任务用）
+  work_group?: string                    // 负责工作组
+  enterprise_ids: string[]               // 覆盖企业ID列表
+  hazard_count: number                    // 发现隐患数
+  major_hazard_count: number             // 重大隐患数
   created_at: string
 }
 
