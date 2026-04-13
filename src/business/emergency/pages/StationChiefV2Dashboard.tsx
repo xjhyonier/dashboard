@@ -92,18 +92,22 @@ function PersonDimension() {
   const [memberKeyword, setMemberKeyword] = useState('')
   const [expertKeyword, setExpertKeyword] = useState('')
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
-  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
+  const [selectedMemberName, setSelectedMemberName] = useState<string | null>(null)
 
-  // 获取选中人员负责的工作组 IDs
-  const selectedMemberTeamIds = selectedMemberId
-    ? governmentMembers.find(m => m.id === selectedMemberId)?.teamIds || []
-    : []
+  // 获取选中人员负责的工作组 IDs（按姓名查找，同一个人所有记录都要）
+  const selectedMemberTeamIds = useMemo(() => {
+    if (!selectedMemberName) return []
+    const allRecords = governmentMembers.filter(m => m.memberName === selectedMemberName)
+    const ids = new Set<string>()
+    allRecords.forEach(m => m.teamIds.forEach(tid => ids.add(tid)))
+    return Array.from(ids)
+  }, [selectedMemberName])
 
   // 过滤工作组：按关键词 + 按选中人员负责的组
   const filteredTeams = useMemo(() => {
     let result = workGroups
     // 按选中人员负责的组过滤
-    if (selectedMemberId && selectedMemberTeamIds.length > 0) {
+    if (selectedMemberName && selectedMemberTeamIds.length > 0) {
       result = result.filter(g => selectedMemberTeamIds.includes(g.id))
     }
     // 按关键词过滤
@@ -112,9 +116,9 @@ function PersonDimension() {
       result = result.filter(g => g.name.toLowerCase().includes(kw))
     }
     return result
-  }, [teamKeyword, selectedMemberId, selectedMemberTeamIds])
+  }, [teamKeyword, selectedMemberName, selectedMemberTeamIds])
 
-  // 过滤人员：按选中的工作组或人员负责的组过滤 + 关键词过滤
+  // 过滤人员：按选中的工作组或人员负责的组过滤 + 关键词过滤 + 按姓名去重并合并 teamIds
   const filteredMembers = useMemo(() => {
     let result = governmentMembers
     // 按选中的工作组或人员负责的组过滤
@@ -132,8 +136,25 @@ function PersonDimension() {
         m.position.toLowerCase().includes(kw)
       )
     }
-    return result
-  }, [selectedTeamId, selectedMemberId, selectedMemberTeamIds, memberKeyword])
+    // 按姓名去重，合并同一个人的多个 teamIds
+    const nameToMember = new Map<string, typeof result[0]>()
+    result.forEach(m => {
+      if (nameToMember.has(m.memberName)) {
+        // 合并 teamIds
+        const existing = nameToMember.get(m.memberName)!
+        const mergedTeamIds = [...new Set([...existing.teamIds, ...m.teamIds])]
+        nameToMember.set(m.memberName, { ...existing, teamIds: mergedTeamIds })
+      } else {
+        nameToMember.set(m.memberName, m)
+      }
+    })
+    // 排序：副站长排前面，然后按姓名排序
+    return Array.from(nameToMember.values()).sort((a, b) => {
+      if (a.role === 'deputy' && b.role !== 'deputy') return -1
+      if (a.role !== 'deputy' && b.role === 'deputy') return 1
+      return a.memberName.localeCompare(b.memberName)
+    })
+  }, [selectedTeamId, selectedMemberName, selectedMemberTeamIds, memberKeyword])
 
   // 过滤专家：按选中工作组或选中人员负责的组
   const filteredExperts = useMemo(() => {
@@ -161,16 +182,10 @@ function PersonDimension() {
     ? workGroups.find(g => g.id === selectedTeamId)?.name
     : null
 
-  // 获取选中人员的名称
-  const selectedMemberName = selectedMemberId
-    ? governmentMembers.find(m => m.id === selectedMemberId)?.memberName
-    : null
-
   // 汇总数据（根据选中的人员或工作组动态计算）
-  const total = selectedMemberId
+  const total = selectedMemberName
     ? (() => {
-        const member = governmentMembers.find(m => m.id === selectedMemberId)!
-        const memberTeams = workGroups.filter(g => member.teamIds.includes(g.id))
+        const memberTeams = workGroups.filter(g => selectedMemberTeamIds.includes(g.id))
         return {
           enterprise: memberTeams.reduce((s, g) => s + g.enterpriseCount, 0),
           hazard: memberTeams.reduce((s, g) => s + g.hazardFound, 0),
@@ -214,7 +229,7 @@ function PersonDimension() {
   return (
     <div>
       {/* 选中提示条 */}
-      {(selectedTeamId || selectedMemberId) && (
+      {(selectedTeamId || selectedMemberName) && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -227,20 +242,20 @@ function PersonDimension() {
           fontSize: 12,
         }}>
           <span style={{ color: '#4F46E5', fontWeight: 500 }}>当前筛选：</span>
-          {selectedMemberId && (
+          {selectedMemberName && (
             <>
               <span style={{ color: '#1F2937', fontWeight: 600 }}>{selectedMemberName}</span>
               <span style={{ color: '#6B7280' }}>(负责 {selectedMemberTeamIds.length} 个工作组)</span>
             </>
           )}
-          {selectedTeamId && !selectedMemberId && (
+          {selectedTeamId && !selectedMemberName && (
             <>
               <span style={{ color: '#1F2937', fontWeight: 600 }}>{selectedTeamName}</span>
             </>
           )}
           <span style={{ color: '#6B7280' }}>，数据已联动筛选</span>
           <button
-            onClick={() => { setSelectedTeamId(null); setSelectedMemberId(null) }}
+            onClick={() => { setSelectedTeamId(null); setSelectedMemberName(null) }}
             style={{
               marginLeft: 'auto',
               padding: '2px 8px',
@@ -305,6 +320,9 @@ function PersonDimension() {
             ) : filteredTeams.map((g, i) => {
               const isSelected = selectedTeamId === g.id
               const major = g.majorRisk
+              // 查找组长和副站长的人员信息
+              const leaderMember = governmentMembers.find(m => m.memberName === g.leader && m.teamIds.includes(g.id))
+              const deputyMember = governmentMembers.find(m => m.memberName === g.deputy && m.teamIds.includes(g.id))
               return (
                 <tr key={g.id} style={{
                 background: isSelected ? '#EEF3FF' : (i % 2 === 0 ? 'white' : '#FAFBFC'),
@@ -323,8 +341,20 @@ function PersonDimension() {
                 >
                   <span style={{ textDecoration: isSelected ? 'underline' : 'none' }}>{g.name}</span>
                 </td>
-                <td style={{ ...tdStyle, color: '#4F46E5' }}>{g.leader}</td>
-                <td style={{ ...tdStyle, color: '#7C3AED' }}>{g.deputy}</td>
+                <td
+                  style={{ ...tdStyle, color: '#4F46E5', cursor: 'pointer', textDecoration: selectedMemberName === g.leader ? 'underline' : 'none' }}
+                  onClick={() => setSelectedMemberName(selectedMemberName === g.leader ? null : g.leader)}
+                  title="点击筛选该人员"
+                >
+                  {g.leader}
+                </td>
+                <td
+                  style={{ ...tdStyle, color: '#7C3AED', cursor: 'pointer', textDecoration: selectedMemberName === g.deputy ? 'underline' : 'none' }}
+                  onClick={() => setSelectedMemberName(selectedMemberName === g.deputy ? null : g.deputy)}
+                  title="点击筛选该人员"
+                >
+                  {g.deputy}
+                </td>
                 <td style={{ ...tdStyle, fontWeight: 500 }}>{g.memberCount * 10}</td>
                 <td style={tdStyle}>{g.enterpriseCount}</td>
                 <td style={tdStyle}>{g.hazardFound}</td>
@@ -381,7 +411,7 @@ function PersonDimension() {
             {filteredMembers.length === 0 ? (
               <tr><td colSpan={11} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的人员</td></tr>
             ) : filteredMembers.map((m, i) => {
-              const isSelected = selectedMemberId === m.id
+              const isSelected = selectedMemberName === m.memberName
               const teamNames = m.teamIds.map(id => workGroups.find(g => g.id === id)?.name).filter(Boolean).join('、')
               return (
               <tr key={m.id} style={{
@@ -396,7 +426,7 @@ function PersonDimension() {
                     color: isSelected ? '#4F46E5' : '#1F2937',
                     cursor: 'pointer',
                   }}
-                  onClick={() => setSelectedMemberId(isSelected ? null : m.id)}
+                  onClick={() => setSelectedMemberName(isSelected ? null : m.memberName)}
                   title="点击筛选该人员负责的工作组"
                 >
                   <span style={{ textDecoration: isSelected ? 'underline' : 'none' }}>{m.memberName}</span>
