@@ -296,6 +296,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
   const [selectedMemberName, setSelectedMemberName] = useState<string | null>(null)
   const [filterByMember, setFilterByMember] = useState<string | null>(null) // 按成员名称过滤工作组
+  const [selectedExpertName, setSelectedExpertName] = useState<string | null>(null) // 选中的专家
 
   // 过滤工作组
   const filteredTeams = useMemo(() => {
@@ -339,6 +340,10 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
   // 过滤专家
   const filteredExperts = useMemo(() => {
     let result = expertViews
+    // 按选中的专家过滤
+    if (selectedExpertName) {
+      result = result.filter(e => e.name === selectedExpertName)
+    }
     // 按选中的工作组过滤
     if (selectedTeamId) {
       const selectedTeam = workGroups.find(wg => wg.id === selectedTeamId)
@@ -351,7 +356,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
       result = result.filter(e => e.name.toLowerCase().includes(kw) || e.work_group.toLowerCase().includes(kw))
     }
     return result
-  }, [expertViews, expertKeyword, selectedTeamId, workGroups])
+  }, [expertViews, expertKeyword, selectedTeamId, workGroups, selectedExpertName])
 
   // 合计
   const totals = useMemo(() => {
@@ -402,7 +407,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
             <span style={{ color: '#1F2937', fontWeight: 600 }}>{selectedMemberName}</span>
           )}
           <button
-            onClick={() => { setSelectedTeamId(null); setSelectedMemberName(null); setSelectedKpi(null); setFilterByMember(null) }}
+            onClick={() => { setSelectedTeamId(null); setSelectedMemberName(null); setSelectedKpi(null); setFilterByMember(null); setSelectedExpertName(null) }}
             style={{
               marginLeft: 'auto',
               padding: '2px 8px',
@@ -677,7 +682,13 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 <tr><td colSpan={20} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的专家</td></tr>
               ) : filteredExperts.map((e, i) => (
                 <tr key={e.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                  <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 500 }}>{e.name}</td>
+                  <td
+                    style={{ ...tdStyle, textAlign: 'left', fontWeight: 500, cursor: 'pointer', color: '#4F46E5', textDecoration: 'underline' }}
+                    onClick={() => setSelectedExpertName(selectedExpertName === e.name ? null : e.name)}
+                    title={selectedExpertName === e.name ? '取消筛选' : `点击筛选 ${e.name}`}
+                  >
+                    {e.name}
+                  </td>
                   <td style={{ ...tdStyle, textAlign: 'left' }}>{e.work_group}</td>
                   <td style={tdStyle}>{e.enterprise_count}</td>
                   <td style={tdStyle}>{e.check_count}</td>
