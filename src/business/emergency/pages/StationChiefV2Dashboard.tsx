@@ -125,48 +125,46 @@ export function StationChiefV2Dashboard() {
         })}
       </div>
 
-      {/* 维度切换 + 日期筛选 */}
+      {/* 维度切换按钮 */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        {[
+          { key: 'duty', label: '履职' },
+          { key: 'industry', label: '行业' },
+          { key: 'special', label: '专项' },
+          { key: 'state', label: '状态' },
+          { key: 'hazard', label: '隐患' },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => handleDimensionChange(tab.key as Dimension)}
+            style={{
+              padding: '4px 12px',
+              borderRadius: 4,
+              border: '1px solid',
+              borderColor: dimension === tab.key ? '#4F46E5' : '#D1D5DB',
+              background: dimension === tab.key ? '#EEF2FF' : 'white',
+              color: dimension === tab.key ? '#4F46E5' : '#6B7280',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 500,
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 时间范围筛选 */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
+        gap: 8,
         marginBottom: 12,
         flexWrap: 'wrap',
       }}>
-        {/* 维度切换按钮 */}
-        <div style={{ display: 'flex', gap: 6 }}>
-          {[
-            { key: 'duty', label: '履职' },
-            { key: 'industry', label: '行业' },
-            { key: 'special', label: '专项' },
-            { key: 'state', label: '状态' },
-            { key: 'hazard', label: '隐患' },
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => handleDimensionChange(tab.key as Dimension)}
-              style={{
-                padding: '4px 12px',
-                borderRadius: 4,
-                border: '1px solid',
-                borderColor: dimension === tab.key ? '#4F46E5' : '#D1D5DB',
-                background: dimension === tab.key ? '#EEF2FF' : 'white',
-                color: dimension === tab.key ? '#4F46E5' : '#6B7280',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 500,
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
-
-        {/* 时间范围快捷筛选 */}
+        {/* 时间快捷筛选 */}
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: '#9CA3AF' }}>时间:</span>
+          <span style={{ fontSize: 12, color: '#9CA3AF' }}>时间:</span>
           {([
             { key: 'month' as TimeRange, label: '本月' },
             { key: 'quarter' as TimeRange, label: '本季' },
@@ -183,7 +181,7 @@ export function StationChiefV2Dashboard() {
                 background: timeRange === opt.key ? '#EEF2FF' : 'white',
                 color: timeRange === opt.key ? '#4F46E5' : '#6B7280',
                 cursor: 'pointer',
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: timeRange === opt.key ? 600 : 400,
               }}
             >
@@ -200,7 +198,7 @@ export function StationChiefV2Dashboard() {
               background: timeRange === 'custom' ? '#EEF2FF' : 'white',
               color: timeRange === 'custom' ? '#4F46E5' : '#6B7280',
               cursor: 'pointer',
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: timeRange === 'custom' ? 600 : 400,
             }}
           >
@@ -212,22 +210,24 @@ export function StationChiefV2Dashboard() {
                 type="date"
                 value={customStart}
                 onChange={e => setCustomStart(e.target.value)}
-                style={{ padding: '2px 4px', border: '1px solid #E5E7EB', borderRadius: 3, fontSize: 11, color: '#374151', outline: 'none', width: 110 }}
+                style={{ padding: '2px 6px', border: '1px solid #E5E7EB', borderRadius: 3, fontSize: 12, color: '#374151', outline: 'none' }}
               />
-              <span style={{ fontSize: 11, color: '#9CA3AF' }}>至</span>
+              <span style={{ fontSize: 12, color: '#9CA3AF' }}>至</span>
               <input
                 type="date"
                 value={customEnd}
                 onChange={e => setCustomEnd(e.target.value)}
-                style={{ padding: '2px 4px', border: '1px solid #E5E7EB', borderRadius: 3, fontSize: 11, color: '#374151', outline: 'none', width: 110 }}
+                style={{ padding: '2px 6px', border: '1px solid #E5E7EB', borderRadius: 3, fontSize: 12, color: '#374151', outline: 'none' }}
               />
             </>
           )}
         </div>
 
+        <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
+
         {/* 风险等级筛选 */}
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: '#9CA3AF' }}>风险:</span>
+          <span style={{ fontSize: 12, color: '#9CA3AF' }}>风险:</span>
           {([
             { key: 'all', label: '全部' },
             { key: 'major', label: '重大' },
@@ -237,7 +237,7 @@ export function StationChiefV2Dashboard() {
           ] as const).map(opt => (
             <button
               key={opt.key}
-              onClick={() => {/* TODO: 实现风险等级筛选 */}}
+              onClick={() => {}}
               style={{
                 padding: '2px 8px',
                 borderRadius: 3,
@@ -246,7 +246,7 @@ export function StationChiefV2Dashboard() {
                 background: 'white',
                 color: '#6B7280',
                 cursor: 'pointer',
-                fontSize: 11,
+                fontSize: 12,
               }}
             >
               {opt.label}
@@ -255,7 +255,7 @@ export function StationChiefV2Dashboard() {
         </div>
 
         {/* 当前筛选状态 */}
-        <div style={{ marginLeft: 'auto', fontSize: 11, color: '#9CA3AF' }}>
+        <div style={{ marginLeft: 'auto', fontSize: 12, color: '#9CA3AF' }}>
           {dateRange.start} ~ {dateRange.end}
           {selectedKpi && (
             <span style={{ marginLeft: 8, padding: '1px 6px', background: '#F3F4F6', borderRadius: 3, color: '#7C3AED' }}>

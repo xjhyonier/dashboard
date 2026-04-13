@@ -19,11 +19,11 @@ export function IndustryDimension({ dateRange, selectedKpi }: IndustryDimensionP
     deadlineCount: industryHazardAnalysis.reduce((s, d) => s + d.deadlineCount, 0),
   }
 
-  // 责任主体类型汇总（从 Enterprise10D 按 risk_level 聚合）
+  // 责任主体类型汇总（从 Enterprise10D 按 enterprise_type 聚合）
   const subjectTypes = useMemo(() => {
     const map = new Map<string, { enterpriseCount: number; inspectedCount: number; hazardFound: number; seriousHazard: number; rectified: number; deadline: number; recheck: number; enforcement: number }>()
     enterprises10D.forEach(e => {
-      const type = e.risk_level || '其他'
+      const type = e.enterprise_type
       if (!map.has(type)) map.set(type, { enterpriseCount: 0, inspectedCount: 0, hazardFound: 0, seriousHazard: 0, rectified: 0, deadline: 0, recheck: 0, enforcement: 0 })
       const s = map.get(type)!
       s.enterpriseCount++
