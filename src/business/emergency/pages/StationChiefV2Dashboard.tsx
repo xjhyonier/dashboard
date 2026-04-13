@@ -9,6 +9,7 @@ import {
   industryHazardAnalysis,
   specialInspections,
   enterprises,
+  enterprises10D,
   filterEnterprisesByState,
   getStateCounts,
   hazardRecords,
@@ -19,6 +20,7 @@ import {
   type EnterpriseState,
   type HazardRecord,
   type HazardStatus,
+  type Enterprise10D,
 } from './mock/station-chief-v2'
 
 // ─────────────────────────────────────────────
@@ -59,6 +61,78 @@ type Dimension = 'duty' | 'industry' | 'special' | 'monitor' | 'state' | 'hazard
 const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'monitor', 'state', 'hazard']
 
 // ─────────────────────────────────────────────
+// 通用排序 Hook
+// ─────────────────────────────────────────────
+type SortDirection = 'asc' | 'desc' | null
+
+interface SortState<T> {
+  key: keyof T | null
+  direction: SortDirection
+}
+
+function useSortableTable<T>(data: T[], defaultSortKey?: keyof T, defaultDirection: 'asc' | 'desc' = 'desc') {
+  const [sort, setSort] = useState<SortState<T>>({
+    key: defaultSortKey || null,
+    direction: defaultSortKey ? defaultDirection : null,
+  })
+
+  const sortedData = useMemo(() => {
+    if (!sort.key || !sort.direction) return data
+    return [...data].sort((a, b) => {
+      const aVal = (a as any)[sort.key!]
+      const bVal = (b as any)[sort.key!]
+      if (aVal == null && bVal == null) return 0
+      if (aVal == null) return sort.direction === 'asc' ? -1 : 1
+      if (bVal == null) return sort.direction === 'asc' ? 1 : -1
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sort.direction === 'asc' ? aVal.localeCompare(bVal, 'zh-CN') : bVal.localeCompare(aVal, 'zh-CN')
+      }
+      if (aVal < bVal) return sort.direction === 'asc' ? -1 : 1
+      if (aVal > bVal) return sort.direction === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [data, sort])
+
+  const handleSort = (key: keyof T) => {
+    setSort(prev => {
+      if (prev.key !== key) return { key, direction: 'desc' }
+      if (prev.direction === 'desc') return { key, direction: 'asc' }
+      if (prev.direction === 'asc') return { key: null, direction: null }
+      return { key, direction: 'desc' }
+    })
+  }
+
+  const getSortIcon = (key: keyof T) => {
+    if (sort.key !== key) return '⇅'
+    if (sort.direction === 'desc') return '↓'
+    return '↑'
+  }
+
+  return { sortedData, sort, handleSort, getSortIcon }
+}
+
+function SortableTh({ label, sortKey, sort, onSort }: {
+  label: string
+  sortKey: string
+  sort: SortState<Enterprise10D>
+  onSort: (key: string) => void
+}) {
+  const isActive = sort.key === sortKey
+  const icon = isActive ? (sort.direction === 'desc' ? '↓' : '↑') : '⇅'
+  return (
+    <th
+      style={{ ...thStyle, cursor: 'pointer', userSelect: 'none' }}
+      onClick={() => onSort(sortKey)}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+        <span>{label}</span>
+        <span style={{ fontSize: 10, color: isActive ? '#059669' : '#D1D5DB' }}>{icon}</span>
+      </div>
+    </th>
+  )
+}
+
+// ─────────────────────────────────────────────
 // 日期筛选相关
 // ─────────────────────────────────────────────
 type TimeRange = 'month' | 'quarter' | 'year' | 'custom'
@@ -94,12 +168,31 @@ export function StationChiefV2Dashboard() {
   // 根据 timeRange 计算实际起止日期
   const dateRange = useMemo((): { start: string; end: string } => {
     switch (timeRange) {
-      case 'month':  return { start: fmtDate(monthStart),  end: fmtDate(monthEnd) }
+      case 'month':   return { start: fmtDate(monthStart),   end: fmtDate(monthEnd) }
       case 'quarter': return { start: fmtDate(quarterStart), end: fmtDate(quarterEnd) }
-      case 'year':   return { start: fmtDate(yearStart),   end: fmtDate(yearEnd) }
-      case 'custom': return { start: customStart, end: customEnd }
+      case 'year':    return { start: fmtDate(yearStart),    end: fmtDate(yearEnd) }
+      case 'custom':  return { start: customStart, end: customEnd }
     }
   }, [timeRange, customStart, customEnd])
+
+  // 全局 KPI 筛选状态
+  const [selectedKpi, setSelectedKpi] = useState<string | null>(null)
+
+  // KPI 汇总数据（全局，不受子维度筛选影响）
+  const kpiTotals = useMemo(() => {
+    const { start, end } = dateRange
+    const inRange = hazardRecords.filter(r => r.recordTime >= start && r.recordTime <= end)
+    return {
+      enterprise: workGroups.reduce((s, g) => s + g.enterpriseCount, 0),
+      hazard: workGroups.reduce((s, g) => s + g.hazardFound, 0),
+      serious: workGroups.reduce((s, g) => s + g.hazardSerious, 0),
+      closed: inRange.filter(r => r.status === 'rectified').length,
+      inProgress: workGroups.reduce((s, g) => s + g.inProgress, 0),
+      deadline: inRange.filter(r => r.status === 'pending' || r.status === 'rectifying').length,
+      extended: inRange.filter(r => r.status === 'overdue').length,
+      overdue: workGroups.reduce((s, g) => s + g.overdueUnrectified, 0),
+    }
+  }, [dateRange])
 
   const handleDimensionChange = (key: Dimension) => {
     setSearchParams({ tab: key })
@@ -107,9 +200,55 @@ export function StationChiefV2Dashboard() {
 
   return (
     <div style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
-      <PageHeader title="站长看板" />
+      <PageHeader title="维度二：组织与人员履职看板" subtitle="工作组 · 政府人员 · 专家履职情况统计" />
 
-      {/* 维度切换 */}
+      {/* KPI 卡片全局置顶 */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(8, 1fr)',
+        gap: 12,
+        marginBottom: 16,
+        padding: '16px',
+        background: '#FAFAFA',
+        border: '1px solid #E5E7EB',
+        borderRadius: 4,
+      }}>
+        {([
+          { key: 'enterprise', label: '检查企业',  value: kpiTotals.enterprise, unit: '家', color: '#374151' },
+          { key: 'hazard',    label: '隐患总数',  value: kpiTotals.hazard,    unit: '处', color: '#374151' },
+          { key: 'serious',   label: '重大隐患',  value: kpiTotals.serious,   unit: '处', color: '#DC2626' },
+          { key: 'closed',    label: '已整改',    value: kpiTotals.closed,    unit: '处', color: '#059669' },
+          { key: 'inProgress',label: '整改中',   value: kpiTotals.inProgress,unit: '处', color: '#D97706' },
+          { key: 'deadline', label: '限期整改数', value: kpiTotals.deadline,  unit: '处', color: '#7C3AED' },
+          { key: 'extended',  label: '延期整改数', value: kpiTotals.extended,  unit: '处', color: '#DC2626' },
+          { key: 'overdue',   label: '逾期未整改', value: kpiTotals.overdue,  unit: '处', color: '#DC2626' },
+        ] as const).map(item => {
+          const isActive = selectedKpi === item.key
+          return (
+            <div
+              key={item.key}
+              onClick={() => setSelectedKpi(isActive ? null : item.key)}
+              style={{
+                textAlign: 'center',
+                padding: '8px 4px',
+                borderRadius: 4,
+                border: `1px solid ${isActive ? item.color : 'transparent'}`,
+                background: isActive ? (item.key === 'enterprise' || item.key === 'hazard' ? '#F3F4F6' : '#FFF') : 'transparent',
+                cursor: 'pointer',
+                userSelect: 'none',
+                transition: 'all 0.15s',
+              }}
+              title="点击筛选，切换维度查看详情"
+            >
+              <div style={{ fontSize: 11, color: isActive ? item.color : '#9CA3AF', marginBottom: 4, fontWeight: isActive ? 500 : 400 }}>{item.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: item.color }}>{item.value}</div>
+              <div style={{ fontSize: 11, color: '#9CA3AF' }}>{item.unit}</div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* 维度切换 + 日期筛选 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         {[
           { key: 'duty', label: '履职维度' },
@@ -151,13 +290,12 @@ export function StationChiefV2Dashboard() {
         borderRadius: 4,
         flexWrap: 'wrap',
       }}>
-        {/* 快捷日期按钮 */}
         <div style={{ display: 'flex', gap: 6 }}>
           {([
-            { key: 'month' as TimeRange, label: '本月' },
-            { key: 'quarter' as TimeRange, label: '本季' },
-            { key: 'year' as TimeRange, label: '本年' },
-            { key: 'custom' as TimeRange, label: '自定义' },
+            { key: 'month' as TimeRange,   label: '本月' },
+            { key: 'quarter' as TimeRange,  label: '本季' },
+            { key: 'year' as TimeRange,     label: '本年' },
+            { key: 'custom' as TimeRange,   label: '自定义' },
           ]).map(opt => (
             <button
               key={opt.key}
@@ -179,42 +317,25 @@ export function StationChiefV2Dashboard() {
           ))}
         </div>
 
-        {/* 分隔线 */}
         <div style={{ width: 1, height: 24, background: '#E5E7EB' }} />
 
-        {/* 自定义日期范围 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 12, color: '#6B7280' }}>从</span>
           <input
             type="date"
             value={timeRange === 'custom' ? customStart : dateRange.start}
             onChange={e => { setTimeRange('custom'); setCustomStart(e.target.value) }}
-            style={{
-              padding: '4px 8px',
-              border: '1px solid #D1D5DB',
-              borderRadius: 4,
-              fontSize: 12,
-              color: '#374151',
-              outline: 'none',
-            }}
+            style={{ padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4, fontSize: 12, color: '#374151', outline: 'none' }}
           />
           <span style={{ fontSize: 12, color: '#6B7280' }}>至</span>
           <input
             type="date"
             value={timeRange === 'custom' ? customEnd : dateRange.end}
             onChange={e => { setTimeRange('custom'); setCustomEnd(e.target.value) }}
-            style={{
-              padding: '4px 8px',
-              border: '1px solid #D1D5DB',
-              borderRadius: 4,
-              fontSize: 12,
-              color: '#374151',
-              outline: 'none',
-            }}
+            style={{ padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4, fontSize: 12, color: '#374151', outline: 'none' }}
           />
         </div>
 
-        {/* 当前范围标签 */}
         <div style={{
           marginLeft: 'auto',
           padding: '4px 10px',
@@ -226,31 +347,51 @@ export function StationChiefV2Dashboard() {
           fontWeight: 500,
         }}>
           当前范围：{dateRange.start} ~ {dateRange.end}
+          {selectedKpi && (
+            <span style={{ marginLeft: 8, color: '#7C3AED' }}>
+              | 已选：{(() => {
+                const map: Record<string, string> = { enterprise: '检查企业', hazard: '隐患总数', serious: '重大隐患', closed: '已整改', inProgress: '整改中', deadline: '限期整改数', extended: '延期整改数', overdue: '逾期未整改' }
+                return map[selectedKpi] || selectedKpi
+              })()}
+            </span>
+          )}
         </div>
       </div>
 
-      {dimension === 'duty' && <DutyDimension dateRange={dateRange} />}
-      {dimension === 'industry' && <IndustryDimension dateRange={dateRange} />}
-      {dimension === 'special' && <SpecialDimension dateRange={dateRange} />}
-      {dimension === 'state' && (
-        <div style={{ padding: '60px', textAlign: 'center', color: '#9CA3AF', fontSize: 13 }}>
-          状态维度 — 建设中
-        </div>
-      )}
+      {dimension === 'duty' && <DutyDimension dateRange={dateRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} />}
+      {dimension === 'industry' && <IndustryDimension dateRange={dateRange} selectedKpi={selectedKpi} />}
+      {dimension === 'special' && <SpecialDimension dateRange={dateRange} selectedKpi={selectedKpi} />}
+      {dimension === 'state' && <StateDimension dateRange={dateRange} />}
       {dimension === 'monitor' && (
         <div style={{ padding: '60px', textAlign: 'center', color: '#9CA3AF', fontSize: 13 }}>
           日常监控维度 — 建设中
         </div>
       )}
-      {dimension === 'hazard' && <HazardDimension dateRange={dateRange} />}
+      {dimension === 'hazard' && <HazardDimension dateRange={dateRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} />}
     </div>
   )
 }
 
 // ─────────────────────────────────────────────
+// 隐患状态/等级配置（模块级别，供各维度共享）
+// ─────────────────────────────────────────────
+const STATUS_CONFIG: Record<HazardStatus, { label: string; color: string; bg: string; textColor: string }> = {
+  pending:    { label: '待整改',    color: '#6B7280', bg: '#F3F4F6', textColor: '#374151' },
+  rectifying: { label: '整改中',    color: '#D97706', bg: '#FEF3C7', textColor: '#92400E' },
+  rectified:  { label: '已整改',    color: '#059669', bg: '#D1FAE5', textColor: '#065F46' },
+  overdue:    { label: '逾期未整改', color: '#DC2626', bg: '#FEE2E2', textColor: '#991B1B' },
+}
+
+const RISK_CONFIG: Record<string, { label: string; color: string }> = {
+  general: { label: '一般隐患', color: '#059669' },
+  serious: { label: '较大隐患', color: '#D97706' },
+  major:   { label: '重大隐患', color: '#DC2626' },
+}
+
+// ─────────────────────────────────────────────
 // 履职维度
 // ─────────────────────────────────────────────
-function DutyDimension({ dateRange }: { dateRange: { start: string; end: string } }) {
+function DutyDimension({ dateRange, selectedKpi, setSelectedKpi }: { dateRange: { start: string; end: string }; selectedKpi: string | null; setSelectedKpi: (k: string | null) => void }) {
   const [teamKeyword, setTeamKeyword] = useState('')
   const [memberKeyword, setMemberKeyword] = useState('')
   const [expertKeyword, setExpertKeyword] = useState('')
@@ -274,7 +415,7 @@ function DutyDimension({ dateRange }: { dateRange: { start: string; end: string 
     return Array.from(ids)
   }, [selectedMemberName])
 
-  // 过滤工作组：按关键词 + 按选中人员负责的组 + 排序
+  // 过滤工作组：按关键词 + 按选中人员负责的组 + KPI筛选 + 排序
   const filteredTeams = useMemo(() => {
     let result = workGroups
     // 按选中人员负责的组过滤
@@ -285,6 +426,20 @@ function DutyDimension({ dateRange }: { dateRange: { start: string; end: string 
     if (teamKeyword.trim()) {
       const kw = teamKeyword.trim().toLowerCase()
       result = result.filter(g => g.name.toLowerCase().includes(kw))
+    }
+    // 按顶部 KPI 筛选
+    if (selectedKpi) {
+      result = result.filter(g => {
+        switch (selectedKpi) {
+          case 'serious':   return g.hazardSerious > 0
+          case 'closed':    return g.hazardClosed > 0
+          case 'inProgress': return g.inProgress > 0
+          case 'extended':
+          case 'overdue':   return g.overdueUnrectified > 0
+          case 'deadline':  return g.inProgress > 0 || g.overdueUnrectified > 0
+          default:          return true
+        }
+      })
     }
     // 排序
     if (teamSortKey) {
@@ -300,9 +455,9 @@ function DutyDimension({ dateRange }: { dateRange: { start: string; end: string 
       })
     }
     return result
-  }, [teamKeyword, selectedMemberName, selectedMemberTeamIds, teamSortKey, teamSortDir])
+  }, [teamKeyword, selectedMemberName, selectedMemberTeamIds, selectedKpi, teamSortKey, teamSortDir])
 
-  // 过滤人员：按选中的工作组或人员负责的组过滤 + 关键词过滤 + 按姓名去重并合并 teamIds
+  // 过滤人员：按选中的工作组或人员负责的组过滤 + 关键词过滤 + KPI筛选 + 按姓名去重并合并 teamIds
   const filteredMembers = useMemo(() => {
     let result = governmentMembers
     // 按选中的工作组或人员负责的组过滤
@@ -319,6 +474,20 @@ function DutyDimension({ dateRange }: { dateRange: { start: string; end: string 
         m.memberName.toLowerCase().includes(kw) ||
         m.position.toLowerCase().includes(kw)
       )
+    }
+    // 按顶部 KPI 筛选
+    if (selectedKpi) {
+      result = result.filter(m => {
+        switch (selectedKpi) {
+          case 'serious':   return m.hazardSerious > 0
+          case 'closed':    return m.hazardClosed > 0
+          case 'inProgress': return m.inProgress > 0
+          case 'extended':
+          case 'overdue':   return m.overdueUnrectified > 0
+          case 'deadline':  return m.inProgress > 0 || m.overdueUnrectified > 0
+          default:          return true
+        }
+      })
     }
     // 按姓名去重，合并同一个人的多个 teamIds
     const nameToMember = new Map<string, typeof result[0]>()
@@ -350,9 +519,9 @@ function DutyDimension({ dateRange }: { dateRange: { start: string; end: string 
       if (a.role !== 'deputy' && b.role === 'deputy') return 1
       return a.memberName.localeCompare(b.memberName)
     })
-  }, [selectedTeamId, selectedMemberName, selectedMemberTeamIds, memberKeyword, memberSortKey, memberSortDir])
+  }, [selectedTeamId, selectedMemberName, selectedMemberTeamIds, memberKeyword, selectedKpi, memberSortKey, memberSortDir])
 
-  // 过滤专家：按选中工作组或选中人员负责的组
+  // 过滤专家：按选中工作组或选中人员负责的组 + KPI筛选
   const filteredExperts = useMemo(() => {
     let result = expertsFull
     // 按选中的工作组或人员负责的组过滤
@@ -369,6 +538,10 @@ function DutyDimension({ dateRange }: { dateRange: { start: string; end: string 
         e.expertName.toLowerCase().includes(kw) ||
         e.teamName.toLowerCase().includes(kw)
       )
+    }
+    // 按顶部 KPI 筛选（专家只有重大隐患字段）
+    if (selectedKpi === 'serious') {
+      result = result.filter(e => e.hazardSerious > 0)
     }
     // 排序
     if (expertSortKey) {
@@ -392,7 +565,7 @@ function DutyDimension({ dateRange }: { dateRange: { start: string; end: string 
       })
     }
     return result
-  }, [selectedTeamId, selectedMemberTeamIds, expertKeyword, expertSortKey, expertSortDir])
+  }, [selectedTeamId, selectedMemberTeamIds, expertKeyword, selectedKpi, expertSortKey, expertSortDir])
 
   // 获取选中工作组的名称
   const selectedTeamName = selectedTeamId
@@ -462,7 +635,7 @@ function DutyDimension({ dateRange }: { dateRange: { start: string; end: string 
   return (
     <div>
       {/* 选中提示条 */}
-      {(selectedTeamId || selectedMemberName) && (
+      {(selectedTeamId || selectedMemberName || selectedKpi) && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -475,6 +648,18 @@ function DutyDimension({ dateRange }: { dateRange: { start: string; end: string 
           fontSize: 12,
         }}>
           <span style={{ color: '#4F46E5', fontWeight: 500 }}>当前筛选：</span>
+          {selectedKpi && (
+            <>
+              <span style={{ padding: '2px 8px', background: '#7C3AED', color: '#FFF', borderRadius: 3, fontSize: 11, fontWeight: 500 }}>
+                {{
+                  enterprise: '检查企业', hazard: '隐患总数', serious: '重大隐患',
+                  closed: '已整改', inProgress: '整改中', deadline: '限期整改数',
+                  extended: '延期整改数', overdue: '逾期未整改',
+                }[selectedKpi] || selectedKpi}
+              </span>
+              <span style={{ color: '#6B7280' }}>→ 仅展示相关数据</span>
+            </>
+          )}
           {selectedMemberName && (
             <>
               <span style={{ color: '#1F2937', fontWeight: 600 }}>{selectedMemberName}</span>
@@ -486,9 +671,8 @@ function DutyDimension({ dateRange }: { dateRange: { start: string; end: string 
               <span style={{ color: '#1F2937', fontWeight: 600 }}>{selectedTeamName}</span>
             </>
           )}
-          <span style={{ color: '#6B7280' }}>，数据已联动筛选</span>
           <button
-            onClick={() => { setSelectedTeamId(null); setSelectedMemberName(null) }}
+            onClick={() => { setSelectedTeamId(null); setSelectedMemberName(null); setSelectedKpi(null) }}
             style={{
               marginLeft: 'auto',
               padding: '2px 8px',
@@ -500,39 +684,10 @@ function DutyDimension({ dateRange }: { dateRange: { start: string; end: string 
               cursor: 'pointer',
             }}
           >
-            清除筛选
+            清除全部筛选
           </button>
         </div>
       )}
-
-      {/* 汇总 */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(8, 1fr)',
-        gap: 12,
-        marginBottom: 20,
-        padding: '16px',
-        background: '#FAFAFA',
-        border: '1px solid #E5E7EB',
-        borderRadius: 4,
-      }}>
-        {[
-          { label: '检查企业', value: total.enterprise, unit: '家', color: '#374151' },
-          { label: '隐患总数', value: total.hazard, unit: '处', color: '#374151' },
-          { label: '重大隐患', value: total.serious, unit: '处', color: '#DC2626' },
-          { label: '已整改', value: total.closed, unit: '处', color: '#059669' },
-          { label: '整改中', value: total.inProgress, unit: '处', color: '#D97706' },
-          { label: '限期整改数', value: total.deadline, unit: '处', color: '#7C3AED' },
-          { label: '延期整改数', value: total.extended, unit: '处', color: '#DC2626' },
-          { label: '逾期未整改', value: total.overdue, unit: '处', color: '#DC2626' },
-        ].map(item => (
-          <div key={item.label} style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{item.label}</div>
-            <div style={{ fontSize: 20, fontWeight: 600, color: item.color }}>{item.value}</div>
-            <div style={{ fontSize: 11, color: '#9CA3AF' }}>{item.unit}</div>
-          </div>
-        ))}
-      </div>
 
       {/* （一）工作组履职情况表 */}
       <div style={{ marginBottom: 24 }}>
@@ -1010,26 +1165,393 @@ function DimensionTable({ title, data, keyword, onKeywordChange, keywordPlacehol
 }
 
 // ─────────────────────────────────────────────
+// 状态维度
+// ─────────────────────────────────────────────
+function StateDimension({ dateRange }: { dateRange: { start: string; end: string } }) {
+  // 专家筛选
+  const [selectedExpert, setSelectedExpert] = useState<string>('all')
+
+  // 风险等级筛选
+  const [selectedRisk, setSelectedRisk] = useState<string>('all')
+
+  // 路径节点选中状态
+  const [selectedNode, setSelectedNode] = useState<{ id: string; label: string; count: string } | null>(null)
+
+  // 汇总数据
+  const stateCounts = useMemo(() => {
+    const counts = getStateCounts()
+    return {
+      total: counts.all,
+      opened: counts.opened,
+      collected: counts.collected,
+      authorized: counts.authorized,
+      riskMatch: counts.risk_match,
+      qualified: counts.qualified,
+      rectifying: counts.rectifying,
+      expertVerify: counts.expert_verify,
+      rectifyingOk: counts.rectifying_ok,
+      rectifyingOverdue: counts.rectifying_overdue,
+    }
+  }, [])
+
+  const expertOptions = useMemo(() => {
+    const names = new Set(expertsFull.map(e => e.expertName))
+    return ['all', ...Array.from(names)]
+  }, [])
+
+  // 根据选中的路径节点过滤企业列表
+  const filteredEnterprises = useMemo(() => {
+    if (!selectedNode) return []
+    return filterEnterprisesByState(selectedNode.id as EnterpriseState)
+  }, [selectedNode])
+
+  // 企业列表关键词筛选
+  const [entKeyword, setEntKeyword] = useState('')
+  const displayEnterprises = useMemo(() => {
+    if (!entKeyword.trim()) return filteredEnterprises
+    const kw = entKeyword.trim().toLowerCase()
+    return filteredEnterprises.filter(e =>
+      e.name.toLowerCase().includes(kw) ||
+      e.area.toLowerCase().includes(kw) ||
+      e.team.toLowerCase().includes(kw)
+    )
+  }, [filteredEnterprises, entKeyword])
+
+  // ── 企业列表（Enterprise10D）──────────────────────
+  const PAGE_SIZE = 20
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const { sortedData: filtered10D, sort, handleSort } = useSortableTable<Enterprise10D>(enterprises10D, 'risk_level', 'asc')
+
+  const totalPages = Math.max(1, Math.ceil(filtered10D.length / PAGE_SIZE))
+  const paged10D = filtered10D.slice((Math.min(currentPage, totalPages) - 1) * PAGE_SIZE, Math.min(currentPage, totalPages) * PAGE_SIZE)
+
+  return (
+    <div>
+      {/* 汇总行 */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(10, 1fr)',
+        gap: 12,
+        marginBottom: 20,
+        padding: '16px',
+        background: '#FAFAFA',
+        border: '1px solid #E5E7EB',
+        borderRadius: 4,
+      }}>
+        {([
+          { label: '企业总数', value: stateCounts.total, color: '#374151' },
+          { label: '已开通', value: stateCounts.opened, color: '#059669' },
+          { label: '已采集', value: stateCounts.collected, color: '#059669' },
+          { label: '已授权', value: stateCounts.authorized, color: '#059669' },
+          { label: '风险一致', value: stateCounts.riskMatch, color: '#059669' },
+          { label: '达标企业', value: stateCounts.qualified, color: '#059669' },
+          { label: '整改中', value: stateCounts.rectifying, color: '#D97706' },
+          { label: '专家待核', value: stateCounts.expertVerify, color: '#7C3AED' },
+          { label: '整改完成', value: stateCounts.rectifyingOk, color: '#059669' },
+          { label: '逾期未改', value: stateCounts.rectifyingOverdue, color: '#DC2626' },
+        ] as const).map(item => (
+          <div key={item.label} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{item.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 600, color: item.color }}>{item.value}</div>
+            <div style={{ fontSize: 11, color: '#9CA3AF' }}>家</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 专家 + 风险等级筛选 */}
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', marginBottom: 16, flexWrap: 'wrap' }}>
+        {/* 专家筛选 */}
+        <div>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>按专家筛选</div>
+          <select
+            value={selectedExpert}
+            onChange={e => setSelectedExpert(e.target.value)}
+            style={{ padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4, fontSize: 12, color: '#374151', outline: 'none', minWidth: 140 }}
+          >
+            {expertOptions.map(name => (
+              <option key={name} value={name}>{name === 'all' ? '全部专家' : name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* 风险等级筛选 */}
+        <div>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>按风险等级筛选</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {([
+              { key: 'all', label: '全部' },
+              { key: 'major', label: '重大风险' },
+              { key: 'high', label: '较大风险' },
+              { key: 'medium', label: '一般风险' },
+              { key: 'low', label: '低风险' },
+            ] as const).map(opt => {
+              const active = selectedRisk === opt.key
+              const colors: Record<string, { border: string; bg: string; text: string }> = {
+                all: { border: '#4F46E5', bg: '#EEF2FF', text: '#3730A3' },
+                major: { border: '#DC2626', bg: '#FEE2E2', text: '#991B1B' },
+                high: { border: '#D97706', bg: '#FEF3C7', text: '#92400E' },
+                medium: { border: '#D97706', bg: '#FEF3C7', text: '#92400E' },
+                low: { border: '#059669', bg: '#D1FAE5', text: '#065F46' },
+              }
+              const cfg = colors[opt.key]
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => setSelectedRisk(opt.key)}
+                  style={{
+                    padding: '3px 10px',
+                    borderRadius: 4,
+                    border: `1px solid ${active ? cfg.border : '#D1D5DB'}`,
+                    background: active ? cfg.bg : 'white',
+                    color: active ? cfg.text : '#6B7280',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: active ? 600 : 400,
+                  }}
+                >
+                  {opt.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* 企业状态路径图 */}
+      <div style={{
+        padding: '16px',
+        background: 'white',
+        border: '1px solid #E5E7EB',
+        borderRadius: 4,
+        marginBottom: 20,
+      }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 12 }}>
+          企业状态路径图
+          {selectedNode && (
+            <span style={{ fontWeight: 400, color: '#7C3AED', fontSize: 12, marginLeft: 12 }}>
+              — 已选中：{selectedNode.label}（{selectedNode.count} 家）
+            </span>
+          )}
+        </div>
+        <EnterpriseStatePath
+          expertId={selectedExpert !== 'all' ? selectedExpert : undefined}
+          riskLevel={selectedRisk !== 'all' ? selectedRisk : undefined}
+          height={520}
+          onNodeSelect={node => setSelectedNode(node)}
+          hidePopup
+        />
+      </div>
+
+      {/* 选中节点后展示企业列表 */}
+      {selectedNode && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>
+              企业明细
+              <span style={{ fontWeight: 400, color: '#9CA3AF', fontSize: 12, marginLeft: 8 }}>
+                {selectedNode.label} — {filteredEnterprises.length} 家
+                {entKeyword && `（搜索结果：${displayEnterprises.length} 家）`}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="搜索企业名称 / 片区 / 工作组"
+                value={entKeyword}
+                onChange={e => setEntKeyword(e.target.value)}
+                style={inputStyle}
+              />
+              <button
+                onClick={() => { setSelectedNode(null); setEntKeyword('') }}
+                style={{
+                  padding: '4px 10px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: 4,
+                  background: 'white',
+                  color: '#6B7280',
+                  fontSize: 12,
+                  cursor: 'pointer',
+                }}
+              >
+                清除筛选
+              </button>
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 700 }}>
+              <thead>
+                <tr>
+                  {['序号', '企业名称', '片区', '工作组', '风险等级', '开通状态', '采集状态', '授权状态', '待办状态'].map(h => (
+                    <th key={h} style={thStyle}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {displayEnterprises.length === 0 ? (
+                  <tr><td colSpan={9} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '24px' }}>未找到匹配企业</td></tr>
+                ) : displayEnterprises.map((e, i) => (
+                  <tr key={e.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                    <td style={{ ...tdStyle, color: '#9CA3AF' }}>{i + 1}</td>
+                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 500, color: '#1F2937', minWidth: 180 }}>{e.name}</td>
+                    <td style={tdStyle}>{e.area}</td>
+                    <td style={tdStyle}>{e.team}</td>
+                    <td style={{ ...tdStyle, color: e.riskLevel === '重大风险' ? '#DC2626' : e.riskLevel === '较大风险' ? '#D97706' : '#374151' }}>{e.riskLevel}</td>
+                    <td style={{ ...tdStyle, color: e.opened ? '#059669' : '#DC2626' }}>{e.opened ? '已开通' : '未开通'}</td>
+                    <td style={{ ...tdStyle, color: e.collected ? '#059669' : '#D97706' }}>{e.collected ? '已采集' : '未采集'}</td>
+                    <td style={{ ...tdStyle, color: e.authorized ? '#059669' : '#D97706' }}>{e.authorized ? '已授权' : '未授权'}</td>
+                    <td style={tdStyle}>
+                      {{
+                        none: '无待办',
+                        unread: '待办未读',
+                        rectifying: '整改中',
+                        expert_verify: '专家待核',
+                        completed: '已完成',
+                        overdue: '已逾期',
+                      }[e.todoStatus] || e.todoStatus}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 完整企业列表（始终显示，受顶部筛选控制） */}
+      <div>
+        <div style={{
+          fontSize: 13,
+          fontWeight: 600,
+          color: '#1F2937',
+          marginBottom: 12,
+          padding: '12px 16px',
+          background: '#FAFAFA',
+          border: '1px solid #E5E7EB',
+          borderRadius: 4,
+        }}>
+          企业列表（{filtered10D.length} 家）
+          {selectedNode && (
+            <span style={{ fontWeight: 400, color: '#7C3AED', fontSize: 12, marginLeft: 8 }}>
+              已筛选：{selectedNode.label}（{filtered10D.length} 家）
+            </span>
+          )}
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 900 }}>
+            <thead>
+              <tr>
+                <th style={thStyle}>#</th>
+                <SortableTh label="企业名称" sortKey="name" sort={sort} onSort={handleSort as any} />
+                <SortableTh label="信息采集" sortKey="info_collection" sort={sort} onSort={handleSort as any} />
+                <SortableTh label="数据授权" sortKey="data_authorized" sort={sort} onSort={handleSort as any} />
+                <SortableTh label="风险点" sortKey="risk_point_identified" sort={sort} onSort={handleSort as any} />
+                <th style={thStyle}>机构<br/>职责%</th>
+                <th style={thStyle}>安全<br/>制度%</th>
+                <th style={thStyle}>安全<br/>投入%</th>
+                <th style={thStyle}>检查<br/>计划</th>
+                <th style={thStyle}>检查<br/>执行</th>
+                <th style={thStyle}>三方<br/>同步</th>
+                <th style={thStyle}>安全<br/>巡查</th>
+                <th style={thStyle}>教育<br/>培训</th>
+                <SortableTh label="作业票" sortKey="work_permit_count" sort={sort} onSort={handleSort as any} />
+                <SortableTh label="自查隐患" sortKey="hazard_self_check" sort={sort} onSort={handleSort as any} />
+                <SortableTh label="监管隐患" sortKey="hazard_platform" sort={sort} onSort={handleSort as any} />
+                <SortableTh label="重大隐患" sortKey="hazard_major" sort={sort} onSort={handleSort as any} />
+                <th style={thStyle}>整改状态</th>
+                <SortableTh label="风险等级" sortKey="risk_level" sort={sort} onSort={handleSort as any} />
+              </tr>
+            </thead>
+            <tbody>
+              {paged10D.length === 0 ? (
+                <tr><td colSpan={19} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>暂无数据</td></tr>
+              ) : paged10D.map((e, i) => (
+                <tr key={e.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                  <td style={{ ...tdStyle, color: '#9CA3AF' }}>{(Math.min(currentPage, totalPages) - 1) * PAGE_SIZE + i + 1}</td>
+                  <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 500, color: '#1F2937', minWidth: 160 }}>{e.name}</td>
+                  <td style={{ ...tdStyle, color: e.info_collection ? '#059669' : '#DC2626' }}>{e.info_collection ? '是' : '否'}</td>
+                  <td style={{ ...tdStyle, color: e.data_authorized ? '#059669' : '#D97706' }}>{e.data_authorized ? '是' : '否'}</td>
+                  <td style={{ ...tdStyle, color: e.risk_point_identified ? '#059669' : '#D97706' }}>{e.risk_point_identified ? '是' : '否'}</td>
+                  <td style={{ ...tdStyle, color: (e.safety_org_duty_rate || 0) >= 80 ? '#059669' : (e.safety_org_duty_rate || 0) >= 60 ? '#D97706' : '#DC2626', fontSize: 11 }}>{e.safety_org_duty_rate ?? 0}%</td>
+                  <td style={{ ...tdStyle, color: (e.safety_system_rate || 0) >= 80 ? '#059669' : (e.safety_system_rate || 0) >= 60 ? '#D97706' : '#DC2626', fontSize: 11 }}>{e.safety_system_rate ?? 0}%</td>
+                  <td style={{ ...tdStyle, color: (e.safety_invest_rate || 0) >= 80 ? '#059669' : (e.safety_invest_rate || 0) >= 60 ? '#D97706' : '#DC2626', fontSize: 11 }}>{e.safety_invest_rate ?? 0}%</td>
+                  <td style={{ ...tdStyle, color: '#374151' }}>{e.inspection_plan_type ? { weekly: '按周', monthly: '按月', quarterly: '按季' }[e.inspection_plan_type] : '否'}</td>
+                  <td style={{ ...tdStyle, color: e.inspection_execution === 'yes' ? '#059669' : e.inspection_execution === 'forced' ? '#D97706' : '#9CA3AF' }}>{e.inspection_execution === 'yes' ? '是' : e.inspection_execution === 'forced' ? '强制' : '否'}</td>
+                  <td style={{ ...tdStyle, color: e.third_party_sync === 'yes' ? '#059669' : '#9CA3AF' }}>{e.third_party_sync === 'yes' ? '是' : '否'}</td>
+                  <td style={{ ...tdStyle, color: e.patrol_used === 'yes' ? '#059669' : '#9CA3AF' }}>{e.patrol_used === 'yes' ? '是' : '否'}</td>
+                  <td style={{ ...tdStyle, color: e.training_done ? '#059669' : '#9CA3AF' }}>{e.training_done ? (e.training_has_record ? '已开展✓' : '已开展') : '否'}</td>
+                  <td style={{ ...tdStyle, color: (e.work_permit_count || 0) > 0 ? '#D97706' : '#374151' }}>{(e.work_permit_count || 0) > 0 ? '是' : '否'}</td>
+                  <td style={{ ...tdStyle, color: (e.hazard_self_check || 0) > 0 ? '#D97706' : '#374151' }}>{e.hazard_self_check || 0}</td>
+                  <td style={{ ...tdStyle, color: (e.hazard_platform || 0) > 0 ? '#D97706' : '#374151' }}>{e.hazard_platform || 0}</td>
+                  <td style={{ ...tdStyle, color: (e.hazard_major || 0) > 0 ? '#DC2626' : '#374151', fontWeight: 600 }}>{e.hazard_major || 0}</td>
+                  <td style={tdStyle}>
+                    <span style={{
+                      padding: '2px 6px',
+                      borderRadius: 3,
+                      fontSize: 11,
+                      fontWeight: 500,
+                      background: e.hazard_rectify_status === 'completed' ? '#D1FAE5' : '#FEE2E2',
+                      color: e.hazard_rectify_status === 'completed' ? '#065F46' : '#991B1B',
+                    }}>
+                      {{ completed: '已整改', uncompleted: '未整改', partial: '部分整改', overdue: '逾期未改' }[e.hazard_rectify_status || 'uncompleted'] || '—'}
+                    </span>
+                  </td>
+                  <td style={{ ...tdStyle, fontWeight: 600, color: e.risk_level === '重大风险' ? '#DC2626' : e.risk_level === '较大风险' ? '#D97706' : '#374151' }}>{e.risk_level}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 分页 */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTop: '1px solid #E5E7EB', fontSize: 12, color: '#6B7280' }}>
+          <span>共 <span style={{ fontWeight: 600, color: '#1F2937' }}>{filtered10D.length}</span> 家企业，第 {(Math.min(currentPage, totalPages) - 1) * PAGE_SIZE + 1}–{Math.min(Math.min(currentPage, totalPages) * PAGE_SIZE, filtered10D.length)} 条</span>
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+                style={{ padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.4 : 1 }}>‹</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1).reduce<(number | '...')[]>((acc, p, idx, arr) => {
+                if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...')
+                acc.push(p)
+                return acc
+              }, []).map((p, i) =>
+                p === '...' ? <span key={`dot-${i}`} style={{ padding: '2px 4px', color: '#9CA3AF' }}>…</span> :
+                  <button key={p} onClick={() => setCurrentPage(p as number)}
+                    style={{ padding: '2px 8px', border: '1px solid', borderColor: currentPage === p ? '#4F46E5' : '#D1D5DB', borderRadius: 4, background: currentPage === p ? '#4F46E5' : 'white', color: currentPage === p ? '#FFF' : '#6B7280', cursor: 'pointer', fontSize: 12 }}>
+                    {p}
+                  </button>
+              )}
+              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+                style={{ padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.4 : 1 }}>›</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
 // 隐患维度
 // ─────────────────────────────────────────────
-const STATUS_CONFIG: Record<HazardStatus, { label: string; color: string; bg: string; textColor: string }> = {
-  pending:    { label: '待整改',    color: '#6B7280', bg: '#F3F4F6', textColor: '#374151' },
-  rectifying: { label: '整改中',    color: '#D97706', bg: '#FEF3C7', textColor: '#92400E' },
-  rectified:  { label: '已整改',    color: '#059669', bg: '#D1FAE5', textColor: '#065F46' },
-  overdue:    { label: '逾期未整改', color: '#DC2626', bg: '#FEE2E2', textColor: '#991B1B' },
-}
-
-const RISK_CONFIG: Record<string, { label: string; color: string }> = {
-  general: { label: '一般隐患', color: '#059669' },
-  serious: { label: '较大隐患', color: '#D97706' },
-  major:   { label: '重大隐患', color: '#DC2626' },
-}
-
-function HazardDimension({ dateRange }: { dateRange: { start: string; end: string } }) {
-  const [statusFilter, setStatusFilter] = useState<HazardStatus | 'all'>('all')
+function HazardDimension({ dateRange, selectedKpi, setSelectedKpi }: { dateRange: { start: string; end: string }; selectedKpi: string | null; setSelectedKpi: (k: string | null) => void }) {
   const [industryFilter, setIndustryFilter] = useState<string>('all')
   const [teamFilter, setTeamFilter] = useState<string>('all')
   const [keyword, setKeyword] = useState('')
+
+  // selectedKpi 映射到对应的隐患状态
+  const kpiToStatus: Record<string, HazardStatus | null> = {
+    serious:   null,  // 重大隐患按等级不过滤
+    closed:    'rectified',
+    inProgress: 'rectifying',
+    deadline:  'pending',
+    extended: 'overdue',
+    overdue:  'overdue',
+  }
+
+  const statusFilter = selectedKpi ? (kpiToStatus[selectedKpi] || 'all') : 'all'
 
   // 各状态统计
   const statusCounts = useMemo(() => {
@@ -1053,6 +1575,7 @@ function HazardDimension({ dateRange }: { dateRange: { start: string; end: strin
   // 过滤后的隐患列表
   const filtered = useMemo(() => {
     return hazardRecords.filter(r => {
+      if (selectedKpi === 'serious' && r.riskLevel !== 'major') return false
       if (statusFilter !== 'all' && r.status !== statusFilter) return false
       if (industryFilter !== 'all' && r.industry !== industryFilter) return false
       if (teamFilter !== 'all' && r.teamName !== teamFilter) return false
@@ -1064,7 +1587,7 @@ function HazardDimension({ dateRange }: { dateRange: { start: string; end: strin
       }
       return true
     })
-  }, [statusFilter, industryFilter, teamFilter, keyword])
+  }, [selectedKpi, statusFilter, industryFilter, teamFilter, keyword])
 
   const total = hazardRecords.length
 
@@ -1089,9 +1612,9 @@ function HazardDimension({ dateRange }: { dateRange: { start: string; end: strin
 
       {/* 筛选器 */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap' }}>
-        {/* 状态筛选 */}
+        {/* 状态筛选（受顶部 KPI 控制） */}
         <div>
-          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>隐患状态</div>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>隐患状态 {selectedKpi && <span style={{ color: '#7C3AED' }}>（受顶部 KPI 控制）</span>}</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {(['all', 'pending', 'rectifying', 'rectified', 'overdue'] as const).map(s => {
               const cfg = s === 'all'
@@ -1101,7 +1624,7 @@ function HazardDimension({ dateRange }: { dateRange: { start: string; end: strin
               return (
                 <button
                   key={s}
-                  onClick={() => setStatusFilter(s)}
+                  onClick={() => setSelectedKpi(null)}
                   style={{
                     padding: '3px 10px',
                     borderRadius: 4,
@@ -1219,7 +1742,7 @@ function HazardDimension({ dateRange }: { dateRange: { start: string; end: strin
     </div>
   )
 }
-function IndustryDimension({ dateRange }: { dateRange: { start: string; end: string } }) {
+function IndustryDimension({ dateRange, selectedKpi }: { dateRange: { start: string; end: string }; selectedKpi: string | null }) {
   const [keyword, setKeyword] = useState('')
 
   const filtered = useMemo(() => {
@@ -1304,7 +1827,7 @@ function IndustryDimension({ dateRange }: { dateRange: { start: string; end: str
   )
 }
 
-function SpecialDimension({ dateRange }: { dateRange: { start: string; end: string } }) {
+function SpecialDimension({ dateRange, selectedKpi }: { dateRange: { start: string; end: string }; selectedKpi: string | null }) {
   const [keyword, setKeyword] = useState('')
 
   const filtered = useMemo(() => {

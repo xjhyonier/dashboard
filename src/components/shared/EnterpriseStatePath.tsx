@@ -343,9 +343,13 @@ export interface EnterpriseStatePathProps {
   expertId?: string
   /** 风险等级筛选：'major' | 'high' | 'medium' | 'low'，不传表示全部 */
   riskLevel?: string
+  /** 节点选中回调，传入选中的节点信息，null 表示取消选中 */
+  onNodeSelect?: (node: { id: string; label: string; count: string } | null) => void
+  /** 隐藏节点点击后的浮层（V2 版本不需要浮层，只做筛选） */
+  hidePopup?: boolean
 }
 
-export function EnterpriseStatePath({ onGotoQueue: _onGotoQueue, height = 480, expertId, riskLevel }: EnterpriseStatePathProps) {
+export function EnterpriseStatePath({ onGotoQueue: _onGotoQueue, height = 480, expertId, riskLevel, onNodeSelect, hidePopup = false }: EnterpriseStatePathProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(buildNodes(expertId, riskLevel))
   const [edges, , onEdgesChange] = useEdgesState(buildEdges())
 
@@ -360,13 +364,22 @@ export function EnterpriseStatePath({ onGotoQueue: _onGotoQueue, height = 480, e
 
   const handleNodeClick = useCallback((_: unknown, node: StateNodeType) => {
     if (node.data.count && node.data.count !== '0') {
-      setSelectedNode({ id: node.id, label: node.data.label, count: node.data.count })
-      const rect = document.querySelector('.react-flow')?.getBoundingClientRect()
-      if (rect) {
-        setPopupPosition({ x: rect.width / 2, y: rect.height / 2 - 100 })
+      const newNode = { id: node.id, label: node.data.label, count: node.data.count }
+      // 同节点点击则取消选中
+      const isSameNode = selectedNode?.id === node.id
+      if (isSameNode) {
+        setSelectedNode(null)
+        onNodeSelect?.(null)
+      } else {
+        setSelectedNode(newNode)
+        onNodeSelect?.(newNode)
+        const rect = document.querySelector('.react-flow')?.getBoundingClientRect()
+        if (rect) {
+          setPopupPosition({ x: rect.width / 2, y: rect.height / 2 - 100 })
+        }
       }
     }
-  }, [])
+  }, [selectedNode, onNodeSelect])
 
   return (
     <div className="bg-white rounded-xl border border-zinc-200/60 overflow-hidden mb-8">
@@ -425,8 +438,8 @@ export function EnterpriseStatePath({ onGotoQueue: _onGotoQueue, height = 480, e
           />
         </ReactFlow>
 
-        {/* 企业列表浮层 */}
-        {selectedNode && (
+        {/* 企业列表浮层（hidePopup 时隐藏） */}
+        {selectedNode && !hidePopup && (
           <div
             className="absolute bg-white rounded-xl shadow-2xl border border-zinc-200/80 overflow-hidden z-50"
             style={{ left: popupPosition.x, top: popupPosition.y, transform: 'translate(-50%, 0)', minWidth: 320, maxWidth: 400 }}
