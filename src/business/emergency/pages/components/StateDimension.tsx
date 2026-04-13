@@ -46,9 +46,28 @@ export function StateDimension({ dateRange, riskLevel, timeRange }: StateDimensi
   const PAGE_SIZE = 20
   const [currentPage, setCurrentPage] = useState(1)
 
+  // 风险等级映射：筛选值 → 数据值
+  const riskLevelMap: Record<string, string> = {
+    major: '重大风险',
+    high: '较大风险',
+    medium: '一般风险',
+    low: '低风险',
+  }
+
   const { sortedData: filtered10D, sort, handleSort } = useSortableTable<Enterprise10D>(
     useMemo(() => {
       let result = enterprises10D
+      // 专家筛选
+      if (selectedExpert !== 'all') {
+        result = result.filter(e => e.expert_id === selectedExpert)
+      }
+      // 风险等级筛选
+      if (selectedRisk !== 'all') {
+        const mappedLevel = riskLevelMap[selectedRisk]
+        if (mappedLevel) {
+          result = result.filter(e => e.risk_level === mappedLevel)
+        }
+      }
       // 路径节点筛选
       if (selectedNode) {
         const filterFn = nodeIdToFilter(selectedNode.id)
@@ -63,7 +82,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange }: StateDimensi
         )
       }
       return result
-    }, [selectedNode, entKeyword]),
+    }, [selectedNode, entKeyword, selectedExpert, selectedRisk]),
     'risk_level', 'asc'
   )
 

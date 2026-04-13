@@ -19,12 +19,22 @@ export interface SortableThProps {
   onSort: (key: string) => void
 }
 
+// 隐患维度跳转参数
+export interface HazardNavigateParams {
+  teamName?: string        // 按工作组筛选
+  enterpriseName?: string  // 按企业筛选
+  expertName?: string      // 按专家筛选
+  riskLevel?: RiskLevel   // 按风险等级筛选
+  status?: string         // 按状态筛选
+}
+
 export interface DutyDimensionProps {
   dateRange: { start: string; end: string }
   riskLevel: RiskLevel
   timeRange: TimeRange
   selectedKpi: string | null
   setSelectedKpi: (k: string | null) => void
+  onNavigateToHazard?: (params: HazardNavigateParams) => void
 }
 
 export interface DimensionTableProps {
@@ -57,6 +67,8 @@ export interface HazardDimensionProps {
   timeRange: TimeRange
   selectedKpi: string | null
   setSelectedKpi: (k: string | null) => void
+  // 导航参数（从其他维度跳转过来时携带的筛选条件）
+  navigateParams?: HazardNavigateParams
 }
 
 export interface IndustryDimensionProps {

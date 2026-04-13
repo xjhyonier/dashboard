@@ -1997,6 +1997,8 @@ export const enterprises10D = generateEnterprises10D()
 export type HazardStatus = 'pending' | 'rectifying' | 'rectified' | 'overdue'
 export type HazardRiskLevel = 'general' | 'serious' | 'major'
 
+export type HazardSource = 'expert' | 'enterprise'
+
 export interface HazardRecord {
   id: string
   enterpriseName: string
@@ -2008,37 +2010,38 @@ export interface HazardRecord {
   rectifyDeadline: string // 整改期限
   rectifyTime?: string    // 整改完成时间
   status: HazardStatus
+  source: HazardSource     // 来源：expert=专家提交，enterprise=企业自查自纠
   expertName?: string
 }
 
 export const hazardRecords: HazardRecord[] = [
   // 已整改
-  { id: 'h001', enterpriseName: '杭州鑫盛化工有限公司', industry: '工业企业', teamName: '勾庄片场所组', hazardDesc: '甲类仓库防爆电气缺失', riskLevel: 'major', recordTime: '2026-03-01', rectifyDeadline: '2026-03-15', rectifyTime: '2026-03-12', status: 'rectified', expertName: '王建国' },
-  { id: 'h002', enterpriseName: '良渚物流仓储中心', industry: '仓储物流', teamName: '物流片场所组', hazardDesc: '消防通道堆放货物', riskLevel: 'general', recordTime: '2026-03-02', rectifyDeadline: '2026-03-10', rectifyTime: '2026-03-09', status: 'rectified', expertName: '李明' },
-  { id: 'h003', enterpriseName: '余杭小商品加工作坊', industry: '小微企业', teamName: '良渚片场所组', hazardDesc: '灭火器配置不足', riskLevel: 'serious', recordTime: '2026-03-03', rectifyDeadline: '2026-03-18', rectifyTime: '2026-03-16', status: 'rectified', expertName: '张伟' },
-  { id: 'h004', enterpriseName: '良渚商业街3号', industry: '沿街店铺', teamName: '良渚片场所组', hazardDesc: '电线私拉乱接', riskLevel: 'serious', recordTime: '2026-03-04', rectifyDeadline: '2026-03-20', rectifyTime: '2026-03-18', status: 'rectified' },
-  { id: 'h005', enterpriseName: '勾庄货运站', industry: '仓储物流', teamName: '物流片场所组', hazardDesc: '叉车作业人员无证上岗', riskLevel: 'serious', recordTime: '2026-03-05', rectifyDeadline: '2026-03-12', rectifyTime: '2026-03-11', status: 'rectified', expertName: '陈刚' },
-  { id: 'h006', enterpriseName: '杭州化工原料公司', industry: '危化使用', teamName: '勾庄片场所组', hazardDesc: '危险化学品储存不规范', riskLevel: 'major', recordTime: '2026-03-06', rectifyDeadline: '2026-03-20', rectifyTime: '2026-03-19', status: 'rectified', expertName: '王建国' },
-  { id: 'h007', enterpriseName: '良渚群租房A栋', industry: '出租房', teamName: '良渚片场所组', hazardDesc: '电动车违规充电', riskLevel: 'serious', recordTime: '2026-03-07', rectifyDeadline: '2026-03-14', rectifyTime: '2026-03-13', status: 'rectified' },
-  { id: 'h008', enterpriseName: '余杭宏达建材厂', industry: '工业企业', teamName: '勾庄片场所组', hazardDesc: '机械防护装置缺失', riskLevel: 'serious', recordTime: '2026-03-08', rectifyDeadline: '2026-03-22', rectifyTime: '2026-03-20', status: 'rectified', expertName: '李明' },
-  { id: 'h009', enterpriseName: '瓶窑快递分拣中心', industry: '仓储物流', teamName: '瓶窑片场所组', hazardDesc: '货物堆放超高', riskLevel: 'general', recordTime: '2026-03-09', rectifyDeadline: '2026-03-16', rectifyTime: '2026-03-15', status: 'rectified' },
-  { id: 'h010', enterpriseName: '勾庄市场摊位', industry: '沿街店铺', teamName: '勾庄片场所组', hazardDesc: '疏散通道堵塞', riskLevel: 'serious', recordTime: '2026-03-10', rectifyDeadline: '2026-03-17', rectifyTime: '2026-03-16', status: 'rectified' },
+  { id: 'h001', enterpriseName: '杭州鑫盛化工有限公司', industry: '工业企业', teamName: '勾庄片场所组', hazardDesc: '甲类仓库防爆电气缺失', riskLevel: 'major', recordTime: '2026-03-01', rectifyDeadline: '2026-03-15', rectifyTime: '2026-03-12', status: 'rectified', source: 'expert', expertName: '王建国' },
+  { id: 'h002', enterpriseName: '良渚物流仓储中心', industry: '仓储物流', teamName: '物流片场所组', hazardDesc: '消防通道堆放货物', riskLevel: 'general', recordTime: '2026-03-02', rectifyDeadline: '2026-03-10', rectifyTime: '2026-03-09', status: 'rectified', source: 'expert', expertName: '李明' },
+  { id: 'h003', enterpriseName: '余杭小商品加工作坊', industry: '小微企业', teamName: '良渚片场所组', hazardDesc: '灭火器配置不足', riskLevel: 'serious', recordTime: '2026-03-03', rectifyDeadline: '2026-03-18', rectifyTime: '2026-03-16', status: 'rectified', source: 'expert', expertName: '张伟' },
+  { id: 'h004', enterpriseName: '良渚商业街3号', industry: '沿街店铺', teamName: '良渚片场所组', hazardDesc: '电线私拉乱接', riskLevel: 'serious', recordTime: '2026-03-04', rectifyDeadline: '2026-03-20', rectifyTime: '2026-03-18', status: 'rectified', source: 'enterprise' },
+  { id: 'h005', enterpriseName: '勾庄货运站', industry: '仓储物流', teamName: '物流片场所组', hazardDesc: '叉车作业人员无证上岗', riskLevel: 'serious', recordTime: '2026-03-05', rectifyDeadline: '2026-03-12', rectifyTime: '2026-03-11', status: 'rectified', source: 'expert', expertName: '陈刚' },
+  { id: 'h006', enterpriseName: '杭州化工原料公司', industry: '危化使用', teamName: '勾庄片场所组', hazardDesc: '危险化学品储存不规范', riskLevel: 'major', recordTime: '2026-03-06', rectifyDeadline: '2026-03-20', rectifyTime: '2026-03-19', status: 'rectified', source: 'expert', expertName: '王建国' },
+  { id: 'h007', enterpriseName: '良渚群租房A栋', industry: '出租房', teamName: '良渚片场所组', hazardDesc: '电动车违规充电', riskLevel: 'serious', recordTime: '2026-03-07', rectifyDeadline: '2026-03-14', rectifyTime: '2026-03-13', status: 'rectified', source: 'enterprise' },
+  { id: 'h008', enterpriseName: '余杭宏达建材厂', industry: '工业企业', teamName: '勾庄片场所组', hazardDesc: '机械防护装置缺失', riskLevel: 'serious', recordTime: '2026-03-08', rectifyDeadline: '2026-03-22', rectifyTime: '2026-03-20', status: 'rectified', source: 'expert', expertName: '李明' },
+  { id: 'h009', enterpriseName: '瓶窑快递分拣中心', industry: '仓储物流', teamName: '瓶窑片场所组', hazardDesc: '货物堆放超高', riskLevel: 'general', recordTime: '2026-03-09', rectifyDeadline: '2026-03-16', rectifyTime: '2026-03-15', status: 'rectified', source: 'enterprise' },
+  { id: 'h010', enterpriseName: '勾庄市场摊位', industry: '沿街店铺', teamName: '勾庄片场所组', hazardDesc: '疏散通道堵塞', riskLevel: 'serious', recordTime: '2026-03-10', rectifyDeadline: '2026-03-17', rectifyTime: '2026-03-16', status: 'rectified', source: 'enterprise' },
   // 整改中
-  { id: 'h011', enterpriseName: '浙江华达机械制造厂', industry: '工业企业', teamName: '勾庄片场所组', hazardDesc: '铸造车间粉尘浓度超标', riskLevel: 'major', recordTime: '2026-03-12', rectifyDeadline: '2026-04-12', status: 'rectifying', expertName: '张伟' },
-  { id: 'h012', enterpriseName: '勾庄小微园区企业B', industry: '小微企业', teamName: '勾庄片场所组', hazardDesc: '安全标识缺失', riskLevel: 'general', recordTime: '2026-03-14', rectifyDeadline: '2026-04-01', status: 'rectifying' },
-  { id: 'h013', enterpriseName: '浙江新材料科技', industry: '危化使用', teamName: '勾庄片场所组', hazardDesc: '应急器材配备不足', riskLevel: 'serious', recordTime: '2026-03-15', rectifyDeadline: '2026-04-10', status: 'rectifying', expertName: '陈刚' },
-  { id: 'h014', enterpriseName: '良渚五金加工店', industry: '小微企业', teamName: '良渚片场所组', hazardDesc: '电气线路老化', riskLevel: 'serious', recordTime: '2026-03-16', rectifyDeadline: '2026-04-05', status: 'rectifying', expertName: '李明' },
-  { id: 'h015', enterpriseName: '瓶窑小旅馆', industry: '出租房', teamName: '瓶窑片场所组', hazardDesc: '消防器材过期', riskLevel: 'general', recordTime: '2026-03-17', rectifyDeadline: '2026-04-03', status: 'rectifying' },
-  { id: 'h016', enterpriseName: '勾庄公寓楼', industry: '出租房', teamName: '勾庄片场所组', hazardDesc: '安全出口锁闭', riskLevel: 'serious', recordTime: '2026-03-18', rectifyDeadline: '2026-04-08', status: 'rectifying', expertName: '王建国' },
+  { id: 'h011', enterpriseName: '浙江华达机械制造厂', industry: '工业企业', teamName: '勾庄片场所组', hazardDesc: '铸造车间粉尘浓度超标', riskLevel: 'major', recordTime: '2026-03-12', rectifyDeadline: '2026-04-12', status: 'rectifying', source: 'expert', expertName: '张伟' },
+  { id: 'h012', enterpriseName: '勾庄小微园区企业B', industry: '小微企业', teamName: '勾庄片场所组', hazardDesc: '安全标识缺失', riskLevel: 'general', recordTime: '2026-03-14', rectifyDeadline: '2026-04-01', status: 'rectifying', source: 'enterprise' },
+  { id: 'h013', enterpriseName: '浙江新材料科技', industry: '危化使用', teamName: '勾庄片场所组', hazardDesc: '应急器材配备不足', riskLevel: 'serious', recordTime: '2026-03-15', rectifyDeadline: '2026-04-10', status: 'rectifying', source: 'expert', expertName: '陈刚' },
+  { id: 'h014', enterpriseName: '良渚五金加工店', industry: '小微企业', teamName: '良渚片场所组', hazardDesc: '电气线路老化', riskLevel: 'serious', recordTime: '2026-03-16', rectifyDeadline: '2026-04-05', status: 'rectifying', source: 'expert', expertName: '李明' },
+  { id: 'h015', enterpriseName: '瓶窑小旅馆', industry: '出租房', teamName: '瓶窑片场所组', hazardDesc: '消防器材过期', riskLevel: 'general', recordTime: '2026-03-17', rectifyDeadline: '2026-04-03', status: 'rectifying', source: 'enterprise' },
+  { id: 'h016', enterpriseName: '勾庄公寓楼', industry: '出租房', teamName: '勾庄片场所组', hazardDesc: '安全出口锁闭', riskLevel: 'serious', recordTime: '2026-03-18', rectifyDeadline: '2026-04-08', status: 'rectifying', source: 'expert', expertName: '王建国' },
   // 待整改
-  { id: 'h017', enterpriseName: '余杭电镀厂', industry: '危化使用', teamName: '勾庄片场所组', hazardDesc: '电镀液储存不符合规范', riskLevel: 'major', recordTime: '2026-04-05', rectifyDeadline: '2026-04-20', status: 'pending', expertName: '张伟' },
-  { id: 'h018', enterpriseName: '良渚服装加工厂', industry: '小微企业', teamName: '良渚片场所组', hazardDesc: '员工未佩戴防护用品', riskLevel: 'general', recordTime: '2026-04-06', rectifyDeadline: '2026-04-18', status: 'pending' },
-  { id: 'h019', enterpriseName: '瓶窑临街商铺', industry: '沿街店铺', teamName: '瓶窑片场所组', hazardDesc: '货物占用消防通道', riskLevel: 'serious', recordTime: '2026-04-07', rectifyDeadline: '2026-04-15', status: 'pending' },
-  { id: 'h020', enterpriseName: '勾庄物流企业C', industry: '仓储物流', teamName: '物流片场所组', hazardDesc: '叉车日常维护记录缺失', riskLevel: 'general', recordTime: '2026-04-08', rectifyDeadline: '2026-04-22', status: 'pending' },
+  { id: 'h017', enterpriseName: '余杭电镀厂', industry: '危化使用', teamName: '勾庄片场所组', hazardDesc: '电镀液储存不符合规范', riskLevel: 'major', recordTime: '2026-04-05', rectifyDeadline: '2026-04-20', status: 'pending', source: 'expert', expertName: '张伟' },
+  { id: 'h018', enterpriseName: '良渚服装加工厂', industry: '小微企业', teamName: '良渚片场所组', hazardDesc: '员工未佩戴防护用品', riskLevel: 'general', recordTime: '2026-04-06', rectifyDeadline: '2026-04-18', status: 'pending', source: 'enterprise' },
+  { id: 'h019', enterpriseName: '瓶窑临街商铺', industry: '沿街店铺', teamName: '瓶窑片场所组', hazardDesc: '货物占用消防通道', riskLevel: 'serious', recordTime: '2026-04-07', rectifyDeadline: '2026-04-15', status: 'pending', source: 'enterprise' },
+  { id: 'h020', enterpriseName: '勾庄物流企业C', industry: '仓储物流', teamName: '物流片场所组', hazardDesc: '叉车日常维护记录缺失', riskLevel: 'general', recordTime: '2026-04-08', rectifyDeadline: '2026-04-22', status: 'pending', source: 'enterprise' },
   // 逾期未整改
-  { id: 'h021', enterpriseName: '余杭鑫达机械厂', industry: '工业企业', teamName: '勾庄片场所组', hazardDesc: '行车吊具未定期检测', riskLevel: 'major', recordTime: '2026-03-01', rectifyDeadline: '2026-03-15', status: 'overdue', expertName: '陈刚' },
-  { id: 'h022', enterpriseName: '良渚小餐馆', industry: '沿街店铺', teamName: '良渚片场所组', hazardDesc: '燃气报警器未安装', riskLevel: 'serious', recordTime: '2026-03-02', rectifyDeadline: '2026-03-10', status: 'overdue' },
-  { id: 'h023', enterpriseName: '瓶窑农民房', industry: '出租房', teamName: '瓶窑片场所组', hazardDesc: '私拉电线充电', riskLevel: 'serious', recordTime: '2026-03-03', rectifyDeadline: '2026-03-10', status: 'overdue' },
-  { id: 'h024', enterpriseName: '勾庄片小微企业D', industry: '小微企业', teamName: '勾庄片场所组', hazardDesc: '应急预案未更新', riskLevel: 'general', recordTime: '2026-03-05', rectifyDeadline: '2026-03-20', status: 'overdue', expertName: '李明' },
-  { id: 'h025', enterpriseName: '物流片仓储企业E', industry: '仓储物流', teamName: '物流片场所组', hazardDesc: '监控盲区未覆盖', riskLevel: 'serious', recordTime: '2026-03-06', rectifyDeadline: '2026-03-18', status: 'overdue', expertName: '王建国' },
+  { id: 'h021', enterpriseName: '余杭鑫达机械厂', industry: '工业企业', teamName: '勾庄片场所组', hazardDesc: '行车吊具未定期检测', riskLevel: 'major', recordTime: '2026-03-01', rectifyDeadline: '2026-03-15', status: 'overdue', source: 'expert', expertName: '陈刚' },
+  { id: 'h022', enterpriseName: '良渚小餐馆', industry: '沿街店铺', teamName: '良渚片场所组', hazardDesc: '燃气报警器未安装', riskLevel: 'serious', recordTime: '2026-03-02', rectifyDeadline: '2026-03-10', status: 'overdue', source: 'enterprise' },
+  { id: 'h023', enterpriseName: '瓶窑农民房', industry: '出租房', teamName: '瓶窑片场所组', hazardDesc: '私拉电线充电', riskLevel: 'serious', recordTime: '2026-03-03', rectifyDeadline: '2026-03-10', status: 'overdue', source: 'enterprise' },
+  { id: 'h024', enterpriseName: '勾庄片小微企业D', industry: '小微企业', teamName: '勾庄片场所组', hazardDesc: '应急预案未更新', riskLevel: 'general', recordTime: '2026-03-05', rectifyDeadline: '2026-03-20', status: 'overdue', source: 'expert', expertName: '李明' },
+  { id: 'h025', enterpriseName: '物流片仓储企业E', industry: '仓储物流', teamName: '物流片场所组', hazardDesc: '监控盲区未覆盖', riskLevel: 'serious', recordTime: '2026-03-06', rectifyDeadline: '2026-03-18', status: 'overdue', source: 'expert', expertName: '王建国' },
 ]

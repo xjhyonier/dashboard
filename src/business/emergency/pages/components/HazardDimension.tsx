@@ -3,6 +3,8 @@ import { thStyle, tdStyle, inputStyle } from './styles'
 import type { HazardDimensionProps } from './types'
 import type { HazardStatus } from '../mock/station-chief-v2'
 import { hazardRecords } from '../mock/station-chief-v2'
+import { useSortableTable } from './useSortableTable'
+import { SortableTh } from './SortableTh'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; textColor: string }> = {
   pending:    { label: '待整改', color: '#6B7280', bg: '#F3F4F6', textColor: '#374151' },
@@ -20,14 +22,16 @@ const RISK_CONFIG: Record<string, { label: string; color: string }> = {
 
 const RISK_CONFIG_FALLBACK = { label: '未知', color: '#6B7280' }
 
-export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, setSelectedKpi }: HazardDimensionProps) {
+export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, setSelectedKpi, navigateParams }: HazardDimensionProps) {
+  // 初始化时使用 navigateParams 作为默认值
   const [industryFilter, setIndustryFilter] = useState<string>('all')
-  const [teamFilter, setTeamFilter] = useState<string>('all')
+  const [teamFilter, setTeamFilter] = useState<string>(navigateParams?.teamName || 'all')
   const [keyword, setKeyword] = useState('')
+  const [localStatusFilter, setLocalStatusFilter] = useState<HazardStatus | 'all'>('all')
 
   // selectedKpi 映射到对应的隐患状态
   const kpiToStatus: Record<string, HazardStatus | null> = {
-    serious:   null,  // 重大隐患按等级不过滤
+    serious:   null,
     closed:    'rectified',
     inProgress: 'rectifying',
     deadline:  'pending',
@@ -35,7 +39,10 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
     overdue:  'overdue',
   }
 
-  const statusFilter = selectedKpi ? (kpiToStatus[selectedKpi] || 'all') : 'all'
+  // 优先用局部状态筛选，否则用顶部 KPI 映射的状态
+  const statusFilter = localStatusFilter !== 'all' 
+    ? localStatusFilter 
+    : (selectedKpi ? (kpiToStatus[selectedKpi] || 'all') : 'all')
 
   // 各状态统计
   const statusCounts = useMemo(() => {
@@ -64,10 +71,17 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
     low: 'general',
   }
 
+  // 计算逾期天数
+  const getOverdueDays = (deadline: string) => {
+    const today = new Date()
+    const deadlineDate = new Date(deadline)
+    const diff = Math.floor((today.getTime() - deadlineDate.getTime()) / (1000 * 60 * 60 * 24))
+    return diff
+  }
+
   // 过滤后的隐患列表
   const filtered = useMemo(() => {
     return hazardRecords.filter(r => {
-      // 按风险等级筛选（除非 selectedKpi 是 serious，已经按 major 过滤了）
       if (riskLevel !== 'all' && selectedKpi !== 'serious') {
         const mappedLevel = riskLevelMap[riskLevel]
         if (r.riskLevel !== mappedLevel) return false
@@ -86,15 +100,31 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
     })
   }, [riskLevel, selectedKpi, statusFilter, industryFilter, teamFilter, keyword])
 
+  // 复用排序 hook
+  const { sortedData, sort, handleSort } = useSortableTable(filtered, 'recordTime', 'desc')
+
   const total = hazardRecords.length
+
+  // 列定义
+  const columns = [
+    { key: 'hazardDesc', label: '隐患描述' },
+    { key: 'riskLevel', label: '等级' },
+    { key: 'source', label: '来源' },
+    { key: 'enterpriseName', label: '企业' },
+    { key: 'industry', label: '行业' },
+    { key: 'status', label: '状态' },
+    { key: 'recordTime', label: '记录时间' },
+  ]
 
   return (
     <div>
       {/* 筛选器 */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap' }}>
-        {/* 状态筛选（受顶部 KPI 控制） */}
+        {/* 状态筛选 */}
         <div>
-          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>隐患状态 {selectedKpi && <span style={{ color: '#7C3AED' }}>（受顶部 KPI 控制）</span>}</div>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>
+            隐患状态 {localStatusFilter !== 'all' && <span style={{ color: '#4F46E5' }}>（已筛选）</span>}
+          </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {(['all', 'pending', 'rectifying', 'rectified', 'overdue'] as const).map(s => {
               const cfg = s === 'all'
@@ -104,7 +134,10 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
               return (
                 <button
                   key={s}
-                  onClick={() => setSelectedKpi(null)}
+                  onClick={() => {
+                    setLocalStatusFilter(s)
+                    setSelectedKpi(null)
+                  }}
                   style={{
                     padding: '3px 10px',
                     borderRadius: 4,
@@ -169,36 +202,45 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
         <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>
           隐患明细列表
           <span style={{ fontWeight: 400, color: '#9CA3AF', fontSize: 12, marginLeft: 8 }}>
-            （{filtered.length} / {total} 条）
+            （{sortedData.length} / {total} 条）
           </span>
         </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 900 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 950 }}>
             <thead>
               <tr>
-                {['序号', '企业名称', '行业', '负责工作组', '隐患描述', '隐患等级', '记录时间', '整改期限', '整改完成时间', '当前状态', '跟进专家'].map(h => (
-                  <th key={h} style={thStyle}>{h}</th>
+                <th style={thStyle}>序号</th>
+                {columns.map(col => (
+                  <SortableTh
+                    key={col.key}
+                    label={col.label}
+                    sortKey={col.key}
+                    sort={sort}
+                    onSort={handleSort}
+                  />
                 ))}
+                <th style={thStyle}>整改期限</th>
+                <th style={thStyle}>逾期天数</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={11} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>未找到匹配结果</td></tr>
-              ) : filtered.map((r, i) => {
+              {sortedData.length === 0 ? (
+                <tr><td colSpan={9} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>未找到匹配结果</td></tr>
+              ) : sortedData.map((r, i) => {
                 const statusCfg = STATUS_CONFIG[r.status] || { label: '未知', color: '#6B7280', bg: '#F3F4F6', textColor: '#374151' }
                 const riskCfg = RISK_CONFIG[r.riskLevel] || RISK_CONFIG_FALLBACK
+                const overdueDays = r.status === 'overdue' ? getOverdueDays(r.rectifyDeadline) : null
+                const sourceLabel = r.source === 'expert' ? '专家提交' : '自查自纠'
+                const sourceColor = r.source === 'expert' ? '#4F46E5' : '#059669'
                 return (
                   <tr key={r.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                    <td style={{ ...tdStyle, color: '#9CA3AF' }}>{i + 1}</td>
-                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 500, color: '#1F2937', minWidth: 160 }}>{r.enterpriseName}</td>
-                    <td style={tdStyle}>{r.industry}</td>
-                    <td style={tdStyle}>{r.teamName}</td>
+                    <td style={{ ...tdStyle, color: '#9CA3AF', fontSize: 11 }}>{i + 1}</td>
                     <td style={{ ...tdStyle, textAlign: 'left', color: '#374151', minWidth: 180 }}>{r.hazardDesc}</td>
                     <td style={{ ...tdStyle, fontWeight: 600, color: riskCfg.color }}>{riskCfg.label}</td>
-                    <td style={tdStyle}>{r.recordTime}</td>
-                    <td style={{ ...tdStyle, color: r.status === 'overdue' ? '#DC2626' : '#374151' }}>{r.rectifyDeadline}</td>
-                    <td style={{ ...tdStyle, color: '#059669' }}>{r.rectifyTime || '—'}</td>
-                    <td style={{ ...tdStyle }}>
+                    <td style={{ ...tdStyle, color: sourceColor, fontWeight: 500, fontSize: 11 }}>{sourceLabel}</td>
+                    <td style={{ ...tdStyle, textAlign: 'left', color: '#6B7280', minWidth: 140 }}>{r.enterpriseName}</td>
+                    <td style={tdStyle}>{r.industry}</td>
+                    <td style={tdStyle}>
                       <span style={{
                         display: 'inline-block',
                         padding: '2px 8px',
@@ -211,7 +253,11 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                         {statusCfg.label}
                       </span>
                     </td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>{r.expertName || '—'}</td>
+                    <td style={tdStyle}>{r.recordTime}</td>
+                    <td style={{ ...tdStyle, color: r.status === 'overdue' ? '#DC2626' : '#374151' }}>{r.rectifyDeadline}</td>
+                    <td style={{ ...tdStyle, fontWeight: overdueDays ? 600 : 400, color: overdueDays ? '#DC2626' : '#9CA3AF' }}>
+                      {overdueDays ? `${overdueDays}天` : '—'}
+                    </td>
                   </tr>
                 )
               })}

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../../../components/layout/PageHeader'
-import type { Dimension } from './components/types'
+import type { Dimension, HazardNavigateParams } from './components/types'
 
 import { DutyDimension } from './components/DutyDimension'
 import { StateDimension } from './components/StateDimension'
@@ -76,6 +76,17 @@ export function StationChiefV2Dashboard() {
 
   const handleDimensionChange = (key: Dimension) => {
     setSearchParams({ tab: key })
+  }
+
+  // 跳转到隐患维度并设置筛选条件
+  const handleNavigateToHazard = (params: HazardNavigateParams) => {
+    const newParams: Record<string, string> = { tab: 'hazard' }
+    if (params.teamName) newParams.teamName = params.teamName
+    if (params.enterpriseName) newParams.enterpriseName = params.enterpriseName
+    if (params.expertName) newParams.expertName = params.expertName
+    if (params.riskLevel && params.riskLevel !== 'all') newParams.riskLevel = params.riskLevel
+    if (params.status) newParams.status = params.status
+    setSearchParams(newParams)
   }
 
   return (
@@ -273,11 +284,22 @@ export function StationChiefV2Dashboard() {
         </div>
       </div>
 
-      {dimension === 'duty' && <DutyDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} />}
+      {dimension === 'duty' && <DutyDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} onNavigateToHazard={handleNavigateToHazard} />}
       {dimension === 'industry' && <IndustryDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} />}
       {dimension === 'special' && <SpecialDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} />}
       {dimension === 'state' && <StateDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} />}
-      {dimension === 'hazard' && <HazardDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} />}
+      {dimension === 'hazard' && <HazardDimension
+        dateRange={dateRange}
+        riskLevel={searchParams.get('riskLevel') as any || riskLevel}
+        timeRange={timeRange}
+        selectedKpi={selectedKpi}
+        setSelectedKpi={setSelectedKpi}
+        navigateParams={{
+          teamName: searchParams.get('teamName') || undefined,
+          enterpriseName: searchParams.get('enterpriseName') || undefined,
+          expertName: searchParams.get('expertName') || undefined,
+        }}
+      />}
     </div>
   )
 }

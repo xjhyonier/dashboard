@@ -8,7 +8,7 @@ import {
   hazardRecords,
 } from '../mock/station-chief-v2'
 
-export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, setSelectedKpi }: DutyDimensionProps) {
+export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, setSelectedKpi, onNavigateToHazard }: DutyDimensionProps) {
   const [teamKeyword, setTeamKeyword] = useState('')
   const [memberKeyword, setMemberKeyword] = useState('')
   const [expertKeyword, setExpertKeyword] = useState('')
@@ -407,7 +407,13 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                   <td style={{ ...tdStyle, fontWeight: 500 }}>{g.memberCount * 10}</td>
                   <td style={tdStyle}>{g.enterpriseCount}</td>
                   <td style={tdStyle}>{g.hazardFound}</td>
-                  <td style={{ ...tdStyle, color: '#DC2626' }}>{g.hazardSerious}</td>
+                  <td
+                    style={{ ...tdStyle, color: '#DC2626', cursor: g.hazardSerious > 0 ? 'pointer' : 'default' }}
+                    onClick={() => g.hazardSerious > 0 && onNavigateToHazard?.({ teamName: g.name, riskLevel: 'major' })}
+                    title="点击查看该工作组重大隐患"
+                  >
+                    {g.hazardSerious}
+                  </td>
                   <td style={{ ...tdStyle, color: '#059669' }}>{g.hazardClosed}</td>
                   <td style={tdStyle}>{g.hazardClosureRate}%</td>
                   <td style={{ ...tdStyle, color: '#DC2626' }}>{g.overdueUnrectified}</td>
