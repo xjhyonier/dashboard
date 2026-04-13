@@ -94,6 +94,12 @@ function PersonDimension() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
   const [selectedMemberName, setSelectedMemberName] = useState<string | null>(null)
 
+  // 排序状态
+  const [teamSortKey, setTeamSortKey] = useState<string | null>(null)
+  const [teamSortDir, setTeamSortDir] = useState<'asc' | 'desc'>('asc')
+  const [memberSortKey, setMemberSortKey] = useState<string | null>(null)
+  const [memberSortDir, setMemberSortDir] = useState<'asc' | 'desc'>('asc')
+
   // 获取选中人员负责的工作组 IDs（按姓名查找，同一个人所有记录都要）
   const selectedMemberTeamIds = useMemo(() => {
     if (!selectedMemberName) return []
@@ -103,7 +109,7 @@ function PersonDimension() {
     return Array.from(ids)
   }, [selectedMemberName])
 
-  // 过滤工作组：按关键词 + 按选中人员负责的组
+  // 过滤工作组：按关键词 + 按选中人员负责的组 + 排序
   const filteredTeams = useMemo(() => {
     let result = workGroups
     // 按选中人员负责的组过滤
@@ -115,8 +121,21 @@ function PersonDimension() {
       const kw = teamKeyword.trim().toLowerCase()
       result = result.filter(g => g.name.toLowerCase().includes(kw))
     }
+    // 排序
+    if (teamSortKey) {
+      result = [...result].sort((a, b) => {
+        const aVal = (a as any)[teamSortKey]
+        const bVal = (b as any)[teamSortKey]
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          return teamSortDir === 'asc' ? aVal - bVal : bVal - aVal
+        }
+        return teamSortDir === 'asc'
+          ? String(aVal).localeCompare(String(bVal))
+          : String(bVal).localeCompare(String(aVal))
+      })
+    }
     return result
-  }, [teamKeyword, selectedMemberName, selectedMemberTeamIds])
+  }, [teamKeyword, selectedMemberName, selectedMemberTeamIds, teamSortKey, teamSortDir])
 
   // 过滤人员：按选中的工作组或人员负责的组过滤 + 关键词过滤 + 按姓名去重并合并 teamIds
   const filteredMembers = useMemo(() => {
@@ -148,13 +167,25 @@ function PersonDimension() {
         nameToMember.set(m.memberName, m)
       }
     })
-    // 排序：副站长排前面，然后按姓名排序
+    // 排序逻辑
     return Array.from(nameToMember.values()).sort((a, b) => {
+      // 如果选择了排序列，按排序列排序（副站长不强制置顶）
+      if (memberSortKey) {
+        const aVal = (a as any)[memberSortKey]
+        const bVal = (b as any)[memberSortKey]
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          return memberSortDir === 'asc' ? aVal - bVal : bVal - aVal
+        }
+        return memberSortDir === 'asc'
+          ? String(aVal).localeCompare(String(bVal))
+          : String(bVal).localeCompare(String(aVal))
+      }
+      // 如果没有选择排序列，按默认规则：副站长优先 + 姓名
       if (a.role === 'deputy' && b.role !== 'deputy') return -1
       if (a.role !== 'deputy' && b.role === 'deputy') return 1
       return a.memberName.localeCompare(b.memberName)
     })
-  }, [selectedTeamId, selectedMemberName, selectedMemberTeamIds, memberKeyword])
+  }, [selectedTeamId, selectedMemberName, selectedMemberTeamIds, memberKeyword, memberSortKey, memberSortDir])
 
   // 过滤专家：按选中工作组或选中人员负责的组
   const filteredExperts = useMemo(() => {
@@ -309,8 +340,43 @@ function PersonDimension() {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr>
-              {['工作组名称', '组长', '副站长', '负责企业', '检查企业', '隐患总数', '重大隐患', '已整改', '整改完成率', '逾期未整改', '整改中', '重大风险(任务/时间)'].map(h => (
-                <th key={h} style={thStyle}>{h}</th>
+              {[
+                { key: 'name', label: '工作组名称' },
+                { key: null, label: '组长' },
+                { key: null, label: '副站长' },
+                { key: 'memberCount', label: '负责企业' },
+                { key: 'enterpriseCount', label: '检查企业' },
+                { key: 'hazardFound', label: '隐患总数' },
+                { key: 'hazardSerious', label: '重大隐患' },
+                { key: 'hazardClosed', label: '已整改' },
+                { key: 'hazardClosureRate', label: '整改完成率' },
+                { key: 'overdueUnrectified', label: '逾期未整改' },
+                { key: 'inProgress', label: '整改中' },
+                { key: null, label: '重大风险(任务/时间)' },
+              ].map(col => (
+                <th
+                  key={col.key || col.label}
+                  style={{
+                    ...thStyle,
+                    cursor: col.key ? 'pointer' : 'default',
+                    userSelect: 'none',
+                  }}
+                  onClick={() => {
+                    if (col.key) {
+                      if (teamSortKey === col.key) {
+                        setTeamSortDir(teamSortDir === 'asc' ? 'desc' : 'asc')
+                      } else {
+                        setTeamSortKey(col.key)
+                        setTeamSortDir('asc')
+                      }
+                    }
+                  }}
+                >
+                  {col.label}
+                  {col.key && teamSortKey === col.key && (
+                    <span style={{ marginLeft: 4 }}>{teamSortDir === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </th>
               ))}
             </tr>
           </thead>
@@ -402,8 +468,42 @@ function PersonDimension() {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr>
-              {['姓名', '职务', '配合工作组', '负责企业', '已检查企业', '发现隐患', '重大隐患', '已整改', '整改率', '整改中', '逾期未改'].map(h => (
-                <th key={h} style={thStyle}>{h}</th>
+              {[
+                { key: 'memberName', label: '姓名' },
+                { key: 'position', label: '职务' },
+                { key: null, label: '配合工作组' },
+                { key: 'enterpriseCount', label: '负责企业' },
+                { key: 'inspectionCount', label: '已检查企业' },
+                { key: 'hazardFound', label: '发现隐患' },
+                { key: 'hazardSerious', label: '重大隐患' },
+                { key: 'hazardClosed', label: '已整改' },
+                { key: 'hazardClosureRate', label: '整改率' },
+                { key: 'inProgress', label: '整改中' },
+                { key: 'overdueUnrectified', label: '逾期未改' },
+              ].map(col => (
+                <th
+                  key={col.key || col.label}
+                  style={{
+                    ...thStyle,
+                    cursor: col.key ? 'pointer' : 'default',
+                    userSelect: 'none',
+                  }}
+                  onClick={() => {
+                    if (col.key) {
+                      if (memberSortKey === col.key) {
+                        setMemberSortDir(memberSortDir === 'asc' ? 'desc' : 'asc')
+                      } else {
+                        setMemberSortKey(col.key)
+                        setMemberSortDir('asc')
+                      }
+                    }
+                  }}
+                >
+                  {col.label}
+                  {col.key && memberSortKey === col.key && (
+                    <span style={{ marginLeft: 4 }}>{memberSortDir === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </th>
               ))}
             </tr>
           </thead>
