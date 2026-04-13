@@ -126,95 +126,79 @@ export const industryHazardAnalysis: IndustryHazardAnalysis[] = [
 // ─────────────────────────────────────────────
 // 专项维度数据
 // ─────────────────────────────────────────────
-export interface SpecialInspectionData {
+// 专项检查数据
+// ─────────────────────────────────────────────
+export interface SpecialInspection {
   id: string
   name: string
-  enterpriseCount: number
-  hazardFound: number
-  hazardSerious: number
-  hazardClosed: number
-  closureRate: number
-  overdue: number
-  inProgress: number
+  totalCount: number
+  checkedCount: number
+  startDate: string
+  endDate: string
+  hazardCount: number
+  majorHazardCount: number
+  rectifiedCount: number
+  deadlineCount: number
+  topIssues: string[]
+  focusGroups: string[]
 }
 
-export const specialInspectionData: SpecialInspectionData[] = [
+export const specialInspections: SpecialInspection[] = [
   {
-    id: 'sp_001',
-    name: '日常巡查',
-    enterpriseCount: 156,
-    hazardFound: 186,
-    hazardSerious: 28,
-    hazardClosed: 158,
-    closureRate: 84.9,
-    overdue: 12,
-    inProgress: 16,
+    id: 'si-001',
+    name: '危化使用企业专项检查',
+    totalCount: 112,
+    checkedCount: 57,
+    startDate: '2026-03-01',
+    endDate: '2026-05-01',
+    hazardCount: 86,
+    majorHazardCount: 12,
+    rectifiedCount: 54,
+    deadlineCount: 8,
+    topIssues: ['储存不规范', '现场管理混乱', '应急器材不足'],
+    focusGroups: ['勾庄小微园区', '物流片区', '良渚工业园区'],
   },
   {
-    id: 'sp_002',
-    name: '重大危险源',
-    enterpriseCount: 42,
-    hazardFound: 68,
-    hazardSerious: 25,
-    hazardClosed: 55,
-    closureRate: 80.9,
-    overdue: 6,
-    inProgress: 7,
+    id: 'si-002',
+    name: '消防重点单位专项检查',
+    totalCount: 85,
+    checkedCount: 72,
+    startDate: '2026-03-15',
+    endDate: '2026-04-15',
+    hazardCount: 124,
+    majorHazardCount: 8,
+    rectifiedCount: 98,
+    deadlineCount: 5,
+    topIssues: ['消防通道堵塞', '灭火器过期', '疏散标识缺失'],
+    focusGroups: ['物流片区', '勾庄片重大', '良渚片较大'],
   },
   {
-    id: 'sp_003',
-    name: '消防安全专项',
-    enterpriseCount: 88,
-    hazardFound: 105,
-    hazardSerious: 18,
-    hazardClosed: 88,
-    closureRate: 83.8,
-    overdue: 8,
-    inProgress: 9,
+    id: 'si-003',
+    name: '粉尘涉爆企业专项检查',
+    totalCount: 38,
+    checkedCount: 25,
+    startDate: '2026-04-01',
+    endDate: '2026-06-01',
+    hazardCount: 42,
+    majorHazardCount: 5,
+    rectifiedCount: 18,
+    deadlineCount: 12,
+    topIssues: ['除尘系统不规范', '防爆电气缺失', '积尘清理不及时'],
+    focusGroups: ['良渚片重大', '勾庄片较大', '物流片区'],
   },
   {
-    id: 'sp_004',
-    name: '特种设备专项',
-    enterpriseCount: 52,
-    hazardFound: 62,
-    hazardSerious: 12,
-    hazardClosed: 52,
-    closureRate: 83.9,
-    overdue: 4,
-    inProgress: 6,
-  },
-  {
-    id: 'sp_005',
-    name: '危化品专项整治',
-    enterpriseCount: 48,
-    hazardFound: 78,
-    hazardSerious: 22,
-    hazardClosed: 65,
-    closureRate: 83.3,
-    overdue: 6,
-    inProgress: 7,
-  },
-  {
-    id: 'sp_006',
-    name: '防汛防台专项',
-    enterpriseCount: 62,
-    hazardFound: 45,
-    hazardSerious: 5,
-    hazardClosed: 40,
-    closureRate: 88.9,
-    overdue: 2,
-    inProgress: 3,
-  },
-  {
-    id: 'sp_007',
-    name: '节前安全检查',
-    enterpriseCount: 95,
-    hazardFound: 82,
-    hazardSerious: 15,
-    hazardClosed: 70,
-    closureRate: 85.4,
-    overdue: 5,
-    inProgress: 7,
+    id: 'si-004',
+    name: '有限空间作业专项检查',
+    totalCount: 56,
+    checkedCount: 48,
+    startDate: '2026-02-15',
+    endDate: '2026-04-15',
+    hazardCount: 67,
+    majorHazardCount: 3,
+    rectifiedCount: 62,
+    deadlineCount: 2,
+    topIssues: ['警示标识缺失', '通风设备故障', '应急救援器材不足'],
+    focusGroups: ['勾庄片重大', '良渚片较大', '物流片区'],
   },
 ]
 
@@ -1040,6 +1024,266 @@ export interface ExpertFull extends ExpertMember {
   closureRateGrowth: number
 }
 
+// ─────────────────────────────────────────────
+// 企业状态路径数据
+// ─────────────────────────────────────────────
+
+// 企业状态枚举
+export type EnterpriseState = 
+  | 'all'           // 全部企业
+  | 'opened'        // 已开通
+  | 'not_opened'    // 未开通
+  | 'collected'      // 已采集
+  | 'not_collected'  // 未采集
+  | 'authorized'     // 数据已授权
+  | 'not_authorized' // 未授权
+  | 'risk_match'     // 风险标签一致
+  | 'risk_mismatch'  // 风险标签不一致
+  | 'qualified'      // 合格
+  | 'unqualified'    // 不合格
+  | 'has_todo'       // 有待办
+  | 'no_todo'        // 无待办
+  | 'todo_unread'    // 待办未读
+  | 'enterprise_read' // 企业已读
+  | 'rectifying'     // 整改中
+  | 'expert_verify'  // 专家验收
+  | 'rectifying_ok'  // 整改未逾期
+  | 'rectifying_overdue' // 整改逾期
+
+// 企业数据结构
+export interface Enterprise {
+  id: string
+  name: string
+  industry: string
+  riskLevel: '重大风险' | '较大风险' | '一般风险' | '低风险'
+  area: string
+  team: string
+  // 状态路径字段
+  opened: boolean        // 已开通
+  collected: boolean     // 已采集
+  authorized: boolean   // 数据已授权
+  riskMatch: boolean    // 风险标签一致
+  hasTodo: boolean      // 有待办
+  todoRead: boolean     // 待办已读
+  todoStatus: 'none' | 'unread' | 'rectifying' | 'expert_verify' | 'completed' | 'overdue'
+  // 隐患信息
+  hazardCount: number
+  majorHazardCount: number
+  // AI评分
+  aiScore: number
+  // 负责人
+  expertName: string
+  lastUpdate: string
+}
+
+// 生成企业 Mock 数据
+function generateEnterprises(): Enterprise[] {
+  const industries = ['工业企业', '仓储物流', '小微企业', '危化使用', '九小场所', '出租房', '沿街店铺']
+  const areas = ['良渚片', '勾庄片', '物流片']
+  const teams = ['良渚片场所组', '勾庄片场所组', '物流片场所组', '良渚片重大', '良渚片较大', '勾庄片重大', '勾庄片较大', '物流片安全组']
+  const riskLevels: Array<'重大风险' | '较大风险' | '一般风险' | '低风险'> = ['重大风险', '较大风险', '一般风险', '低风险']
+  const riskWeights = [0.03, 0.1, 0.3, 0.57] // 按比例分配
+  const experts = ['小新', '赞赞', '仝运槐', '张杭伟', '王创达', '梁新舒', '陈涛', '段晓辉', '郑富彬', '张平水', '吴灿刚', '刘浩鑫']
+
+  const enterprises: Enterprise[] = []
+  const totalCount = 500
+
+  for (let i = 0; i < totalCount; i++) {
+    const id = `ent_${String(i + 1).padStart(3, '0')}`
+    
+    // 按权重随机选择风险等级
+    const rand = Math.random()
+    let cumWeight = 0
+    let riskLevel: '重大风险' | '较大风险' | '一般风险' | '低风险' = '低风险'
+    for (let j = 0; j < riskLevels.length; j++) {
+      cumWeight += riskWeights[j]
+      if (rand < cumWeight) {
+        riskLevel = riskLevels[j]
+        break
+      }
+    }
+
+    // 根据风险等级调整各状态概率
+    const isHighRisk = riskLevel === '重大风险' || riskLevel === '较大风险'
+    
+    // 开通状态 (98%)
+    const opened = Math.random() < 0.98
+    // 采集状态 (85% of opened)
+    const collected = opened && Math.random() < 0.85
+    // 授权状态 (90% of collected)
+    const authorized = collected && Math.random() < 0.90
+    // 风险标签一致 (65% of authorized, 高风险企业一致性更低)
+    const riskMatch = authorized && (isHighRisk ? Math.random() < 0.55 : Math.random() < 0.70)
+    // 有待办 (40% of not risk_match)
+    const hasTodo = !riskMatch && Math.random() < 0.40
+    // 待办已读 (75% of hasTodo)
+    const todoRead = hasTodo && Math.random() < 0.75
+    // 待办状态分布
+    let todoStatus: Enterprise['todoStatus'] = 'none'
+    if (!hasTodo) {
+      todoStatus = 'none'
+    } else if (!todoRead) {
+      todoStatus = Math.random() < 0.7 ? 'unread' : 'rectifying'
+    } else {
+      const statusRand = Math.random()
+      if (statusRand < 0.5) todoStatus = 'rectifying'
+      else if (statusRand < 0.7) todoStatus = 'expert_verify'
+      else if (statusRand < 0.85) todoStatus = 'completed'
+      else todoStatus = 'overdue'
+    }
+
+    // 隐患数
+    const baseHazard = isHighRisk ? Math.floor(Math.random() * 8) + 3 : Math.floor(Math.random() * 5)
+    const hazardCount = todoStatus === 'none' ? Math.floor(baseHazard * 0.3) : baseHazard
+    const majorHazardCount = isHighRisk && Math.random() < 0.4 ? Math.floor(Math.random() * 3) + 1 : 0
+
+    // AI评分
+    const baseScore = riskMatch ? 75 + Math.floor(Math.random() * 25) : 25 + Math.floor(Math.random() * 40)
+
+    enterprises.push({
+      id,
+      name: `${areas[Math.floor(Math.random() * areas.length)]}企业${String(i + 1).padStart(3, '0')}`,
+      industry: industries[Math.floor(Math.random() * industries.length)],
+      riskLevel,
+      area: areas[Math.floor(Math.random() * areas.length)],
+      team: teams[Math.floor(Math.random() * teams.length)],
+      opened,
+      collected,
+      authorized,
+      riskMatch,
+      hasTodo,
+      todoRead,
+      todoStatus,
+      hazardCount,
+      majorHazardCount,
+      aiScore: Math.min(100, baseScore),
+      expertName: experts[Math.floor(Math.random() * experts.length)],
+      lastUpdate: `2026-04-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}`,
+    })
+  }
+
+  return enterprises
+}
+
+export const enterprises = generateEnterprises()
+
+// 企业状态路径节点配置
+export interface StatePathNode {
+  id: EnterpriseState
+  label: string
+  color: 'neutral' | 'green' | 'amber' | 'red' | 'dashed'
+  description?: string
+}
+
+export const statePathNodes: StatePathNode[] = [
+  // 主流程
+  { id: 'all', label: '全部企业', color: 'neutral', description: '辖区全部企业' },
+  { id: 'opened', label: '已开通', color: 'neutral', description: '已注册登录小程序' },
+  { id: 'collected', label: '已采集', color: 'neutral', description: '完成信息采集表单' },
+  { id: 'authorized', label: '数据已授权', color: 'neutral', description: '授权一企一档给镇街' },
+  { id: 'risk_match', label: '风险标签一致', color: 'green', description: 'AI评估正常' },
+  { id: 'qualified', label: '合格', color: 'green', description: '7维度均达标' },
+  // 不合格分支
+  { id: 'risk_mismatch', label: '风险标签不一致', color: 'amber', description: '存在异常项' },
+  { id: 'unqualified', label: '不合格', color: 'amber', description: '需要跟进' },
+  { id: 'has_todo', label: '有待办', color: 'amber', description: '已下发待办任务' },
+  { id: 'no_todo', label: '无待办', color: 'dashed', description: '无需跟进' },
+  // 待办详情
+  { id: 'todo_unread', label: '待办未读', color: 'amber', description: '企业尚未查看' },
+  { id: 'enterprise_read', label: '企业已读', color: 'amber', description: '已查看待办' },
+  { id: 'rectifying', label: '整改中', color: 'amber', description: '正在整改' },
+  { id: 'expert_verify', label: '专家验收', color: 'amber', description: '等待专家验收' },
+  // 整改结果
+  { id: 'rectifying_ok', label: '整改未逾期', color: 'green', description: '正常完成' },
+  { id: 'rectifying_overdue', label: '整改逾期', color: 'red', description: '超期未完成' },
+  // 断路
+  { id: 'not_opened', label: '未开通', color: 'dashed', description: '未注册' },
+  { id: 'not_collected', label: '未采集', color: 'dashed', description: '未完成采集' },
+  { id: 'not_authorized', label: '未授权', color: 'dashed', description: '未授权数据' },
+]
+
+// 统计各状态企业数量
+export function getStateCounts(): Record<EnterpriseState, number> {
+  const counts: Record<string, number> = {
+    all: enterprises.length,
+    opened: 0,
+    not_opened: 0,
+    collected: 0,
+    not_collected: 0,
+    authorized: 0,
+    not_authorized: 0,
+    risk_match: 0,
+    risk_mismatch: 0,
+    qualified: 0,
+    unqualified: 0,
+    has_todo: 0,
+    no_todo: 0,
+    todo_unread: 0,
+    enterprise_read: 0,
+    rectifying: 0,
+    expert_verify: 0,
+    rectifying_ok: 0,
+    rectifying_overdue: 0,
+  }
+
+  enterprises.forEach(e => {
+    if (e.opened) counts.opened++
+    else counts.not_opened++
+    
+    if (e.collected) counts.collected++
+    else counts.not_collected++
+    
+    if (e.authorized) counts.authorized++
+    else counts.not_authorized++
+    
+    if (e.riskMatch) counts.risk_match++
+    else counts.risk_mismatch++
+    
+    if (e.riskMatch) counts.qualified++
+    else counts.unqualified++
+    
+    if (e.hasTodo) counts.has_todo++
+    else counts.no_todo++
+    
+    if (e.todoStatus === 'unread') counts.todo_unread++
+    if (e.todoStatus === 'rectifying' || e.todoStatus === 'expert_verify') {
+      counts.enterprise_read++
+      if (e.todoStatus === 'rectifying') counts.rectifying++
+      else counts.expert_verify++
+    }
+    if (e.todoStatus === 'completed') counts.rectifying_ok++
+    if (e.todoStatus === 'overdue') counts.rectifying_overdue++
+  })
+
+  return counts as Record<EnterpriseState, number>
+}
+
+// 根据状态筛选企业
+export function filterEnterprisesByState(state: EnterpriseState): Enterprise[] {
+  switch (state) {
+    case 'all': return enterprises
+    case 'opened': return enterprises.filter(e => e.opened)
+    case 'not_opened': return enterprises.filter(e => !e.opened)
+    case 'collected': return enterprises.filter(e => e.collected)
+    case 'not_collected': return enterprises.filter(e => !e.collected)
+    case 'authorized': return enterprises.filter(e => e.authorized)
+    case 'not_authorized': return enterprises.filter(e => !e.authorized)
+    case 'risk_match': return enterprises.filter(e => e.riskMatch)
+    case 'risk_mismatch': return enterprises.filter(e => !e.riskMatch)
+    case 'qualified': return enterprises.filter(e => e.riskMatch)
+    case 'unqualified': return enterprises.filter(e => !e.riskMatch)
+    case 'has_todo': return enterprises.filter(e => e.hasTodo)
+    case 'no_todo': return enterprises.filter(e => !e.hasTodo)
+    case 'todo_unread': return enterprises.filter(e => e.todoStatus === 'unread')
+    case 'enterprise_read': return enterprises.filter(e => e.todoStatus === 'rectifying' || e.todoStatus === 'expert_verify')
+    case 'rectifying': return enterprises.filter(e => e.todoStatus === 'rectifying')
+    case 'expert_verify': return enterprises.filter(e => e.todoStatus === 'expert_verify')
+    case 'rectifying_ok': return enterprises.filter(e => e.todoStatus === 'completed')
+    case 'rectifying_overdue': return enterprises.filter(e => e.todoStatus === 'overdue')
+    default: return enterprises
+  }
+}
+
 export const expertsFull: ExpertFull[] = [
   {
     expertId: 'exp_001',
@@ -1581,4 +1825,213 @@ export const expertsFull: ExpertFull[] = [
     taskGrowth: -20,
     closureRateGrowth: -10,
   },
+]
+
+// ─────────────────────────────────────────────
+// V1 兼容的企业数据（用于企业列表）
+// ─────────────────────────────────────────────
+export interface Enterprise10D {
+  id: string
+  name: string
+  risk_level: string
+  ai_score: number
+  work_group: string
+  expert_id: string
+  // 基础维度
+  info_collection?: boolean
+  data_authorized?: boolean
+  risk_point_identified?: boolean
+  // 安全制度3维度
+  safety_org_duty_rate?: number
+  safety_system_rate?: number
+  safety_invest_rate?: number
+  // 检查任务
+  inspection_plan_type?: 'weekly' | 'monthly' | 'quarterly' | 'none'
+  inspection_execution?: 'yes' | 'no' | 'forced'
+  // 同步与巡查
+  third_party_sync?: 'yes' | 'no' | 'optional'
+  patrol_used?: 'yes' | 'no' | 'optional'
+  // 教育培训
+  training_done?: boolean
+  training_has_record?: boolean
+  // 作业票与隐患
+  work_permit_count?: number
+  hazard_self_check?: number
+  hazard_platform?: number
+  hazard_major?: number
+  // 整改进展
+  hazard_rectify_status?: 'completed' | 'uncompleted' | 'partial' | 'overdue'
+  // 检查与执法
+  inspection_count?: number
+  hazard_rectified?: number
+  enforcement_count?: number
+}
+
+// 生成 V1 兼容的企业数据
+function generateEnterprises10D(): Enterprise10D[] {
+  const industries = ['工业企业', '仓储物流', '小微企业', '危化使用', '九小场所', '出租房', '沿街店铺']
+  const areas = ['良渚片', '勾庄片', '物流片']
+  const teams = ['良渚片场所组', '勾庄片场所组', '物流片场所组', '良渚片重大', '良渚片较大', '勾庄片重大', '勾庄片较大', '物流片安全组']
+  const experts = ['小新', '赞赞', '仝运槐', '张杭伟', '王创达', '梁新舒', '陈涛', '段晓辉', '郑富彬', '张平水', '吴灿刚', '刘浩鑫']
+  const riskLevels: Array<{ level: string; weight: number }> = [
+    { level: '重大风险', weight: 0.03 },
+    { level: '较大风险', weight: 0.1 },
+    { level: '一般风险', weight: 0.3 },
+    { level: '低风险', weight: 0.57 },
+  ]
+
+  const result: Enterprise10D[] = []
+  
+  for (let i = 0; i < 200; i++) {
+    // 按权重选择风险等级
+    const rand = Math.random()
+    let cumWeight = 0
+    let riskLevel = '低风险'
+    for (const r of riskLevels) {
+      cumWeight += r.weight
+      if (rand < cumWeight) {
+        riskLevel = r.level
+        break
+      }
+    }
+
+    const isHighRisk = riskLevel === '重大风险' || riskLevel === '较大风险'
+    const riskMatch = Math.random() < (isHighRisk ? 0.5 : 0.7)
+    
+    // 基础字段
+    const info_collection = Math.random() < 0.95
+    const data_authorized = info_collection && Math.random() < 0.9
+    const risk_point_identified = data_authorized && Math.random() < 0.85
+    
+    // 安全制度
+    const safetyBase = isHighRisk ? 60 : 70
+    const safety_org_duty_rate = Math.round(safetyBase + Math.random() * 30)
+    const safety_system_rate = Math.round(safetyBase + Math.random() * 30)
+    const safety_invest_rate = Math.round(safetyBase + Math.random() * 30)
+    
+    // 检查任务
+    const planTypes: Array<'weekly' | 'monthly' | 'quarterly' | 'none'> = ['weekly', 'monthly', 'quarterly', 'none']
+    const planWeights = isHighRisk ? [0.4, 0.3, 0.2, 0.1] : [0.2, 0.3, 0.3, 0.2]
+    let planType: 'weekly' | 'monthly' | 'quarterly' | 'none' = 'none'
+    const planRand = Math.random()
+    let cumP = 0
+    for (let j = 0; j < planTypes.length; j++) {
+      cumP += planWeights[j]
+      if (planRand < cumP) {
+        planType = planTypes[j]
+        break
+      }
+    }
+    
+    const executionValues: Array<'yes' | 'no' | 'forced'> = ['yes', 'yes', 'yes', 'no', 'forced']
+    const inspection_execution = planType === 'none' ? 'no' : executionValues[Math.floor(Math.random() * executionValues.length)]
+    
+    // 第三方同步和巡查
+    const third_party_sync: 'yes' | 'no' | 'optional' = Math.random() < 0.7 ? 'yes' : Math.random() < 0.5 ? 'no' : 'optional'
+    const patrol_used: 'yes' | 'no' | 'optional' = Math.random() < 0.6 ? 'yes' : Math.random() < 0.5 ? 'no' : 'optional'
+    
+    // 教育培训
+    const training_done = Math.random() < 0.75
+    const training_has_record = training_done && Math.random() < 0.8
+    
+    // 作业票
+    const work_permit_count = isHighRisk ? Math.floor(Math.random() * 8) : Math.floor(Math.random() * 3)
+    
+    // 隐患
+    const hazard_self_check = Math.floor(Math.random() * 6)
+    const hazard_platform = Math.floor(Math.random() * 4)
+    const hazard_major = isHighRisk && Math.random() < 0.3 ? Math.floor(Math.random() * 3) + 1 : 0
+    
+    // 整改进展
+    const rectifyStatuses: Array<'completed' | 'uncompleted' | 'partial' | 'overdue'> = ['completed', 'completed', 'uncompleted', 'partial', 'overdue']
+    const hazard_rectify_status = riskMatch ? 'completed' : rectifyStatuses[Math.floor(Math.random() * rectifyStatuses.length)]
+    
+    // AI 评分
+    const ai_score = riskMatch ? Math.round(75 + Math.random() * 25) : Math.round(25 + Math.random() * 40)
+
+    result.push({
+      id: `ent10d_${String(i + 1).padStart(3, '0')}`,
+      name: `${areas[Math.floor(Math.random() * areas.length)]}企业${String(i + 1).padStart(3, '0')}`,
+      risk_level: riskLevel,
+      ai_score,
+      work_group: teams[Math.floor(Math.random() * teams.length)],
+      expert_id: `exp_${String(Math.floor(Math.random() * 12) + 1).padStart(3, '0')}`,
+      info_collection,
+      data_authorized,
+      risk_point_identified,
+      safety_org_duty_rate,
+      safety_system_rate,
+      safety_invest_rate,
+      inspection_plan_type: planType,
+      inspection_execution,
+      third_party_sync,
+      patrol_used,
+      training_done,
+      training_has_record,
+      work_permit_count,
+      hazard_self_check,
+      hazard_platform,
+      hazard_major,
+      hazard_rectify_status,
+      inspection_count: Math.floor(Math.random() * 20) + 5,
+      hazard_rectified: Math.floor(Math.random() * 10),
+      enforcement_count: Math.floor(Math.random() * 3),
+    })
+  }
+  
+  return result
+}
+
+export const enterprises10D = generateEnterprises10D()
+
+// ─────────────────────────────────────────────
+// 隐患记录数据（隐患维度使用）
+// ─────────────────────────────────────────────
+export type HazardStatus = 'pending' | 'rectifying' | 'rectified' | 'overdue'
+export type HazardRiskLevel = 'general' | 'serious' | 'major'
+
+export interface HazardRecord {
+  id: string
+  enterpriseName: string
+  industry: string
+  teamName: string
+  hazardDesc: string
+  riskLevel: HazardRiskLevel
+  recordTime: string       // 发现时间
+  rectifyDeadline: string // 整改期限
+  rectifyTime?: string    // 整改完成时间
+  status: HazardStatus
+  expertName?: string
+}
+
+export const hazardRecords: HazardRecord[] = [
+  // 已整改
+  { id: 'h001', enterpriseName: '杭州鑫盛化工有限公司', industry: '工业企业', teamName: '勾庄片场所组', hazardDesc: '甲类仓库防爆电气缺失', riskLevel: 'major', recordTime: '2026-03-01', rectifyDeadline: '2026-03-15', rectifyTime: '2026-03-12', status: 'rectified', expertName: '王建国' },
+  { id: 'h002', enterpriseName: '良渚物流仓储中心', industry: '仓储物流', teamName: '物流片场所组', hazardDesc: '消防通道堆放货物', riskLevel: 'general', recordTime: '2026-03-02', rectifyDeadline: '2026-03-10', rectifyTime: '2026-03-09', status: 'rectified', expertName: '李明' },
+  { id: 'h003', enterpriseName: '余杭小商品加工作坊', industry: '小微企业', teamName: '良渚片场所组', hazardDesc: '灭火器配置不足', riskLevel: 'serious', recordTime: '2026-03-03', rectifyDeadline: '2026-03-18', rectifyTime: '2026-03-16', status: 'rectified', expertName: '张伟' },
+  { id: 'h004', enterpriseName: '良渚商业街3号', industry: '沿街店铺', teamName: '良渚片场所组', hazardDesc: '电线私拉乱接', riskLevel: 'serious', recordTime: '2026-03-04', rectifyDeadline: '2026-03-20', rectifyTime: '2026-03-18', status: 'rectified' },
+  { id: 'h005', enterpriseName: '勾庄货运站', industry: '仓储物流', teamName: '物流片场所组', hazardDesc: '叉车作业人员无证上岗', riskLevel: 'serious', recordTime: '2026-03-05', rectifyDeadline: '2026-03-12', rectifyTime: '2026-03-11', status: 'rectified', expertName: '陈刚' },
+  { id: 'h006', enterpriseName: '杭州化工原料公司', industry: '危化使用', teamName: '勾庄片场所组', hazardDesc: '危险化学品储存不规范', riskLevel: 'major', recordTime: '2026-03-06', rectifyDeadline: '2026-03-20', rectifyTime: '2026-03-19', status: 'rectified', expertName: '王建国' },
+  { id: 'h007', enterpriseName: '良渚群租房A栋', industry: '出租房', teamName: '良渚片场所组', hazardDesc: '电动车违规充电', riskLevel: 'serious', recordTime: '2026-03-07', rectifyDeadline: '2026-03-14', rectifyTime: '2026-03-13', status: 'rectified' },
+  { id: 'h008', enterpriseName: '余杭宏达建材厂', industry: '工业企业', teamName: '勾庄片场所组', hazardDesc: '机械防护装置缺失', riskLevel: 'serious', recordTime: '2026-03-08', rectifyDeadline: '2026-03-22', rectifyTime: '2026-03-20', status: 'rectified', expertName: '李明' },
+  { id: 'h009', enterpriseName: '瓶窑快递分拣中心', industry: '仓储物流', teamName: '瓶窑片场所组', hazardDesc: '货物堆放超高', riskLevel: 'general', recordTime: '2026-03-09', rectifyDeadline: '2026-03-16', rectifyTime: '2026-03-15', status: 'rectified' },
+  { id: 'h010', enterpriseName: '勾庄市场摊位', industry: '沿街店铺', teamName: '勾庄片场所组', hazardDesc: '疏散通道堵塞', riskLevel: 'serious', recordTime: '2026-03-10', rectifyDeadline: '2026-03-17', rectifyTime: '2026-03-16', status: 'rectified' },
+  // 整改中
+  { id: 'h011', enterpriseName: '浙江华达机械制造厂', industry: '工业企业', teamName: '勾庄片场所组', hazardDesc: '铸造车间粉尘浓度超标', riskLevel: 'major', recordTime: '2026-03-12', rectifyDeadline: '2026-04-12', status: 'rectifying', expertName: '张伟' },
+  { id: 'h012', enterpriseName: '勾庄小微园区企业B', industry: '小微企业', teamName: '勾庄片场所组', hazardDesc: '安全标识缺失', riskLevel: 'general', recordTime: '2026-03-14', rectifyDeadline: '2026-04-01', status: 'rectifying' },
+  { id: 'h013', enterpriseName: '浙江新材料科技', industry: '危化使用', teamName: '勾庄片场所组', hazardDesc: '应急器材配备不足', riskLevel: 'serious', recordTime: '2026-03-15', rectifyDeadline: '2026-04-10', status: 'rectifying', expertName: '陈刚' },
+  { id: 'h014', enterpriseName: '良渚五金加工店', industry: '小微企业', teamName: '良渚片场所组', hazardDesc: '电气线路老化', riskLevel: 'serious', recordTime: '2026-03-16', rectifyDeadline: '2026-04-05', status: 'rectifying', expertName: '李明' },
+  { id: 'h015', enterpriseName: '瓶窑小旅馆', industry: '出租房', teamName: '瓶窑片场所组', hazardDesc: '消防器材过期', riskLevel: 'general', recordTime: '2026-03-17', rectifyDeadline: '2026-04-03', status: 'rectifying' },
+  { id: 'h016', enterpriseName: '勾庄公寓楼', industry: '出租房', teamName: '勾庄片场所组', hazardDesc: '安全出口锁闭', riskLevel: 'serious', recordTime: '2026-03-18', rectifyDeadline: '2026-04-08', status: 'rectifying', expertName: '王建国' },
+  // 待整改
+  { id: 'h017', enterpriseName: '余杭电镀厂', industry: '危化使用', teamName: '勾庄片场所组', hazardDesc: '电镀液储存不符合规范', riskLevel: 'major', recordTime: '2026-04-05', rectifyDeadline: '2026-04-20', status: 'pending', expertName: '张伟' },
+  { id: 'h018', enterpriseName: '良渚服装加工厂', industry: '小微企业', teamName: '良渚片场所组', hazardDesc: '员工未佩戴防护用品', riskLevel: 'general', recordTime: '2026-04-06', rectifyDeadline: '2026-04-18', status: 'pending' },
+  { id: 'h019', enterpriseName: '瓶窑临街商铺', industry: '沿街店铺', teamName: '瓶窑片场所组', hazardDesc: '货物占用消防通道', riskLevel: 'serious', recordTime: '2026-04-07', rectifyDeadline: '2026-04-15', status: 'pending' },
+  { id: 'h020', enterpriseName: '勾庄物流企业C', industry: '仓储物流', teamName: '物流片场所组', hazardDesc: '叉车日常维护记录缺失', riskLevel: 'general', recordTime: '2026-04-08', rectifyDeadline: '2026-04-22', status: 'pending' },
+  // 逾期未整改
+  { id: 'h021', enterpriseName: '余杭鑫达机械厂', industry: '工业企业', teamName: '勾庄片场所组', hazardDesc: '行车吊具未定期检测', riskLevel: 'major', recordTime: '2026-03-01', rectifyDeadline: '2026-03-15', status: 'overdue', expertName: '陈刚' },
+  { id: 'h022', enterpriseName: '良渚小餐馆', industry: '沿街店铺', teamName: '良渚片场所组', hazardDesc: '燃气报警器未安装', riskLevel: 'serious', recordTime: '2026-03-02', rectifyDeadline: '2026-03-10', status: 'overdue' },
+  { id: 'h023', enterpriseName: '瓶窑农民房', industry: '出租房', teamName: '瓶窑片场所组', hazardDesc: '私拉电线充电', riskLevel: 'serious', recordTime: '2026-03-03', rectifyDeadline: '2026-03-10', status: 'overdue' },
+  { id: 'h024', enterpriseName: '勾庄片小微企业D', industry: '小微企业', teamName: '勾庄片场所组', hazardDesc: '应急预案未更新', riskLevel: 'general', recordTime: '2026-03-05', rectifyDeadline: '2026-03-20', status: 'overdue', expertName: '李明' },
+  { id: 'h025', enterpriseName: '物流片仓储企业E', industry: '仓储物流', teamName: '物流片场所组', hazardDesc: '监控盲区未覆盖', riskLevel: 'serious', recordTime: '2026-03-06', rectifyDeadline: '2026-03-18', status: 'overdue', expertName: '王建国' },
 ]

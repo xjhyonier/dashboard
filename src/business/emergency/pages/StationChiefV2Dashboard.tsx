@@ -1,14 +1,24 @@
 import { useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../../../components/layout/PageHeader'
+import { EnterpriseStatePath } from '../../../components/shared/EnterpriseStatePath'
 import {
   workGroups,
   governmentMembers,
   expertsFull,
   industryHazardAnalysis,
-  specialInspectionData,
+  specialInspections,
+  enterprises,
+  filterEnterprisesByState,
+  getStateCounts,
+  hazardRecords,
   type ExpertFull,
   type IndustryHazardAnalysis,
-  type SpecialInspectionData,
+  type SpecialInspection,
+  type Enterprise,
+  type EnterpriseState,
+  type HazardRecord,
+  type HazardStatus,
 } from './mock/station-chief-v2'
 
 // ─────────────────────────────────────────────
@@ -45,10 +55,19 @@ const inputStyle: React.CSSProperties = {
 // ─────────────────────────────────────────────
 // 主组件
 // ─────────────────────────────────────────────
-type Dimension = 'duty' | 'industry' | 'special' | 'monitor'
+type Dimension = 'duty' | 'industry' | 'special' | 'monitor' | 'state' | 'hazard'
+const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'monitor', 'state', 'hazard']
 
 export function StationChiefV2Dashboard() {
-  const [dimension, setDimension] = useState<Dimension>('duty')
+  const [searchParams, setSearchParams] = useSearchParams()
+  
+  // 从 URL 读取 tab 参数，默认 'duty'
+  const urlDimension = searchParams.get('tab')
+  const dimension: Dimension = VALID_DIMENSIONS.includes(urlDimension as Dimension) ? urlDimension as Dimension : 'duty'
+
+  const handleDimensionChange = (key: Dimension) => {
+    setSearchParams({ tab: key })
+  }
 
   return (
     <div style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
@@ -60,11 +79,13 @@ export function StationChiefV2Dashboard() {
           { key: 'duty', label: '履职维度' },
           { key: 'industry', label: '行业维度' },
           { key: 'special', label: '专项维度' },
+          { key: 'state', label: '状态维度' },
           { key: 'monitor', label: '日常监控' },
+          { key: 'hazard', label: '隐患维度' },
         ].map(tab => (
           <button
             key={tab.key}
-            onClick={() => setDimension(tab.key as typeof dimension)}
+            onClick={() => handleDimensionChange(tab.key as Dimension)}
             style={{
               padding: '5px 14px',
               borderRadius: 4,
@@ -85,11 +106,17 @@ export function StationChiefV2Dashboard() {
       {dimension === 'duty' && <DutyDimension />}
       {dimension === 'industry' && <IndustryDimension />}
       {dimension === 'special' && <SpecialDimension />}
+      {dimension === 'state' && (
+        <div style={{ padding: '60px', textAlign: 'center', color: '#9CA3AF', fontSize: 13 }}>
+          状态维度 — 建设中
+        </div>
+      )}
       {dimension === 'monitor' && (
         <div style={{ padding: '60px', textAlign: 'center', color: '#9CA3AF', fontSize: 13 }}>
           日常监控维度 — 建设中
         </div>
       )}
+      {dimension === 'hazard' && <HazardDimension />}
     </div>
   )
 }
@@ -839,6 +866,216 @@ function DimensionTable({ title, data, keyword, onKeywordChange, keywordPlacehol
   )
 }
 
+// ─────────────────────────────────────────────
+// 隐患维度
+// ─────────────────────────────────────────────
+const STATUS_CONFIG: Record<HazardStatus, { label: string; color: string; bg: string; textColor: string }> = {
+  pending:    { label: '待整改',    color: '#6B7280', bg: '#F3F4F6', textColor: '#374151' },
+  rectifying: { label: '整改中',    color: '#D97706', bg: '#FEF3C7', textColor: '#92400E' },
+  rectified:  { label: '已整改',    color: '#059669', bg: '#D1FAE5', textColor: '#065F46' },
+  overdue:    { label: '逾期未整改', color: '#DC2626', bg: '#FEE2E2', textColor: '#991B1B' },
+}
+
+const RISK_CONFIG: Record<string, { label: string; color: string }> = {
+  general: { label: '一般隐患', color: '#059669' },
+  serious: { label: '较大隐患', color: '#D97706' },
+  major:   { label: '重大隐患', color: '#DC2626' },
+}
+
+function HazardDimension() {
+  const [statusFilter, setStatusFilter] = useState<HazardStatus | 'all'>('all')
+  const [industryFilter, setIndustryFilter] = useState<string>('all')
+  const [teamFilter, setTeamFilter] = useState<string>('all')
+  const [keyword, setKeyword] = useState('')
+
+  // 各状态统计
+  const statusCounts = useMemo(() => {
+    const counts: Record<HazardStatus, number> = { pending: 0, rectifying: 0, rectified: 0, overdue: 0 }
+    hazardRecords.forEach(r => counts[r.status]++)
+    return counts
+  }, [])
+
+  // 行业列表
+  const industries = useMemo(() => {
+    const set = new Set(hazardRecords.map(r => r.industry))
+    return ['all', ...Array.from(set)]
+  }, [])
+
+  // 工作组列表
+  const teams = useMemo(() => {
+    const set = new Set(hazardRecords.map(r => r.teamName))
+    return ['all', ...Array.from(set)]
+  }, [])
+
+  // 过滤后的隐患列表
+  const filtered = useMemo(() => {
+    return hazardRecords.filter(r => {
+      if (statusFilter !== 'all' && r.status !== statusFilter) return false
+      if (industryFilter !== 'all' && r.industry !== industryFilter) return false
+      if (teamFilter !== 'all' && r.teamName !== teamFilter) return false
+      if (keyword.trim()) {
+        const kw = keyword.trim().toLowerCase()
+        if (!r.enterpriseName.toLowerCase().includes(kw) &&
+            !r.hazardDesc.toLowerCase().includes(kw) &&
+            !(r.expertName?.toLowerCase().includes(kw))) return false
+      }
+      return true
+    })
+  }, [statusFilter, industryFilter, teamFilter, keyword])
+
+  const total = hazardRecords.length
+
+  return (
+    <div>
+      {/* 汇总 KPI */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20, padding: '16px', background: '#FAFAFA', border: '1px solid #E5E7EB', borderRadius: 4 }}>
+        {[
+          { label: '隐患总数', value: total, unit: '处', color: '#374151' },
+          { label: '待整改', value: statusCounts.pending, unit: '处', color: '#374151' },
+          { label: '整改中', value: statusCounts.rectifying, unit: '处', color: '#92400E' },
+          { label: '已整改', value: statusCounts.rectified, unit: '处', color: '#065F46' },
+          { label: '逾期未整改', value: statusCounts.overdue, unit: '处', color: '#991B1B' },
+        ].map(item => (
+          <div key={item.label} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{item.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 600, color: item.color }}>{item.value}</div>
+            <div style={{ fontSize: 11, color: '#9CA3AF' }}>{item.unit}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 筛选器 */}
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap' }}>
+        {/* 状态筛选 */}
+        <div>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>隐患状态</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {(['all', 'pending', 'rectifying', 'rectified', 'overdue'] as const).map(s => {
+              const cfg = s === 'all'
+                ? { label: '全部', color: '#4F46E5', bg: '#EEF2FF', textColor: '#3730A3' }
+                : STATUS_CONFIG[s]
+              const active = statusFilter === s
+              return (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  style={{
+                    padding: '3px 10px',
+                    borderRadius: 4,
+                    border: `1px solid ${active ? cfg.color : '#D1D5DB'}`,
+                    background: active ? cfg.bg : 'white',
+                    color: active ? cfg.textColor : '#6B7280',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: active ? 600 : 400,
+                  }}
+                >
+                  {cfg.label} {s !== 'all' ? `(${statusCounts[s]})` : ''}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* 行业筛选 */}
+        <div>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>所属行业</div>
+          <select
+            value={industryFilter}
+            onChange={e => setIndustryFilter(e.target.value)}
+            style={{ padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4, fontSize: 12, color: '#374151', outline: 'none' }}
+          >
+            {industries.map(ind => (
+              <option key={ind} value={ind}>{ind === 'all' ? '全部行业' : ind}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* 工作组筛选 */}
+        <div>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>负责工作组</div>
+          <select
+            value={teamFilter}
+            onChange={e => setTeamFilter(e.target.value)}
+            style={{ padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4, fontSize: 12, color: '#374151', outline: 'none' }}
+          >
+            {teams.map(t => (
+              <option key={t} value={t}>{t === 'all' ? '全部工作组' : t}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* 关键词搜索 */}
+        <div>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>关键词搜索</div>
+          <input
+            type="text"
+            placeholder="企业名称 / 隐患描述 / 专家"
+            value={keyword}
+            onChange={e => setKeyword(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+      </div>
+
+      {/* 隐患列表 */}
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>
+          隐患明细列表
+          <span style={{ fontWeight: 400, color: '#9CA3AF', fontSize: 12, marginLeft: 8 }}>
+            （{filtered.length} / {total} 条）
+          </span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 900 }}>
+            <thead>
+              <tr>
+                {['序号', '企业名称', '行业', '负责工作组', '隐患描述', '隐患等级', '记录时间', '整改期限', '整改完成时间', '当前状态', '跟进专家'].map(h => (
+                  <th key={h} style={thStyle}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={11} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>未找到匹配结果</td></tr>
+              ) : filtered.map((r, i) => {
+                const statusCfg = STATUS_CONFIG[r.status]
+                const riskCfg = RISK_CONFIG[r.riskLevel]
+                return (
+                  <tr key={r.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                    <td style={{ ...tdStyle, color: '#9CA3AF' }}>{i + 1}</td>
+                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 500, color: '#1F2937', minWidth: 160 }}>{r.enterpriseName}</td>
+                    <td style={tdStyle}>{r.industry}</td>
+                    <td style={tdStyle}>{r.teamName}</td>
+                    <td style={{ ...tdStyle, textAlign: 'left', color: '#374151', minWidth: 180 }}>{r.hazardDesc}</td>
+                    <td style={{ ...tdStyle, fontWeight: 600, color: riskCfg.color }}>{riskCfg.label}</td>
+                    <td style={tdStyle}>{r.recordTime}</td>
+                    <td style={{ ...tdStyle, color: r.status === 'overdue' ? '#DC2626' : '#374151' }}>{r.rectifyDeadline}</td>
+                    <td style={{ ...tdStyle, color: '#059669' }}>{r.rectifyTime || '—'}</td>
+                    <td style={{ ...tdStyle }}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: 3,
+                        background: statusCfg.bg,
+                        color: statusCfg.textColor,
+                        fontWeight: 600,
+                        fontSize: 11,
+                      }}>
+                        {statusCfg.label}
+                      </span>
+                    </td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>{r.expertName || '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
 function IndustryDimension() {
   const [keyword, setKeyword] = useState('')
 
@@ -857,8 +1094,6 @@ function IndustryDimension() {
 
   return (
     <div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 4 }}>（三）行业隐患分析</div>
-      <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 16 }}>分行业隐患结构分析，识别隐患高发行业与高频问题</div>
 
       {/* 汇总 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20, padding: '16px', background: '#FAFAFA', border: '1px solid #E5E7EB', borderRadius: 4 }}>
@@ -928,14 +1163,99 @@ function IndustryDimension() {
 
 function SpecialDimension() {
   const [keyword, setKeyword] = useState('')
+
+  const filtered = useMemo(() => {
+    if (!keyword.trim()) return specialInspections
+    const kw = keyword.trim().toLowerCase()
+    return specialInspections.filter(d => d.name.toLowerCase().includes(kw))
+  }, [keyword])
+
+  const total = {
+    totalCount: specialInspections.reduce((s, d) => s + d.totalCount, 0),
+    checkedCount: specialInspections.reduce((s, d) => s + d.checkedCount, 0),
+    hazardCount: specialInspections.reduce((s, d) => s + d.hazardCount, 0),
+    majorHazardCount: specialInspections.reduce((s, d) => s + d.majorHazardCount, 0),
+    rectifiedCount: specialInspections.reduce((s, d) => s + d.rectifiedCount, 0),
+    deadlineCount: specialInspections.reduce((s, d) => s + d.deadlineCount, 0),
+  }
+
   return (
-    <DimensionTable
-      title="专项检查履职情况统计"
-      data={specialInspectionData}
-      keyword={keyword}
-      onKeywordChange={setKeyword}
-      keywordPlaceholder="搜索专项名称"
-    />
+    <div>
+      {/* 汇总 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 20, padding: '16px', background: '#FAFAFA', border: '1px solid #E5E7EB', borderRadius: 4 }}>
+        {[
+          { label: '专项数', value: specialInspections.length, unit: '个' },
+          { label: '覆盖企业', value: total.totalCount, unit: '家' },
+          { label: '已检查', value: total.checkedCount, unit: '家' },
+          { label: '隐患总数', value: total.hazardCount, unit: '处' },
+          { label: '重大隐患', value: total.majorHazardCount, unit: '处' },
+          { label: '已整改', value: total.rectifiedCount, unit: '处' },
+        ].map(item => (
+          <div key={item.label} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{item.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 600, color: '#1F2937' }}>{item.value}</div>
+            <div style={{ fontSize: 11, color: '#9CA3AF' }}>{item.unit}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 表格 */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>专项检查进度统计表</div>
+          <input type="text" placeholder="搜索专项名称" value={keyword} onChange={e => setKeyword(e.target.value)} style={inputStyle} />
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <thead>
+            <tr>
+              {['#', '专项检查名称', '开始日期', '结束日期', '覆盖企业', '已检查', '覆盖率', '隐患数', '重大隐患', '已整改', '限期整改', '突出问题', '重点盯防'].map(h => (
+                <th key={h} style={thStyle}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr><td colSpan={13} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配结果</td></tr>
+            ) : filtered.map((d, i) => {
+              const coverageRate = d.totalCount > 0 ? Math.round((d.checkedCount / d.totalCount) * 100) : 0
+              return (
+                <tr key={d.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                  <td style={{ ...tdStyle, color: '#9CA3AF' }}>{i + 1}</td>
+                  <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 500, color: '#1F2937' }}>{d.name}</td>
+                  <td style={tdStyle}>{d.startDate}</td>
+                  <td style={tdStyle}>{d.endDate}</td>
+                  <td style={tdStyle}>{d.totalCount}</td>
+                  <td style={{ ...tdStyle, color: '#059669' }}>{d.checkedCount}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600, color: coverageRate >= 80 ? '#059669' : coverageRate >= 50 ? '#D97706' : '#DC2626' }}>{coverageRate}%</td>
+                  <td style={{ ...tdStyle, fontWeight: 600, color: d.hazardCount > 80 ? '#DC2626' : d.hazardCount > 50 ? '#D97706' : '#374151' }}>{d.hazardCount}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600, color: '#DC2626' }}>{d.majorHazardCount}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600, color: '#059669' }}>{d.rectifiedCount}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600, color: '#D97706' }}>{d.deadlineCount}</td>
+                  <td style={{ ...tdStyle, textAlign: 'left', color: '#64748b', fontSize: 11 }}>{d.topIssues.join('、')}</td>
+                  <td style={{ ...tdStyle, textAlign: 'left', color: '#64748b', fontSize: 11 }}>{d.focusGroups.join('、')}</td>
+                </tr>
+              )
+            })}
+            {filtered.length > 0 && filtered.length < specialInspections.length && (
+              <tr><td colSpan={13} style={{ ...tdStyle, textAlign: 'left', fontStyle: 'italic', color: '#9CA3AF' }}>已筛选 {filtered.length} / {specialInspections.length} 条</td></tr>
+            )}
+            {filtered.length === specialInspections.length && (
+              <tr style={{ background: '#F3F4F6', fontWeight: 600 }}>
+                <td colSpan={4} style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
+                <td style={{ ...tdStyle, color: '#374151' }}>{total.totalCount}</td>
+                <td style={{ ...tdStyle, color: '#059669' }}>{total.checkedCount}</td>
+                <td style={{ ...tdStyle, color: '#374151' }}>{Math.round((total.checkedCount / total.totalCount) * 100)}%</td>
+                <td style={{ ...tdStyle, color: '#374151' }}>{total.hazardCount}</td>
+                <td style={{ ...tdStyle, color: '#DC2626' }}>{total.majorHazardCount}</td>
+                <td style={{ ...tdStyle, color: '#059669' }}>{total.rectifiedCount}</td>
+                <td style={{ ...tdStyle, color: '#D97706' }}>{total.deadlineCount}</td>
+                <td colSpan={2}></td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
   )
 }
 
