@@ -406,7 +406,13 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                   </td>
                   <td style={{ ...tdStyle, fontWeight: 500 }}>{g.memberCount * 10}</td>
                   <td style={tdStyle}>{g.enterpriseCount}</td>
-                  <td style={tdStyle}>{g.hazardFound}</td>
+                  <td
+                    style={{ ...tdStyle, cursor: g.hazardFound > 0 ? 'pointer' : 'default', color: '#374151' }}
+                    onClick={() => g.hazardFound > 0 && onNavigateToHazard?.({ teamName: g.name })}
+                    title="点击查看该工作组隐患"
+                  >
+                    {g.hazardFound}
+                  </td>
                   <td
                     style={{ ...tdStyle, color: '#DC2626', cursor: g.hazardSerious > 0 ? 'pointer' : 'default' }}
                     onClick={() => g.hazardSerious > 0 && onNavigateToHazard?.({ teamName: g.name, riskLevel: 'major' })}
@@ -414,10 +420,28 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                   >
                     {g.hazardSerious}
                   </td>
-                  <td style={{ ...tdStyle, color: '#059669' }}>{g.hazardClosed}</td>
+                  <td
+                    style={{ ...tdStyle, color: '#059669', cursor: g.hazardClosed > 0 ? 'pointer' : 'default' }}
+                    onClick={() => g.hazardClosed > 0 && onNavigateToHazard?.({ teamName: g.name, status: 'rectified' })}
+                    title="点击查看该工作组已整改隐患"
+                  >
+                    {g.hazardClosed}
+                  </td>
                   <td style={tdStyle}>{g.hazardClosureRate}%</td>
-                  <td style={{ ...tdStyle, color: '#DC2626' }}>{g.overdueUnrectified}</td>
-                  <td style={{ ...tdStyle, color: '#D97706' }}>{g.inProgress}</td>
+                  <td
+                    style={{ ...tdStyle, color: '#DC2626', cursor: g.overdueUnrectified > 0 ? 'pointer' : 'default' }}
+                    onClick={() => g.overdueUnrectified > 0 && onNavigateToHazard?.({ teamName: g.name, status: 'overdue' })}
+                    title="点击查看该工作组逾期隐患"
+                  >
+                    {g.overdueUnrectified}
+                  </td>
+                  <td
+                    style={{ ...tdStyle, color: '#D97706', cursor: g.inProgress > 0 ? 'pointer' : 'default' }}
+                    onClick={() => g.inProgress > 0 && onNavigateToHazard?.({ teamName: g.name, status: 'rectifying' })}
+                    title="点击查看该工作组整改中隐患"
+                  >
+                    {g.inProgress}
+                  </td>
                   <td style={tdStyle}>
                     {major ? `${major.taskProgress}% | ${major.timeProgress}%` : '-'}
                   </td>
@@ -523,12 +547,42 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                   <td style={{ ...tdStyle, textAlign: 'left' }}>{teamNames}</td>
                   <td style={tdStyle}>{m.enterpriseCount}</td>
                   <td style={tdStyle}>{m.inspectionCount}</td>
-                  <td style={tdStyle}>{m.hazardFound}</td>
-                  <td style={{ ...tdStyle, color: '#DC2626' }}>{m.hazardSerious}</td>
-                  <td style={{ ...tdStyle, color: '#059669' }}>{m.hazardClosed}</td>
+                  <td
+                    style={{ ...tdStyle, cursor: m.hazardFound > 0 ? 'pointer' : 'default', color: '#374151' }}
+                    onClick={() => m.hazardFound > 0 && onNavigateToHazard?.({ expertName: m.memberName })}
+                    title="点击查看该人员相关隐患"
+                  >
+                    {m.hazardFound}
+                  </td>
+                  <td
+                    style={{ ...tdStyle, cursor: m.hazardSerious > 0 ? 'pointer' : 'default', color: '#DC2626' }}
+                    onClick={() => m.hazardSerious > 0 && onNavigateToHazard?.({ expertName: m.memberName, riskLevel: 'major' })}
+                    title="点击查看该人员重大隐患"
+                  >
+                    {m.hazardSerious}
+                  </td>
+                  <td
+                    style={{ ...tdStyle, cursor: m.hazardClosed > 0 ? 'pointer' : 'default', color: '#059669' }}
+                    onClick={() => m.hazardClosed > 0 && onNavigateToHazard?.({ expertName: m.memberName, status: 'rectified' })}
+                    title="点击查看该人员已整改隐患"
+                  >
+                    {m.hazardClosed}
+                  </td>
                   <td style={tdStyle}>{m.hazardClosureRate}%</td>
-                  <td style={{ ...tdStyle, color: '#D97706' }}>{m.inProgress}</td>
-                  <td style={{ ...tdStyle, color: '#DC2626' }}>{m.overdueUnrectified}</td>
+                  <td
+                    style={{ ...tdStyle, cursor: m.inProgress > 0 ? 'pointer' : 'default', color: '#D97706' }}
+                    onClick={() => m.inProgress > 0 && onNavigateToHazard?.({ expertName: m.memberName, status: 'rectifying' })}
+                    title="点击查看该人员整改中隐患"
+                  >
+                    {m.inProgress}
+                  </td>
+                  <td
+                    style={{ ...tdStyle, cursor: m.overdueUnrectified > 0 ? 'pointer' : 'default', color: '#DC2626' }}
+                    onClick={() => m.overdueUnrectified > 0 && onNavigateToHazard?.({ expertName: m.memberName, status: 'overdue' })}
+                    title="点击查看该人员逾期隐患"
+                  >
+                    {m.overdueUnrectified}
+                  </td>
                 </tr>
               )
             })}
