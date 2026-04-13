@@ -126,6 +126,24 @@ export const emergencyConfig: BusinessLine = {
       ]
     },
     {
+      id: 'station-chief-v2',
+      name: '站长(V2)',
+      title: '站长看板 V2（新维度）',
+      description: '基于通用维度模型构建的新版站长看板，与旧版对比参考',
+      goals: [
+        '从组织与人员维度审视辖区安全治理',
+        '通过风险、执行、成效多维度观察',
+        '提炼可复用的街镇安全看板模型'
+      ],
+      keyMetrics: [
+        '组织覆盖率',
+        '专家任务完成率',
+        '隐患闭环率',
+        '风险管控度',
+        '治理成效趋势'
+      ]
+    },
+    {
       id: 'expert-workbench',
       name: '专家工作台',
       title: '应急安全专家',

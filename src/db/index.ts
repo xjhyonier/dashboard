@@ -8,6 +8,7 @@ import {
   generateHazards,
   generateTasks,
   generateEnterpriseDimensions,
+  generateEnterpriseSevenDimensions,
   ENTERPRISE_DIMENSIONS,
 } from './data-generator'
 
@@ -27,31 +28,31 @@ interface Enterprise {
   info_collection?: boolean         // 信息采集
   data_authorized?: boolean         // 数据授权
   risk_point_identified?: boolean   // 风险点识别（是否）
-  
+
   // 安全制度建立 - 拆分为3个百分比维度
   safety_org_duty_rate?: number     // 机构职责完善度 %
   safety_system_rate?: number       // 安全制度完善度 %
   safety_invest_rate?: number       // 安全投入完善度 %
-  
+
   // 检查任务相关
   inspection_plan_type?: 'weekly' | 'monthly' | 'quarterly' | 'none'  // 检查计划类型：按周/按月/按季/否
   inspection_execution?: 'yes' | 'no' | 'forced'  // 检查执行：是/否/强制
-  
+
   third_party_sync?: 'yes' | 'no' | 'optional'    // 第三方同步：是/否/非强制
   patrol_used?: 'yes' | 'no' | 'optional'         // 安全巡查随手拍：是/否/非强制
-  
+
   // 教育培训 - 是否开展 + 是否有台账
   training_done?: boolean           // 是否开展
   training_has_record?: boolean    // 是否有台账
-  
+
   work_permit_count?: number        // 作业票报备数量（非强制，有数量即表示已报备）
-  
+
   // 隐患统计
   hazard_self_check?: number        // 自查自纠隐患数
   hazard_platform?: number          // 监管过程中发现的隐患
   hazard_major?: number             // 重大隐患总数
   hazard_rectify_status?: 'completed' | 'uncompleted' | 'partial' | 'overdue'  // 整改进展
-  
+
   // 新增：核心监管指标
   inspection_count?: number         // 当月检查次数
   hazard_rectified?: number         // 已整改隐患数
@@ -196,6 +197,7 @@ function seedData(): MemoryDB {
   // 生成10维度数据
   const rawDimensions = generateEnterpriseDimensions(enterpriseIds)
   const dimensions: EnterpriseDimension[] = rawDimensions.map((d, i) => ({ ...d, id: i + 1 }))
+
 
   // 生成工作日志
   const workTypes = ['risk_annotated', 'hazard_created', 'hazard_verified', 'onsite', 'video', 'consult', 'ledger', 'contact']

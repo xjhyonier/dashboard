@@ -355,6 +355,7 @@ export const dataGenerator = {
   generateEnterprises,
   generateHazards,
   generateTasks,
+  generateEnterpriseDimensions,
 }
 
 export default dataGenerator

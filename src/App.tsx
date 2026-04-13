@@ -6,6 +6,7 @@ import { ProductDashboard } from './business/quickbi/pages/ProductDashboard'
 import { SalesDashboard } from './business/quickbi/pages/SalesDashboard'
 import { GovernmentLeaderDashboard } from './business/emergency/pages/GovernmentLeaderDashboard'
 import { StationChiefDashboard } from './business/emergency/pages/StationChiefDashboard'
+import { StationChiefV2Dashboard } from './business/emergency/pages/StationChiefV2Dashboard'
 import { EnterpriseBossDashboard } from './business/emergency/pages/EnterpriseBossDashboard'
 import { ExpertApp } from './business/expert/ExpertApp'
 
@@ -24,6 +25,7 @@ const ROLE_PATHS: Record<string, Record<string, string>> = {
   emergency: {
     'government-leader': '/emergency/government-leader',
     'station-chief': '/emergency/station-chief',
+    'station-chief-v2': '/emergency/station-chief-v2',
     'expert-workbench': '/emergency/expert/queue',
     'enterprise-boss': '/emergency/enterprise-boss',
     'monthly-report': '/emergency/monthly-report',
@@ -123,6 +125,7 @@ function App() {
 
           <Route path="/emergency/government-leader" element={<GovernmentLeaderDashboard />} />
           <Route path="/emergency/station-chief" element={<StationChiefDashboard />} />
+          <Route path="/emergency/station-chief-v2" element={<StationChiefV2Dashboard />} />
           <Route path="/emergency/expert/*" element={<ExpertApp />} />
           <Route path="/emergency/enterprise-boss" element={<EnterpriseBossDashboard />} />
           <Route path="/emergency/monthly-report" element={<PlaceholderPage title="月度报告" />} />

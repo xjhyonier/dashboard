@@ -576,7 +576,7 @@ function CumulativeStats({
     }
   }, [ratio])
 
-  // 9个指标配置
+  // 7个指标配置
   const indicators = [
     { key: 'checkedEnterprises', label: '检查企业数', unit: '家' },
     { key: 'hazardsFound', label: '发现隐患数', unit: '处' },
@@ -585,8 +585,6 @@ function CumulativeStats({
     { key: 'deadlineRectified', label: '限期整改数', unit: '处' },
     { key: 'recheckRectified', label: '复查整改数', unit: '处' },
     { key: 'rectifyOrders', label: '整改指令书', unit: '份' },
-    { key: 'enforcements', label: '立案处罚数', unit: '家', highlight: true },
-    { key: 'penaltyAmount', label: '处罚金额', unit: '万元' },
   ]
 
   return (
@@ -613,7 +611,7 @@ function CumulativeStats({
     >
       {/* 表格形式：横向指标，纵向月度/年度 */}
       <div className="overflow-x-auto">
-        <table className="w-full text-xs" style={{ tableLayout: 'fixed', minWidth: '900px' }}>
+        <table className="w-full text-xs" style={{ tableLayout: 'fixed', minWidth: '700px' }}>
           <thead>
             <tr className="border-b border-zinc-200">
               <th className="text-left py-2 px-2 font-medium text-zinc-500" style={{ width: '60px' }}>周期</th>
@@ -1671,12 +1669,6 @@ function WorkGroupComparison({ enterprises }: { enterprises: Enterprise10D[] }) 
           </tbody>
         </table>
       </div>
-
-      {/* 底部统计 */}
-      <div className="flex items-center gap-4 pt-3 border-t border-zinc-200 text-xs text-zinc-500">
-        <span>总计 {workGroups.length} 个工作组</span>
-        <span>辖区企业 {enterprises.length} 家</span>
-      </div>
     </SectionBlock>
   )
 }
@@ -1785,7 +1777,6 @@ function SpecialInspectionTable() {
   return (
     <SectionBlock
       title="（五）专项检查进度"
-      description="当前进行中的专项检查任务完成情况"
       className="mt-6"
     >
       <div className="overflow-x-auto">
@@ -1890,14 +1881,7 @@ function SpecialInspectionTable() {
         </table>
       </div>
 
-      {/* 底部统计 */}
-      <div className="flex items-center gap-4 pt-3 border-t border-zinc-200 text-xs text-zinc-500">
-        <span>共 {specialInspections.length} 项专项检查</span>
-        <span>覆盖企业 {specialInspections.reduce((sum, i) => sum + i.totalCount, 0)} 家</span>
-        <span>已检查 {specialInspections.reduce((sum, i) => sum + i.checkedCount, 0)} 家</span>
-        <span>发现隐患 {specialInspections.reduce((sum, i) => sum + i.hazardCount, 0)} 处</span>
-        <span className="text-red-600">重大隐患 {specialInspections.reduce((sum, i) => sum + i.majorHazardCount, 0)} 处</span>
-      </div>
+
     </SectionBlock>
   )
 }
@@ -2067,14 +2051,150 @@ function IndustryHazardTable() {
         </table>
       </div>
 
-      {/* 底部统计 */}
-      <div className="flex items-center gap-4 pt-3 border-t border-zinc-200 text-xs text-zinc-500">
-        <span>共 {industryHazardAnalysis.length} 个行业分类</span>
-        <span>总隐患 {industryHazardAnalysis.reduce((sum, i) => sum + i.hazardCount, 0)} 处</span>
-        <span className="text-red-600">重大隐患 {industryHazardAnalysis.reduce((sum, i) => sum + i.majorHazardCount, 0)} 处</span>
-        <span className="text-emerald-600">已整改 {industryHazardAnalysis.reduce((sum, i) => sum + i.rectifiedCount, 0)} 处</span>
-        <span className="text-amber-600">限期整改 {industryHazardAnalysis.reduce((sum, i) => sum + i.deadlineCount, 0)} 处</span>
+
+    </SectionBlock>
+  )
+}
+
+// ─────────────────────────────────────────────
+// M1.7c 一般风险、低风险企业抽查情况表
+// ─────────────────────────────────────────────
+
+interface GeneralLowRiskInspection {
+  id: string
+  riskLevel: string              // 风险等级
+  totalEnterprises: number       // 总企业数
+  inspectedCount: number         // 抽查企业数
+  inspectionRate: number         // 抽查率
+  taskCompletionRate: number     // 任务完成率
+  hazardFound: number            // 隐患总数
+  majorHazard: number            // 重大隐患
+  rectified: number              // 已整改
+  rectificationRate: number      // 整改完成率
+  overdue: number                // 逾期未整改
+  inRectification: number        // 整改中
+}
+
+const generalLowRiskData: GeneralLowRiskInspection[] = [
+  {
+    id: '1',
+    riskLevel: '一般风险',
+    totalEnterprises: 142,
+    inspectedCount: 23,
+    inspectionRate: 16.2,
+    taskCompletionRate: 88,
+    hazardFound: 45,
+    majorHazard: 2,
+    rectified: 28,
+    rectificationRate: 62.2,
+    overdue: 8,
+    inRectification: 9,
+  },
+  {
+    id: '2',
+    riskLevel: '低风险',
+    totalEnterprises: 295,
+    inspectedCount: 38,
+    inspectionRate: 12.9,
+    taskCompletionRate: 94,
+    hazardFound: 32,
+    majorHazard: 0,
+    rectified: 28,
+    rectificationRate: 87.5,
+    overdue: 2,
+    inRectification: 2,
+  },
+]
+
+function GeneralLowRiskInspectionTable() {
+  return (
+    <SectionBlock
+      title="（四）一般风险、低风险企业抽查情况"
+
+      className="mt-6"
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="sticky top-0 bg-white z-10">
+            <tr className="border-b border-zinc-200">
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-8">#</th>
+              <th className="text-left py-2 px-2 font-medium text-zinc-500 w-24">风险等级</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">总企业数</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">抽查企业数</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">抽查率</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">任务完成率</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">隐患总数</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">重大隐患</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">已整改</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">整改完成率</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">逾期未整改</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">整改中</th>
+            </tr>
+          </thead>
+          <tbody>
+            {generalLowRiskData.map((item, index) => (
+              <tr key={item.id} className="border-b border-zinc-100 hover:bg-zinc-50/60 transition-colors">
+                <td className="text-center py-2.5 px-1 text-zinc-400">{index + 1}</td>
+                <td className="py-2.5 px-2">
+                  <div className="font-medium text-zinc-700">{item.riskLevel}</div>
+                </td>
+                <td className="text-center py-2.5 px-1">
+                  <span className="font-medium text-zinc-700">{item.totalEnterprises}</span>
+                  <span className="text-zinc-400 text-[10px]">家</span>
+                </td>
+                <td className="text-center py-2.5 px-1">
+                  <span className="font-medium text-zinc-700">{item.inspectedCount}</span>
+                  <span className="text-zinc-400 text-[10px]">家</span>
+                </td>
+                <td className="text-center py-2.5 px-1">
+                  <span className={`font-medium ${item.inspectionRate >= 10 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    {item.inspectionRate}
+                  </span>
+                  <span className="text-zinc-400 text-[10px]">%</span>
+                </td>
+                <td className="text-center py-2.5 px-1">
+                  <span className={`font-medium ${item.taskCompletionRate >= 85 ? 'text-emerald-600' : item.taskCompletionRate >= 70 ? 'text-amber-600' : 'text-red-600'}`}>
+                    {item.taskCompletionRate}
+                  </span>
+                  <span className="text-zinc-400 text-[10px]">%</span>
+                </td>
+                <td className="text-center py-2.5 px-1">
+                  <span className="font-medium text-zinc-700">{item.hazardFound}</span>
+                  <span className="text-zinc-400 text-[10px]">处</span>
+                </td>
+                <td className="text-center py-2.5 px-1">
+                  <span className={`font-medium ${item.majorHazard > 0 ? 'text-red-600' : 'text-zinc-400'}`}>
+                    {item.majorHazard}
+                  </span>
+                  <span className="text-zinc-400 text-[10px]">处</span>
+                </td>
+                <td className="text-center py-2.5 px-1">
+                  <span className="font-medium text-emerald-600">{item.rectified}</span>
+                  <span className="text-zinc-400 text-[10px]">处</span>
+                </td>
+                <td className="text-center py-2.5 px-1">
+                  <span className={`font-medium ${item.rectificationRate >= 85 ? 'text-emerald-600' : item.rectificationRate >= 70 ? 'text-amber-600' : 'text-red-600'}`}>
+                    {item.rectificationRate}
+                  </span>
+                  <span className="text-zinc-400 text-[10px]">%</span>
+                </td>
+                <td className="text-center py-2.5 px-1">
+                  <span className={`font-medium ${item.overdue > 0 ? 'text-red-600' : 'text-zinc-400'}`}>
+                    {item.overdue}
+                  </span>
+                  <span className="text-zinc-400 text-[10px]">处</span>
+                </td>
+                <td className="text-center py-2.5 px-1">
+                  <span className="font-medium text-amber-600">{item.inRectification}</span>
+                  <span className="text-zinc-400 text-[10px]">处</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
+
+
     </SectionBlock>
   )
 }
@@ -2085,69 +2205,50 @@ function IndustryHazardTable() {
 
 interface GroupPerformance {
   groupName: string
-  // 计划执行与检查实绩
-  inspectedEnterprises: number
-  majorHighRiskCoverage: number
-  monthlyInspectionRate: number
-  // 隐患排查与重大隐患管控
-  hazardCount: number
-  majorHazard: number
-  highHazard: number
-  normalHazard: number
-  rectifyRate: number
-  // 指导服务
-  safetyGuidance: number
-  onsiteHelp: number
-  diagnosis: number
-  riskIdentify: number
-  ledgerPlan: number
-  // 执法与三违查处
-  instructionBook: number
-  reviewCount: number
-  penaltyCount: number
-  threeViolations: number
+  // 重大/较大企业管理
+  majorHighRiskTotal: number        // 重大/较大企业总数
+  majorHighRiskInspected: number    // 重大/较大企业检查数
+  majorHighRiskCoverageRate: number // 年度企业覆盖率 (%)
+  // 一般/低风险企业管理
+  generalLowRiskTotal: number       // 一般/低风险企业总数
+  generalLowRiskSampled: number     // 一般/低风险企业抽查数
+  monthlyCompletionRate: number     // 月度抽查完成率 (%)
+  // 隐患排查与管控
+  hazardTotal: number               // 发现隐患数
+  majorHazard: number               // 重大隐患数
+  highHazard: number                // 较大隐患数
+  normalHazard: number              // 一般隐患数
+  closureRate: number               // 整改闭环率 (%)
 }
 
 const groupPerformanceData: GroupPerformance[] = [
   {
     groupName: '企业安全组',
-    inspectedEnterprises: 89,
-    majorHighRiskCoverage: 95.2,
-    monthlyInspectionRate: 82.5,
-    hazardCount: 186,
+    majorHighRiskTotal: 63,
+    majorHighRiskInspected: 60,
+    majorHighRiskCoverageRate: 95.2,
+    generalLowRiskTotal: 437,
+    generalLowRiskSampled: 89,
+    monthlyCompletionRate: 82.5,
+    hazardTotal: 186,
     majorHazard: 15,
     highHazard: 38,
     normalHazard: 133,
-    rectifyRate: 88.7,
-    safetyGuidance: 56,
-    onsiteHelp: 23,
-    diagnosis: 8,
-    riskIdentify: 42,
-    ledgerPlan: 35,
-    instructionBook: 15,
-    reviewCount: 28,
-    penaltyCount: 5,
-    threeViolations: 9,
+    closureRate: 88.7,
   },
   {
     groupName: '消防安全组',
-    inspectedEnterprises: 67,
-    majorHighRiskCoverage: 91.8,
-    monthlyInspectionRate: 76.3,
-    hazardCount: 142,
+    majorHighRiskTotal: 52,
+    majorHighRiskInspected: 48,
+    majorHighRiskCoverageRate: 91.8,
+    generalLowRiskTotal: 348,
+    generalLowRiskSampled: 67,
+    monthlyCompletionRate: 76.3,
+    hazardTotal: 142,
     majorHazard: 8,
     highHazard: 25,
     normalHazard: 109,
-    rectifyRate: 82.4,
-    safetyGuidance: 33,
-    onsiteHelp: 11,
-    diagnosis: 4,
-    riskIdentify: 25,
-    ledgerPlan: 10,
-    instructionBook: 8,
-    reviewCount: 17,
-    penaltyCount: 3,
-    threeViolations: 6,
+    closureRate: 82.4,
   },
 ]
 
@@ -2162,22 +2263,21 @@ function GroupPerformanceTable() {
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-white z-10">
             <tr className="border-b border-zinc-200">
-              <th className="text-left py-2 px-2 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 100 }}>组名</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>检查企业</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>覆盖率</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>抽查率</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>隐患数</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>重大</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>较大</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>一般</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>闭环率</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>指导</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>帮扶</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>会诊</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>指令书</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>复查</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>立案</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>三违</th>
+              <th className="text-left py-2 px-2 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 100 }}>组名称</th>
+              {/* 重大/较大企业 */}
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 80 }}>重大/较大<br/>企业总数</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 80 }}>重大/较大<br/>企业检查数</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 70 }}>年度企业<br/>覆盖率</th>
+              {/* 一般/低风险企业 */}
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 80 }}>一般/低风险<br/>企业总数</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 80 }}>一般/低风险<br/>企业抽查数</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 70 }}>月度抽查<br/>完成率</th>
+              {/* 隐患管控 */}
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 60 }}>发现<br/>隐患数</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 60 }}>重大<br/>隐患数</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 60 }}>较大<br/>隐患数</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 60 }}>一般<br/>隐患数</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 70 }}>整改<br/>闭环率</th>
             </tr>
           </thead>
           <tbody>
@@ -2186,24 +2286,37 @@ function GroupPerformanceTable() {
                 <td className="py-2.5 px-2">
                   <span className="font-medium text-zinc-800">{group.groupName}</span>
                 </td>
-                {/* 计划执行与检查实绩 */}
+                {/* 重大/较大企业 */}
                 <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{group.inspectedEnterprises}</span>
+                  <span className="font-medium text-zinc-700">{group.majorHighRiskTotal}</span>
                   <span className="text-zinc-400 text-[10px] ml-0.5">家</span>
                 </td>
                 <td className="py-2.5 px-2 text-center">
-                  <span className={`font-medium ${group.majorHighRiskCoverage >= 90 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                    {group.majorHighRiskCoverage}%
-                  </span>
+                  <span className="font-medium text-zinc-700">{group.majorHighRiskInspected}</span>
+                  <span className="text-zinc-400 text-[10px] ml-0.5">家</span>
                 </td>
                 <td className="py-2.5 px-2 text-center">
-                  <span className={`font-medium ${group.monthlyInspectionRate >= 80 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                    {group.monthlyInspectionRate}%
+                  <span className={`font-medium ${group.majorHighRiskCoverageRate >= 90 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    {group.majorHighRiskCoverageRate}%
                   </span>
                 </td>
-                {/* 隐患排查与重大隐患管控 */}
+                {/* 一般/低风险企业 */}
                 <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{group.hazardCount}</span>
+                  <span className="font-medium text-zinc-700">{group.generalLowRiskTotal}</span>
+                  <span className="text-zinc-400 text-[10px] ml-0.5">家</span>
+                </td>
+                <td className="py-2.5 px-2 text-center">
+                  <span className="font-medium text-zinc-700">{group.generalLowRiskSampled}</span>
+                  <span className="text-zinc-400 text-[10px] ml-0.5">家</span>
+                </td>
+                <td className="py-2.5 px-2 text-center">
+                  <span className={`font-medium ${group.monthlyCompletionRate >= 80 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    {group.monthlyCompletionRate}%
+                  </span>
+                </td>
+                {/* 隐患管控 */}
+                <td className="py-2.5 px-2 text-center">
+                  <span className="font-medium text-zinc-700">{group.hazardTotal}</span>
                   <span className="text-zinc-400 text-[10px] ml-0.5">处</span>
                 </td>
                 <td className="py-2.5 px-2 text-center">
@@ -2218,34 +2331,9 @@ function GroupPerformanceTable() {
                   <span className="font-medium text-zinc-700">{group.normalHazard}</span>
                 </td>
                 <td className="py-2.5 px-2 text-center">
-                  <span className={`font-medium ${group.rectifyRate >= 85 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                    {group.rectifyRate}%
+                  <span className={`font-medium ${group.closureRate >= 85 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    {group.closureRate}%
                   </span>
-                </td>
-                {/* 指导服务 */}
-                <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{group.safetyGuidance}</span>
-                </td>
-                <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{group.onsiteHelp}</span>
-                </td>
-                <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{group.diagnosis}</span>
-                </td>
-                {/* 执法与三违查处 */}
-                <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{group.instructionBook}</span>
-                </td>
-                <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{group.reviewCount}</span>
-                </td>
-                <td className="py-2.5 px-2 text-center">
-                  <span className={`font-medium ${group.penaltyCount > 0 ? 'text-red-600' : 'text-zinc-400'}`}>
-                    {group.penaltyCount}
-                  </span>
-                </td>
-                <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{group.threeViolations}</span>
                 </td>
               </tr>
             ))}
@@ -2253,39 +2341,6 @@ function GroupPerformanceTable() {
         </table>
       </div>
 
-      {/* 分组说明 */}
-      <div className="mt-3 pt-3 border-t border-zinc-200">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
-          <div className="flex items-start gap-2">
-            <span className="inline-block w-2 h-2 mt-1 rounded-full bg-blue-500"></span>
-            <div>
-              <div className="font-medium text-zinc-700">计划执行与检查实绩</div>
-              <div className="text-zinc-500 mt-0.5">检查企业数、覆盖率、抽查率</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="inline-block w-2 h-2 mt-1 rounded-full bg-red-500"></span>
-            <div>
-              <div className="font-medium text-zinc-700">隐患排查与管控</div>
-              <div className="text-zinc-500 mt-0.5">隐患数、分级统计、闭环率</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="inline-block w-2 h-2 mt-1 rounded-full bg-emerald-500"></span>
-            <div>
-              <div className="font-medium text-zinc-700">指导服务</div>
-              <div className="text-zinc-500 mt-0.5">安全指导、帮扶、会诊服务</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="inline-block w-2 h-2 mt-1 rounded-full bg-amber-500"></span>
-            <div>
-              <div className="font-medium text-zinc-700">执法与三违查处</div>
-              <div className="text-zinc-500 mt-0.5">指令书、复查、立案、三违</div>
-            </div>
-          </div>
-        </div>
-      </div>
     </SectionBlock>
   )
 }
@@ -2297,137 +2352,64 @@ function GroupPerformanceTable() {
 interface ExpertPerformance {
   expertId: string
   expertName: string
-  workGroup: string
-  // 深度检查
-  deepInspectionCount: number
-  majorHazardFound: number
-  keyIssueFound: number
-  hazardDiscoveryRate: number
-  // 专家服务
-  diagnosis: number
-  techGuidance: number
-  safetyDiagnosis: number
-  professionalOpinions: number
-  // 隐患复核
-  hazardReview: number
-  hazardAcceptance: number
-  hazardClose: number
-  // 履职评定
-  monthlyTarget: number  // 月度目标（重大隐患+重点问题）
-  performance: 'excellent' | 'qualified' | 'unqualified'
+  // 7维度总分
+  totalScore: number
+  // 关键指标
+  enterpriseCount: number      // 负责多少家
+  inspectedCount: number       // 检查多少家
+  hazardFound: number         // 发现隐患
+  majorHazardFound: number    // 重大隐患
+  rectified: number           // 已整改
+  rectificationRate: number   // 整改率
+  inRectification: number     // 整改中
+  overdue: number             // 逾期未整改
+  // 平台行为
+  riskAnnotated: number       // 风险标注
+  videoTodo: number           // 视频待办
+  hazardTodo: number          // 隐患待办
+  infoTodo: number            // 信息完善待办
+  imConsultation: number      // IM咨询
+  serviceLogs: number         // 服务日志
+  // 现场看/非现场看
+  onsiteInspection: number    // 现场看
+  videoWatch: number          // 视频看
+  aiWatch: number             // AI看
+  enterpriseProfile: number   // 一企一档
 }
 
-const expertPerformanceData: ExpertPerformance[] = [
-  {
-    expertId: 'ep-001',
-    expertName: '今卓',
-    workGroup: '物流片安全组',
-    deepInspectionCount: 23,
-    majorHazardFound: 8,
-    keyIssueFound: 15,
-    hazardDiscoveryRate: 92.5,
-    diagnosis: 12,
-    techGuidance: 18,
-    safetyDiagnosis: 6,
-    professionalOpinions: 8,
-    hazardReview: 15,
-    hazardAcceptance: 12,
-    hazardClose: 10,
-    monthlyTarget: 23,
-    performance: 'excellent',
-  },
-  {
-    expertId: 'ep-002',
-    expertName: '李雷',
-    workGroup: '良渚片重大',
-    deepInspectionCount: 18,
-    majorHazardFound: 5,
-    keyIssueFound: 8,
-    hazardDiscoveryRate: 85.3,
-    diagnosis: 8,
-    techGuidance: 12,
-    safetyDiagnosis: 4,
-    professionalOpinions: 5,
-    hazardReview: 10,
-    hazardAcceptance: 8,
-    hazardClose: 7,
-    monthlyTarget: 13,
-    performance: 'qualified',
-  },
-  {
-    expertId: 'ep-003',
-    expertName: '韩梅梅',
-    workGroup: '良渚片较大',
-    deepInspectionCount: 25,
-    majorHazardFound: 6,
-    keyIssueFound: 12,
-    hazardDiscoveryRate: 88.7,
-    diagnosis: 10,
-    techGuidance: 15,
-    safetyDiagnosis: 5,
-    professionalOpinions: 7,
-    hazardReview: 12,
-    hazardAcceptance: 10,
-    hazardClose: 9,
-    monthlyTarget: 18,
-    performance: 'excellent',
-  },
-  {
-    expertId: 'ep-004',
-    expertName: '张峰',
-    workGroup: '勾庄片重大',
-    deepInspectionCount: 15,
-    majorHazardFound: 3,
-    keyIssueFound: 5,
-    hazardDiscoveryRate: 78.2,
-    diagnosis: 5,
-    techGuidance: 8,
-    safetyDiagnosis: 3,
-    professionalOpinions: 4,
-    hazardReview: 8,
-    hazardAcceptance: 6,
-    hazardClose: 5,
-    monthlyTarget: 8,
-    performance: 'qualified',
-  },
-  {
-    expertId: 'ep-005',
-    expertName: '陈晨',
-    workGroup: '勾庄片较大',
-    deepInspectionCount: 20,
-    majorHazardFound: 4,
-    keyIssueFound: 9,
-    hazardDiscoveryRate: 82.5,
-    diagnosis: 7,
-    techGuidance: 11,
-    safetyDiagnosis: 4,
-    professionalOpinions: 6,
-    hazardReview: 9,
-    hazardAcceptance: 7,
-    hazardClose: 6,
-    monthlyTarget: 13,
-    performance: 'qualified',
-  },
-]
+// 基于expertTeam数据生成履职情况数据
+const expertPerformanceData: ExpertPerformance[] = stationChiefMock.expertTeam.map(expert => ({
+  expertId: expert.id,
+  expertName: expert.name,
+  totalScore: expert.performanceScore,
+  // 关键指标 - 基于enterpriseCount和totalTasks推算
+  enterpriseCount: expert.enterpriseCount,
+  inspectedCount: Math.round(expert.enterpriseCount * 0.65), // 假设检查了65%的企业
+  hazardFound: Math.round(expert.totalTasks * 0.35), // 假设35%的任务发现隐患
+  majorHazardFound: Math.round(Math.random() * 8) + 1, // 1-8个重大隐患
+  rectified: Math.round(expert.totalTasks * 0.28), // 28%已整改
+  rectificationRate: Math.round((Math.random() * 15) + 80), // 80-95%整改率
+  inRectification: Math.round(expert.totalTasks * 0.05), // 5%整改中
+  overdue: Math.round(expert.totalTasks * 0.02), // 2%逾期
+  // 平台行为 - 从expertWorkBehavior按比例分配
+  riskAnnotated: Math.round(42 * (expert.totalTasks / 500)), // 风险标注
+  videoTodo: Math.round((Math.random() * 8) + 3), // 视频待办
+  hazardTodo: Math.round((Math.random() * 12) + 5), // 隐患待办
+  infoTodo: Math.round((Math.random() * 6) + 2), // 信息完善待办
+  imConsultation: Math.round((Math.random() * 20) + 10), // IM咨询
+  serviceLogs: Math.round((Math.random() * 15) + 5), // 服务日志
+  // 现场看/非现场看
+  onsiteInspection: Math.round(expert.totalTasks * 0.25), // 25%现场看
+  videoWatch: Math.round(expert.totalTasks * 0.35), // 35%视频看
+  aiWatch: Math.round(expert.totalTasks * 0.20), // 20% AI看
+  enterpriseProfile: Math.round(expert.totalTasks * 0.15), // 15%一企一档
+})).sort((a, b) => b.totalScore - a.totalScore) // 按总分降序排列
 
 function ExpertPerformanceTable() {
-  const getPerformanceBadge = (performance: string) => {
-    switch (performance) {
-      case 'excellent':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-medium border border-emerald-100">优秀</span>
-      case 'qualified':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-medium border border-blue-100">合格</span>
-      case 'unqualified':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-medium border border-red-100">不合格</span>
-      default:
-        return null
-    }
-  }
-
   return (
     <SectionBlock
       title="（四）安全专家履职情况表"
-      description="专家履职情况统计，按每月重大隐患+重点问题不少于4条标准评定"
+      description="专家7维度综合评分、关键指标、平台行为及现场监管数据统计"
       className="mt-6"
     >
       <div className="overflow-x-auto">
@@ -2435,21 +2417,40 @@ function ExpertPerformanceTable() {
           <thead className="sticky top-0 bg-white z-10">
             <tr className="border-b border-zinc-200">
               <th className="text-left py-2 px-2 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 32 }}>#</th>
-              <th className="text-left py-2 px-2 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 80 }}>专家</th>
-              <th className="text-left py-2 px-2 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 100 }}>工作组</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>深度检查</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>重大隐患</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>重点问题</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>发现率</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>会诊</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>指导</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>诊断</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>专业意见</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>复核</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>验收</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>销号</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 64 }}>月度目标</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 56 }}>履职评定</th>
+              <th className="text-left py-2 px-2 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 70 }}>专家</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap" style={{ width: 60 }}>7维度总分</th>
+              {/* 关键指标 */}
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap bg-blue-50" colSpan={8}>关键指标</th>
+              {/* 平台行为 */}
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap bg-violet-50" colSpan={6}>平台行为</th>
+              {/* 现场看/非现场看 */}
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 whitespace-nowrap bg-amber-50" colSpan={4}>现场/非现场看</th>
+            </tr>
+            <tr className="border-b border-zinc-200 bg-zinc-50/50">
+              <th className="py-1"></th>
+              <th className="py-1"></th>
+              <th className="py-1"></th>
+              {/* 关键指标子列 */}
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>负责</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>检查</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>发现隐患</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>重大隐患</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>已整改</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>整改率</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>整改中</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>逾期</th>
+              {/* 平台行为子列 */}
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>风险标注</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>视频待办</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>隐患待办</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>信息完善</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>IM咨询</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>服务日志</th>
+              {/* 现场看/非现场看子列 */}
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>现场看</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>视频看</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>AI看</th>
+              <th className="text-center py-1.5 px-1 font-medium text-zinc-600 whitespace-nowrap" style={{ width: 56 }}>一企一档</th>
             </tr>
           </thead>
           <tbody>
@@ -2459,76 +2460,99 @@ function ExpertPerformanceTable() {
                 <td className="py-2.5 px-2">
                   <span className="font-medium text-zinc-800">{expert.expertName}</span>
                 </td>
-                <td className="py-2.5 px-2">
-                  <span className="text-zinc-600">{expert.workGroup}</span>
-                </td>
-                {/* 深度检查 */}
                 <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{expert.deepInspectionCount}</span>
-                  <span className="text-zinc-400 text-[10px] ml-0.5">家</span>
+                  <span className={`font-bold text-sm ${
+                    expert.totalScore >= 90 ? 'text-emerald-600' :
+                    expert.totalScore >= 80 ? 'text-blue-600' :
+                    expert.totalScore >= 70 ? 'text-amber-600' : 'text-red-600'
+                  }`}>{expert.totalScore}</span>
+                  <span className="text-zinc-400 text-[10px]">分</span>
+                </td>
+                {/* 关键指标 */}
+                <td className="py-2.5 px-2 text-center">
+                  <span className="font-medium text-zinc-700">{expert.enterpriseCount}</span>
+                  <span className="text-zinc-400 text-[10px]">家</span>
+                </td>
+                <td className="py-2.5 px-2 text-center">
+                  <span className="font-medium text-zinc-700">{expert.inspectedCount}</span>
+                  <span className="text-zinc-400 text-[10px]">家</span>
+                </td>
+                <td className="py-2.5 px-2 text-center">
+                  <span className="font-medium text-amber-600">{expert.hazardFound}</span>
+                  <span className="text-zinc-400 text-[10px]">处</span>
                 </td>
                 <td className="py-2.5 px-2 text-center">
                   <span className={`font-medium ${expert.majorHazardFound > 5 ? 'text-red-600' : 'text-zinc-700'}`}>
                     {expert.majorHazardFound}
                   </span>
-                  <span className="text-zinc-400 text-[10px] ml-0.5">处</span>
+                  <span className="text-zinc-400 text-[10px]">处</span>
                 </td>
                 <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-amber-600">{expert.keyIssueFound}</span>
-                  <span className="text-zinc-400 text-[10px] ml-0.5">处</span>
+                  <span className="font-medium text-emerald-600">{expert.rectified}</span>
+                  <span className="text-zinc-400 text-[10px]">处</span>
                 </td>
                 <td className="py-2.5 px-2 text-center">
-                  <span className={`font-medium ${expert.hazardDiscoveryRate >= 90 ? 'text-emerald-600' : expert.hazardDiscoveryRate >= 80 ? 'text-amber-600' : 'text-red-600'}`}>
-                    {expert.hazardDiscoveryRate}%
+                  <span className={`font-medium text-xs ${
+                    expert.rectificationRate >= 90 ? 'text-emerald-600' :
+                    expert.rectificationRate >= 80 ? 'text-blue-600' : 'text-amber-600'
+                  }`}>{expert.rectificationRate}%</span>
+                </td>
+                <td className="py-2.5 px-2 text-center">
+                  <span className="font-medium text-amber-600">{expert.inRectification}</span>
+                  <span className="text-zinc-400 text-[10px]">处</span>
+                </td>
+                <td className="py-2.5 px-2 text-center">
+                  <span className={`font-medium ${expert.overdue > 0 ? 'text-red-600' : 'text-zinc-400'}`}>
+                    {expert.overdue}
                   </span>
+                  <span className="text-zinc-400 text-[10px]">处</span>
                 </td>
-                {/* 专家服务 */}
+                {/* 平台行为 */}
                 <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{expert.diagnosis}</span>
-                </td>
-                <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{expert.techGuidance}</span>
-                </td>
-                <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{expert.safetyDiagnosis}</span>
+                  <span className="font-medium text-blue-600">{expert.riskAnnotated}</span>
+                  <span className="text-zinc-400 text-[10px]">次</span>
                 </td>
                 <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{expert.professionalOpinions}</span>
-                  <span className="text-zinc-400 text-[10px] ml-0.5">份</span>
-                </td>
-                {/* 隐患复核 */}
-                <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{expert.hazardReview}</span>
+                  <span className="font-medium text-violet-600">{expert.videoTodo}</span>
+                  <span className="text-zinc-400 text-[10px]">个</span>
                 </td>
                 <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-zinc-700">{expert.hazardAcceptance}</span>
+                  <span className="font-medium text-red-600">{expert.hazardTodo}</span>
+                  <span className="text-zinc-400 text-[10px]">个</span>
                 </td>
                 <td className="py-2.5 px-2 text-center">
-                  <span className="font-medium text-emerald-600">{expert.hazardClose}</span>
-                </td>
-                {/* 履职评定 */}
-                <td className="py-2.5 px-2 text-center">
-                  <span className={`font-medium ${expert.monthlyTarget >= 20 ? 'text-emerald-600' : expert.monthlyTarget >= 4 ? 'text-blue-600' : 'text-red-600'}`}>
-                    {expert.monthlyTarget}
-                  </span>
-                  <span className="text-zinc-400 text-[10px] ml-0.5">条</span>
+                  <span className="font-medium text-zinc-600">{expert.infoTodo}</span>
+                  <span className="text-zinc-400 text-[10px]">个</span>
                 </td>
                 <td className="py-2.5 px-2 text-center">
-                  {getPerformanceBadge(expert.performance)}
+                  <span className="font-medium text-cyan-600">{expert.imConsultation}</span>
+                  <span className="text-zinc-400 text-[10px]">次</span>
+                </td>
+                <td className="py-2.5 px-2 text-center">
+                  <span className="font-medium text-zinc-700">{expert.serviceLogs}</span>
+                  <span className="text-zinc-400 text-[10px]">条</span>
+                </td>
+                {/* 现场看/非现场看 */}
+                <td className="py-2.5 px-2 text-center">
+                  <span className="font-medium text-emerald-600">{expert.onsiteInspection}</span>
+                  <span className="text-zinc-400 text-[10px]">次</span>
+                </td>
+                <td className="py-2.5 px-2 text-center">
+                  <span className="font-medium text-blue-600">{expert.videoWatch}</span>
+                  <span className="text-zinc-400 text-[10px]">次</span>
+                </td>
+                <td className="py-2.5 px-2 text-center">
+                  <span className="font-medium text-violet-600">{expert.aiWatch}</span>
+                  <span className="text-zinc-400 text-[10px]">次</span>
+                </td>
+                <td className="py-2.5 px-2 text-center">
+                  <span className="font-medium text-zinc-600">{expert.enterpriseProfile}</span>
+                  <span className="text-zinc-400 text-[10px]">次</span>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
-
-      {/* 底部统计 */}
-      <div className="flex items-center gap-4 pt-3 border-t border-zinc-200 text-xs text-zinc-500">
-        <span>共 {expertPerformanceData.length} 名专家</span>
-        <span>深度检查 {expertPerformanceData.reduce((sum, e) => sum + e.deepInspectionCount, 0)} 家</span>
-        <span className="text-red-600">重大隐患 {expertPerformanceData.reduce((sum, e) => sum + e.majorHazardFound, 0)} 处</span>
-        <span className="text-amber-600">重点问题 {expertPerformanceData.reduce((sum, e) => sum + e.keyIssueFound, 0)} 处</span>
-        <span className="text-emerald-600">优秀 {expertPerformanceData.filter(e => e.performance === 'excellent').length} 人</span>
       </div>
     </SectionBlock>
   )
@@ -2712,18 +2736,7 @@ function AccidentReviewTable() {
         </table>
       </div>
 
-      {/* 底部统计 */}
-      <div className="flex items-center gap-4 pt-3 border-t border-zinc-200 text-xs text-zinc-500">
-        <span>共 {accidentReviewData.length} 起事故</span>
-        <span className="text-emerald-600">复盘完成 {accidentReviewData.filter(a => a.reviewStatus === 'completed').length} 起</span>
-        <span className="text-blue-600">同类排查完成 {accidentReviewData.filter(a => a.similarCheckStatus === 'completed').length} 起</span>
-        <span className="text-red-600">未覆盖点位 {accidentReviewData.reduce((sum, a) => sum + a.hazardPointsMissed, 0)} 处</span>
-      </div>
 
-      {/* 说明 */}
-      <div className="mt-3 p-3 bg-amber-50/50 border border-amber-100 rounded text-xs text-amber-700">
-        <strong>说明：</strong>事故倒查追溯对发生事故企业，追溯近一年检查情况、隐患点位覆盖情况，开展复盘并组织同类企业专项排查。未覆盖隐患点位数较高的事故企业需重点关注检查质量。
-      </div>
     </SectionBlock>
   )
 }
@@ -2741,9 +2754,8 @@ interface DistrictSupervision {
   hazardsFound: number
   majorHazards: number
   rectified: number
-  enforcements: number
-  coverage: number
-  trend: 'up' | 'down' | 'stable'
+  overdueUnrectified: number
+  inProgress: number
 }
 
 const districtSupervisionData: DistrictSupervision[] = [
@@ -2755,9 +2767,8 @@ const districtSupervisionData: DistrictSupervision[] = [
     hazardsFound: 612,
     majorHazards: 7,
     rectified: 589,
-    enforcements: 3,
-    coverage: 92,
-    trend: 'up',
+    overdueUnrectified: 12,
+    inProgress: 11,
   },
   {
     id: '2',
@@ -2767,9 +2778,8 @@ const districtSupervisionData: DistrictSupervision[] = [
     hazardsFound: 548,
     majorHazards: 6,
     rectified: 521,
-    enforcements: 2,
-    coverage: 88,
-    trend: 'stable',
+    overdueUnrectified: 8,
+    inProgress: 19,
   },
   {
     id: '3',
@@ -2779,37 +2789,18 @@ const districtSupervisionData: DistrictSupervision[] = [
     hazardsFound: 504,
     majorHazards: 5,
     rectified: 478,
-    enforcements: 4,
-    coverage: 85,
-    trend: 'down',
+    overdueUnrectified: 15,
+    inProgress: 11,
   },
 ]
 
 function DistrictSupervisionTable() {
-  const getTrendIcon = (trend: string) => {
-    switch (trend) {
-      case 'up':
-        return <span className="text-emerald-600 text-xs">↗ 上升</span>
-      case 'down':
-        return <span className="text-red-600 text-xs">↘ 下降</span>
-      default:
-        return <span className="text-zinc-400 text-xs">→ 持平</span>
-    }
-  }
-
   return (
     <SectionBlock
       title="（二）分片区监管情况表"
-      description="基于工作组数据映射的片区监管情况（演示版）- 良渚/勾庄/物流三片区对比"
+      description="良渚/勾庄/物流三片区对比"
       className="mt-6"
     >
-      {/* 说明提示 */}
-      <div className="mb-4 p-3 bg-blue-50/50 border border-blue-100 rounded text-xs text-blue-700">
-        <strong>💡 业务说明：</strong>当前系统只有"工作组"概念，没有"片区"概念。此表基于工作组数据映射演示片区监管情况。
-        <br />
-        <strong>🤔 待讨论问题：</strong>是否需要为不同街道/街镇定制片区逻辑？各街道的片区划分可能不同（如有的按地理片区，有的按行业片区）。
-      </div>
-
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-white z-10">
@@ -2818,93 +2809,74 @@ function DistrictSupervisionTable() {
               <th className="text-left py-2 px-2 font-medium text-zinc-500 w-24">片区名称</th>
               <th className="text-left py-2 px-2 font-medium text-zinc-500 min-w-[160px]">映射工作组</th>
               <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">检查企业</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">隐患数</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">隐患总数</th>
               <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">重大隐患</th>
               <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">已整改</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-16">执法数</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">覆盖率</th>
-              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">环比趋势</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">整改完成率</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">逾期未整改</th>
+              <th className="text-center py-2 px-1 font-medium text-zinc-500 w-20">整改中</th>
             </tr>
           </thead>
           <tbody>
-            {districtSupervisionData.map((item, index) => (
-              <tr key={item.id} className="border-b border-zinc-100 hover:bg-zinc-50/60 transition-colors">
-                <td className="text-center py-2.5 px-1 text-zinc-400">{index + 1}</td>
-                <td className="py-2.5 px-2">
-                  <div className="font-medium text-zinc-700">{item.districtName}</div>
-                </td>
-                <td className="py-2.5 px-2">
-                  <div className="flex flex-wrap gap-1">
-                    {item.mappedWorkGroups.map((wg, i) => (
-                      <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 text-[10px]">
-                        {wg}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-                <td className="text-center py-2.5 px-1">
-                  <span className="font-medium text-zinc-700">{item.checkedEnterprises}</span>
-                  <span className="text-zinc-400 text-[10px]">家</span>
-                </td>
-                <td className="text-center py-2.5 px-1">
-                  <span className="font-medium text-zinc-700">{item.hazardsFound}</span>
-                  <span className="text-zinc-400 text-[10px]">处</span>
-                </td>
-                <td className="text-center py-2.5 px-1">
-                  <span className={`font-medium ${item.majorHazards > 5 ? 'text-red-600' : 'text-zinc-700'}`}>
-                    {item.majorHazards}
-                  </span>
-                  <span className="text-zinc-400 text-[10px]">处</span>
-                </td>
-                <td className="text-center py-2.5 px-1">
-                  <span className="font-medium text-emerald-600">{item.rectified}</span>
-                  <span className="text-zinc-400 text-[10px]">处</span>
-                </td>
-                <td className="text-center py-2.5 px-1">
-                  <span className={`font-medium ${item.enforcements > 0 ? 'text-red-600' : 'text-zinc-700'}`}>
-                    {item.enforcements}
-                  </span>
-                  <span className="text-zinc-400 text-[10px]">起</span>
-                </td>
-                <td className="text-center py-2.5 px-1">
-                  <div className="flex items-center justify-center gap-1">
-                    <div className="w-16 bg-zinc-100 rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${item.coverage >= 90 ? 'bg-emerald-500' : item.coverage >= 80 ? 'bg-amber-500' : 'bg-red-500'}`}
-                        style={{ width: `${item.coverage}%` }}
-                      />
+            {districtSupervisionData.map((item, index) => {
+              const completionRate = Math.round((item.rectified / item.hazardsFound) * 100)
+              return (
+                <tr key={item.id} className="border-b border-zinc-100 hover:bg-zinc-50/60 transition-colors">
+                  <td className="text-center py-2.5 px-1 text-zinc-400">{index + 1}</td>
+                  <td className="py-2.5 px-2">
+                    <div className="font-medium text-zinc-700">{item.districtName}</div>
+                  </td>
+                  <td className="py-2.5 px-2">
+                    <div className="flex flex-wrap gap-1">
+                      {item.mappedWorkGroups.map((wg, i) => (
+                        <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 text-[10px]">
+                          {wg}
+                        </span>
+                      ))}
                     </div>
-                    <span className={`text-[10px] ${item.coverage >= 90 ? 'text-emerald-600' : item.coverage >= 80 ? 'text-amber-600' : 'text-red-600'}`}>
-                      {item.coverage}%
+                  </td>
+                  <td className="text-center py-2.5 px-1">
+                    <span className="font-medium text-zinc-700">{item.checkedEnterprises}</span>
+                    <span className="text-zinc-400 text-[10px]">家</span>
+                  </td>
+                  <td className="text-center py-2.5 px-1">
+                    <span className="font-medium text-zinc-700">{item.hazardsFound}</span>
+                    <span className="text-zinc-400 text-[10px]">处</span>
+                  </td>
+                  <td className="text-center py-2.5 px-1">
+                    <span className={`font-medium ${item.majorHazards > 5 ? 'text-red-600' : 'text-zinc-700'}`}>
+                      {item.majorHazards}
                     </span>
-                  </div>
-                </td>
-                <td className="text-center py-2.5 px-1">{getTrendIcon(item.trend)}</td>
-              </tr>
-            ))}
+                    <span className="text-zinc-400 text-[10px]">处</span>
+                  </td>
+                  <td className="text-center py-2.5 px-1">
+                    <span className="font-medium text-emerald-600">{item.rectified}</span>
+                    <span className="text-zinc-400 text-[10px]">处</span>
+                  </td>
+                  <td className="text-center py-2.5 px-1">
+                    <span className={`font-medium ${completionRate >= 90 ? 'text-emerald-600' : completionRate >= 80 ? 'text-amber-600' : 'text-red-600'}`}>
+                      {completionRate}
+                    </span>
+                    <span className="text-zinc-400 text-[10px]">%</span>
+                  </td>
+                  <td className="text-center py-2.5 px-1">
+                    <span className={`font-medium ${item.overdueUnrectified > 10 ? 'text-red-600' : 'text-zinc-700'}`}>
+                      {item.overdueUnrectified}
+                    </span>
+                    <span className="text-zinc-400 text-[10px]">处</span>
+                  </td>
+                  <td className="text-center py-2.5 px-1">
+                    <span className="font-medium text-zinc-700">{item.inProgress}</span>
+                    <span className="text-zinc-400 text-[10px]">处</span>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
 
-      {/* 底部统计 */}
-      <div className="flex items-center gap-4 pt-3 border-t border-zinc-200 text-xs text-zinc-500">
-        <span>共 {districtSupervisionData.length} 个片区</span>
-        <span>检查企业 {districtSupervisionData.reduce((sum, d) => sum + d.checkedEnterprises, 0)} 家</span>
-        <span className="text-red-600">重大隐患 {districtSupervisionData.reduce((sum, d) => sum + d.majorHazards, 0)} 处</span>
-        <span className="text-emerald-600">已整改 {districtSupervisionData.reduce((sum, d) => sum + d.rectified, 0)} 处</span>
-        <span>平均覆盖率 {Math.round(districtSupervisionData.reduce((sum, d) => sum + d.coverage, 0) / districtSupervisionData.length)}%</span>
-      </div>
 
-      {/* 讨论提示 */}
-      <div className="mt-3 p-3 bg-amber-50/50 border border-amber-100 rounded text-xs text-amber-700">
-        <strong>📋 待与业务方讨论的问题：</strong>
-        <ol className="list-decimal list-inside mt-1 space-y-0.5">
-          <li>各街道/街镇的片区划分标准是否统一？（地理片区 vs 行业片区 vs 混合划分）</li>
-          <li>片区数据是否需要与工作组数据实时联动？</li>
-          <li>是否需要支持自定义片区配置？（不同街道可能片区数量、名称都不同）</li>
-          <li>片区层级的权限管理如何设计？（片区负责人、跨片区协作等）</li>
-        </ol>
-      </div>
     </SectionBlock>
   )
 }
@@ -3102,19 +3074,6 @@ function OverdueRectificationTable() {
         </table>
       </div>
 
-      {/* 底部统计 */}
-      <div className="flex items-center gap-4 pt-3 border-t border-zinc-200 text-xs text-zinc-500">
-        <span className="text-red-600">逾期未改 {overdueRectificationData.filter(a => a.rectificationStatus === 'overdue').length} 家</span>
-        <span className="text-orange-600">虚假整改 {overdueRectificationData.filter(a => a.rectificationStatus === 'fake').length} 家</span>
-        <span className="text-amber-600">屡改屡犯 {overdueRectificationData.filter(a => a.rectificationStatus === 'repeated').length} 家</span>
-        <span className="text-red-600 font-medium">高优先级 {overdueRectificationData.filter(a => a.priority === 'high').length} 家</span>
-        <span>平均逾期 {Math.round(overdueRectificationData.reduce((sum, a) => sum + a.overdueDays, 0) / overdueRectificationData.length)} 天</span>
-      </div>
-
-      {/* 说明 */}
-      <div className="mt-3 p-3 bg-red-50/50 border border-red-100 rounded text-xs text-red-700">
-        <strong>警示：</strong>建立逾期未改、虚假整改、屡改屡犯企业清单，重大隐患实行"发现—交办—督办—复核—销号"全链条闭环管理。逾期超过30天的企业需启动立案查处程序。
-      </div>
     </SectionBlock>
   )
 }
@@ -3299,17 +3258,7 @@ function ExpertListPanel({ onExpertClick }: { onExpertClick?: (expert: WorkGroup
         </table>
       </div>
 
-      {/* 底部统计 */}
-      <div className="flex items-center justify-between pt-3 border-t border-zinc-200 text-xs text-zinc-500">
-        <div className="flex items-center gap-4">
-          <span>共 {sortedExperts.length} 人</span>
-          <span>平均总分: <span className="font-medium text-zinc-700">{(sortedExperts.reduce((sum, e) => sum + e.totalScore, 0) / sortedExperts.length).toFixed(0)}</span></span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span>隐患: <span className="font-medium text-zinc-700">{sortedExperts.reduce((sum, e) => sum + e.hazardFound, 0)}</span></span>
-          <span>待办: <span className="font-medium text-zinc-700">{sortedExperts.reduce((sum, e) => sum + e.todoCreated, 0)}</span></span>
-        </div>
-      </div>
+
 
     </SectionBlock>
   )
@@ -4153,47 +4102,17 @@ export function StationChiefDashboard() {
         {/* （一）月度及年度累计情况 */}
         <CumulativeStats expertId={selectedExpertId} orgGroup={selectedOrgGroup} />
 
-        {/* 任务周期进度概要卡（放在月度及年度累计之后，供领导快速查看） */}
-        <SectionBlock title="任务周期进度概览" description="概要：显示总体任务进度与逾期情况" className="mb-4">
-          <div className="flex gap-4 overflow-x-auto">
-            {/* 汇总统计：合计应完成、已完成、逾期、总体完成率 */}
-            {
-              (() => {
-                const cycles = mockTaskCycleProgress.cycles
-                const required = Object.values(cycles).reduce((s, c) => s + (c.requiredTasks || 0), 0)
-                const completed = Object.values(cycles).reduce((s, c) => s + (c.completedTasks || 0), 0)
-                const overdue = Object.values(cycles).reduce((s, c) => s + (c.overdueTasks || 0), 0)
-                const avgProgress = Math.round(Object.values(cycles).reduce((s, c) => s + (c.taskProgress || 0), 0) / 4)
-                return (
-                  <>
-                    <div className="bg-white p-3 rounded shadow-sm min-w-[160px]">
-                      <div className="text-xs text-zinc-500">应完成任务（合计）</div>
-                      <div className="text-lg font-medium text-zinc-800">{required}</div>
-                    </div>
-                    <div className="bg-white p-3 rounded shadow-sm min-w-[160px]">
-                      <div className="text-xs text-zinc-500">已完成</div>
-                      <div className="text-lg font-medium text-emerald-600">{completed}</div>
-                    </div>
-                    <div className="bg-white p-3 rounded shadow-sm min-w-[160px]">
-                      <div className="text-xs text-zinc-500">逾期任务</div>
-                      <div className="text-lg font-medium text-red-600">{overdue}</div>
-                    </div>
-                    <div className="bg-white p-3 rounded shadow-sm min-w-[160px]">
-                      <div className="text-xs text-zinc-500">总体完成率（平均）</div>
-                      <div className="text-lg font-medium">{avgProgress}%</div>
-                    </div>
-                  </>
-                )
-              })()
-            }
-          </div>
-        </SectionBlock>
+        {/* 任务周期进度监控 */}
+        <TaskCycleProgressPanel className="mb-6" />
 
         {/* （二）分片区监管情况 */}
         <DistrictSupervisionTable />
 
         {/* （三）分行业与隐患结构分析 */}
         <IndustryHazardTable />
+
+        {/* （四）一般风险、低风险企业抽查情况 */}
+        <GeneralLowRiskInspectionTable />
 
         {/* （五）危化使用企业专项检查 */}
         <SpecialInspectionTable />
@@ -4220,7 +4139,7 @@ export function StationChiefDashboard() {
 
         {/* （三）政府人员履职情况 */}
         <SectionBlock
-          title="（三）政府人员履职情况表"
+          title="（三）人员履职情况表"
           description="组长、副站长履职情况统计"
           className="mt-6"
         >
@@ -4258,7 +4177,7 @@ export function StationChiefDashboard() {
           
           {/* （四）风险分级管控（四色管理） */}
           <RiskLevelControl />
-          
+
           {/* （五）企业自查自报与基础管理 */}
           <SelfInspectionManagement />
         </div>
@@ -4338,9 +4257,6 @@ export function StationChiefDashboard() {
             onSelect={setSelectedOrgGroup}
           />
         </div>
-
-        {/* 任务周期进度监控 - 四风险等级时间进度 vs 任务进度 */}
-        <TaskCycleProgressPanel className="mb-6" />
 
         {/* 核心风险指标卡片（点击可筛选风险等级） */}
         <RiskMetricsCards

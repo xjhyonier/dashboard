@@ -102,16 +102,7 @@ export function GovernmentStaffList({ onSelectMember }: Props) {
         </table>
       </div>
 
-      {/* 底部统计 */}
-      <div className="flex items-center gap-4 pt-3 border-t border-zinc-200 text-xs text-zinc-500">
-        <span>共 {stationChiefMock.governmentMembers.length} 名政府人员</span>
-        <span>负责 {stationChiefMock.governmentMembers.reduce((sum, m) => sum + m.enterprisesResponsible, 0)} 家</span>
-        <span>检查 {stationChiefMock.governmentMembers.reduce((sum, m) => sum + m.enterprisesInspected, 0)} 家</span>
-        <span>发现隐患 {stationChiefMock.governmentMembers.reduce((sum, m) => sum + m.hazardsFound, 0)} 处</span>
-        <span className="text-red-600">重大隐患 {stationChiefMock.governmentMembers.reduce((sum, m) => sum + m.majorHazards, 0)} 处</span>
-        <span className="text-emerald-600">已整改 {stationChiefMock.governmentMembers.reduce((sum, m) => sum + m.hazardsRectified, 0)} 处</span>
-        <span className="text-red-600">逾期未改 {stationChiefMock.governmentMembers.reduce((sum, m) => sum + m.overdueUnrectified, 0)} 处</span>
-      </div>
+
     </>
   )
 }

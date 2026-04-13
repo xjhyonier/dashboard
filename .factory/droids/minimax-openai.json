@@ -1,0 +1,11 @@
+{
+  "name": "minimax-openai",
+  "description": "Project-scoped droid config for Minimax OpenAI-compatible endpoint. Contains OPENAI_BASE_URL and OPENAI_API_KEY (user requested to store secret in repo).",
+  "env": {
+    "OPENAI_BASE_URL": "https://api.minimax.io/v1",
+    "OPENAI_API_KEY": "sk-cp-J6U3MURJsqkCzbhXb5e93hxXoUPrUfiiCxTVzvWMezu4dZD94xESVhPUyn2XcbXfZcDZcAkHPtbJMPHP7j7aCr-gdNVLjSY6QykFqfFPI0UoVhbD8xs1dw8"
+  },
+  "example_usage": "This droid provides environment variables for tools that read OPENAI_BASE_URL and OPENAI_API_KEY. Storing secrets in repository is a security risk; rotate the key if this repo is shared.",
+  "created_by": "droid",
+  "created_at": "2026-04-13T00:00:00Z"
+}
