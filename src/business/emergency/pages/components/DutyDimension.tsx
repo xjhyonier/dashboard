@@ -3,6 +3,7 @@ import { thStyle, tdStyle, inputStyle } from './styles'
 import type { DutyDimensionProps } from './types'
 import { initDatabase, getWorkGroups, getGovernmentMembers, getExperts, getHazards, getExpertDimensions, getExpertPlatformBehavior } from '../../../../db'
 import type { WorkGroup, GovernmentMember, Expert, Hazard, ExpertDimensionScore, ExpertPlatformBehavior } from '../../../../db/types'
+import { exportToCSV } from './exportUtils'
 
 // 工作组视图（包含计算字段）
 interface WorkGroupView {
@@ -428,7 +429,32 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>（一）工作组履职情况表</div>
-          <input type="text" placeholder="搜索工作组名称" value={teamKeyword} onChange={e => setTeamKeyword(e.target.value)} style={inputStyle} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input type="text" placeholder="搜索工作组名称" value={teamKeyword} onChange={e => setTeamKeyword(e.target.value)} style={inputStyle} />
+            <button onClick={() => exportToCSV(
+              filteredWorkGroups.map(wg => ({
+                工作组名称: wg.name,
+                区域: wg.area,
+                风险等级: wg.risk_level,
+                组长: wg.leader_name,
+                副站长: wg.deputy_name,
+                检查企业: wg.enterprise_count,
+                隐患总数: wg.hazard_total,
+                重大隐患: wg.hazard_major,
+              })),
+              [
+                { key: '工作组名称', label: '工作组名称' },
+                { key: '区域', label: '区域' },
+                { key: '风险等级', label: '风险等级' },
+                { key: '组长', label: '组长' },
+                { key: '副站长', label: '副站长' },
+                { key: '检查企业', label: '检查企业' },
+                { key: '隐患总数', label: '隐患总数' },
+                { key: '重大隐患', label: '重大隐患' },
+              ],
+              '工作组履职情况表'
+            )} style={{ padding: '4px 12px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer' }}>⬇ 导出</button>
+          </div>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
@@ -552,7 +578,30 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>（二）人员履职情况表</div>
-          <input type="text" placeholder="搜索姓名" value={memberKeyword} onChange={e => setMemberKeyword(e.target.value)} style={inputStyle} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input type="text" placeholder="搜索姓名" value={memberKeyword} onChange={e => setMemberKeyword(e.target.value)} style={inputStyle} />
+            <button onClick={() => exportToCSV(
+              filteredMembers.map(m => ({
+                姓名: m.name,
+                职务: m.position,
+                工作组: m.work_group,
+                检查企业: m.enterprise_count,
+                隐患总数: m.hazard_total,
+                重大隐患: m.hazard_major,
+                已整改: m.hazard_closed,
+              })),
+              [
+                { key: '姓名', label: '姓名' },
+                { key: '职务', label: '职务' },
+                { key: '工作组', label: '工作组' },
+                { key: '检查企业', label: '检查企业' },
+                { key: '隐患总数', label: '隐患总数' },
+                { key: '重大隐患', label: '重大隐患' },
+                { key: '已整改', label: '已整改' },
+              ],
+              '人员履职情况表'
+            )} style={{ padding: '4px 12px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer' }}>⬇ 导出</button>
+          </div>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
@@ -649,7 +698,30 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>（三）专家履职情况表</div>
-          <input type="text" placeholder="搜索姓名或工作组" value={expertKeyword} onChange={e => setExpertKeyword(e.target.value)} style={inputStyle} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input type="text" placeholder="搜索姓名或工作组" value={expertKeyword} onChange={e => setExpertKeyword(e.target.value)} style={inputStyle} />
+            <button onClick={() => exportToCSV(
+              filteredExperts.map(e => ({
+                姓名: e.name,
+                配合工作组: e.work_group,
+                负责企业: e.responsible,
+                检查次数: e.check_count,
+                发现隐患: e.hazard_found,
+                重大隐患: e.hazard_serious,
+                已整改: e.hazard_closed,
+              })),
+              [
+                { key: '姓名', label: '姓名' },
+                { key: '配合工作组', label: '配合工作组' },
+                { key: '负责企业', label: '负责企业' },
+                { key: '检查次数', label: '检查次数' },
+                { key: '发现隐患', label: '发现隐患' },
+                { key: '重大隐患', label: '重大隐患' },
+                { key: '已整改', label: '已整改' },
+              ],
+              '专家履职情况表'
+            )} style={{ padding: '4px 12px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer' }}>⬇ 导出</button>
+          </div>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1200 }}>

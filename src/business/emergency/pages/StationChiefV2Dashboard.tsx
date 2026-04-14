@@ -8,11 +8,12 @@ import { StateDimension } from './components/StateDimension'
 import { HazardDimension } from './components/HazardDimension'
 import { IndustryDimension } from './components/IndustryDimension'
 import { SpecialDimension } from './components/SpecialDimension'
+import { TrendDimension } from './components/TrendDimension'
 
-import { initDatabase, getWorkGroups, getHazards, getEnterpriseStats } from '../../../db'
-import type { WorkGroup, Hazard } from '../../../db/types'
+import { initDatabase, getWorkGroups, getHazards, getEnterpriseStats, getExperts, getEnterprises } from '../../../db'
+import type { WorkGroup, Hazard, Expert, Enterprise } from '../../../db/types'
 
-const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'state', 'hazard']
+const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'state', 'hazard', 'trend']
 
 // 日期工具
 const TODAY = new Date()
@@ -33,21 +34,33 @@ export function StationChiefV2Dashboard() {
 
   // 数据库数据状态
   const [workGroups, setWorkGroups] = useState<WorkGroup[]>([])
+  const [experts, setExperts] = useState<Expert[]>([])
+  const [enterprises, setEnterprises] = useState<Enterprise[]>([])
   const [hazardRecords, setHazardRecords] = useState<Hazard[]>([])
   const [enterpriseCount, setEnterpriseCount] = useState(0)
   const [loading, setLoading] = useState(true)
+
+  // 全局筛选状态（工作组、专家、企业、行业）
+  const [filterTeam, setFilterTeam] = useState<string>('all')
+  const [filterExpert, setFilterExpert] = useState<string>('all')
+  const [filterEnterprise, setFilterEnterprise] = useState<string>('all')
+  const [filterIndustry, setFilterIndustry] = useState<string>('all')
 
   // 加载数据
   useEffect(() => {
     async function loadData() {
       try {
         await initDatabase()
-        const [groups, hazards, stats] = await Promise.all([
+        const [groups, expertList, enterpriseList, hazards, stats] = await Promise.all([
           getWorkGroups(),
+          getExperts(),
+          getEnterprises(),
           getHazards(),
           getEnterpriseStats()
         ])
         setWorkGroups(groups)
+        setExperts(expertList)
+        setEnterprises(enterpriseList)
         setHazardRecords(hazards)
         setEnterpriseCount(stats.total)
       } catch (err) {
@@ -195,6 +208,7 @@ export function StationChiefV2Dashboard() {
           { key: 'special', label: '任务计划' },
           { key: 'state', label: '企业状态' },
           { key: 'hazard', label: '隐患详情' },
+          { key: 'trend', label: '趋势分析' },
         ].map(tab => (
           <button
             key={tab.key}
@@ -317,6 +331,112 @@ export function StationChiefV2Dashboard() {
           ))}
         </div>
 
+        <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
+
+        {/* 工作组筛选 */}
+        <select
+          value={filterTeam}
+          onChange={e => { setFilterTeam(e.target.value); setFilterEnterprise('all') }}
+          style={{
+            padding: '2px 8px',
+            border: '1px solid #D1D5DB',
+            borderRadius: 4,
+            fontSize: 12,
+            color: filterTeam !== 'all' ? '#4F46E5' : '#6B7280',
+            background: 'white',
+            outline: 'none',
+            minWidth: 120,
+          }}
+        >
+          <option value="all">全部工作组</option>
+          {workGroups.map(wg => (
+            <option key={wg.id} value={wg.name}>{wg.name}</option>
+          ))}
+        </select>
+
+        {/* 专家筛选 */}
+        <select
+          value={filterExpert}
+          onChange={e => setFilterExpert(e.target.value)}
+          style={{
+            padding: '2px 8px',
+            border: '1px solid #D1D5DB',
+            borderRadius: 4,
+            fontSize: 12,
+            color: filterExpert !== 'all' ? '#4F46E5' : '#6B7280',
+            background: 'white',
+            outline: 'none',
+            minWidth: 100,
+          }}
+        >
+          <option value="all">全部专家</option>
+          {experts.map(exp => (
+            <option key={exp.id} value={exp.name}>{exp.name}</option>
+          ))}
+        </select>
+
+        {/* 企业筛选 */}
+        <select
+          value={filterEnterprise}
+          onChange={e => setFilterEnterprise(e.target.value)}
+          style={{
+            padding: '2px 8px',
+            border: '1px solid #D1D5DB',
+            borderRadius: 4,
+            fontSize: 12,
+            color: filterEnterprise !== 'all' ? '#4F46E5' : '#6B7280',
+            background: 'white',
+            outline: 'none',
+            minWidth: 160,
+          }}
+        >
+          <option value="all">全部企业</option>
+          {enterprises
+            .filter(e => filterTeam === 'all' || e.work_group === filterTeam)
+            .map(ent => (
+              <option key={ent.id} value={ent.id}>{ent.name}</option>
+            ))}
+        </select>
+
+        {/* 行业筛选 */}
+        <select
+          value={filterIndustry}
+          onChange={e => setFilterIndustry(e.target.value)}
+          style={{
+            padding: '2px 8px',
+            border: '1px solid #D1D5DB',
+            borderRadius: 4,
+            fontSize: 12,
+            color: filterIndustry !== 'all' ? '#4F46E5' : '#6B7280',
+            background: 'white',
+            outline: 'none',
+            minWidth: 100,
+          }}
+        >
+          <option value="all">全部行业</option>
+          {[...new Set(enterprises.map(e => e.industry).filter(Boolean))].map(ind => (
+            <option key={ind} value={ind}>{ind}</option>
+          ))}
+        </select>
+
+        {/* 重置筛选 */}
+        {(filterTeam !== 'all' || filterExpert !== 'all' || filterEnterprise !== 'all' || filterIndustry !== 'all') && (
+          <button
+            onClick={() => { setFilterTeam('all'); setFilterExpert('all'); setFilterEnterprise('all'); setFilterIndustry('all') }}
+            style={{
+              padding: '2px 8px',
+              border: '1px solid #D1D5DB',
+              borderRadius: 4,
+              background: 'white',
+              color: '#6B7280',
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            重置
+          </button>
+        )}
+
         {/* 当前筛选状态 */}
         <div style={{ marginLeft: 'auto', fontSize: 12, color: '#9CA3AF' }}>
           {dateRange.start} ~ {dateRange.end}
@@ -350,6 +470,12 @@ export function StationChiefV2Dashboard() {
           enterpriseName: searchParams.get('enterpriseName') || undefined,
           expertName: searchParams.get('expertName') || undefined,
         }}
+      />}
+      {dimension === 'trend' && <TrendDimension
+        filterTeam={filterTeam}
+        filterExpert={filterExpert}
+        filterEnterprise={filterEnterprise}
+        filterIndustry={filterIndustry}
       />}
     </div>
   )

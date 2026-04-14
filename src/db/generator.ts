@@ -83,6 +83,17 @@ function pickEnum<T>(values: T[]): T {
   return values[Math.floor(Math.random() * values.length)]
 }
 
+/** 按权重随机选择风险点级别 */
+function pickRiskPointLevel(): RiskPointLevel {
+  const total = Object.values(RISK_POINT_LEVEL_WEIGHTS).reduce((a, b) => a + b, 0)
+  let rand = Math.random() * total
+  for (const [level, weight] of Object.entries(RISK_POINT_LEVEL_WEIGHTS)) {
+    rand -= weight
+    if (rand <= 0) return level as RiskPointLevel
+  }
+  return '低'
+}
+
 // ==================== 静态数据 ====================
 
 const INDUSTRIES = ['工业企业', '仓储物流', '小微企业', '危化使用', '九小场所', '出租房', '沿街店铺']
@@ -98,6 +109,14 @@ const HAZARD_SOURCE_DETAILS: HazardSourceDetail[] = ['ai评估', '一企一档',
 const VERIFY_RESULTS: VerifyResult[] = ['pass', 'fail']
 
 const RISK_POINT_LEVELS: RiskPointLevel[] = ['重大', '较大', '一般', '低']
+// 风险点级别权重（越高级别越少）
+const RISK_POINT_LEVEL_WEIGHTS: Record<RiskPointLevel, number> = {
+  '重大': 5,   // 5%
+  '较大': 15,  // 15%
+  '一般': 30,  // 30%
+  '低': 50,    // 50%
+}
+
 const RISK_POINT_TYPES: RiskPointType[] = ['用电安全', '消防安全', '机械设备', '危化品储存', '有限空间', '高处作业', '动火作业', '特种设备', '职业卫生', '其他']
 const RISK_POINT_STATUSES: RiskPointControlStatus[] = ['未管控', '管控中', '已消除', '已失效']
 const CHECK_FREQUENCIES: CheckFrequency[] = ['每日', '每周', '每月', '每季度', '每年', '不定期']
@@ -514,7 +533,7 @@ export function generateAllData(): GeneratedData {
         id: riskPointId,
         enterprise_id: ent.id,
         name: `${RISK_POINT_NAMES[randomInt(0, RISK_POINT_NAMES.length - 1)]}${i + 1}`,
-        level: pickEnum(RISK_POINT_LEVELS),
+        level: pickRiskPointLevel(),
         type: pickEnum(RISK_POINT_TYPES),
         status: pickEnum(RISK_POINT_STATUSES),
         identified_at: identifiedAt,
@@ -568,7 +587,7 @@ export function generateAllData(): GeneratedData {
     const hazardCount = randomInt(0, 5)
     for (let i = 0; i < hazardCount; i++) {
       const hazardId = uuid()
-      const discoveredAt = randomPastDate(90)
+      const discoveredAt = randomPastDate(365)
       const deadlineDays = pickEnum([7, 15, 30, 60])
       const deadline = new Date(discoveredAt)
       deadline.setDate(deadline.getDate() + deadlineDays)

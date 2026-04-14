@@ -5,6 +5,7 @@ import type { Hazard, HazardStatus, HazardDimension, HazardSourceDetail } from '
 import { initDatabase, getHazards } from '../../../../db'
 import { useSortableTable } from './useSortableTable'
 import { SortableTh } from './SortableTh'
+import { exportToCSV } from './exportUtils'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; textColor: string }> = {
   pending:    { label: '待整改', color: '#6B7280', bg: '#F3F4F6', textColor: '#374151' },
@@ -177,7 +178,7 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
   const { sortedData, sort, handleSort } = useSortableTable(filtered, 'discovered_at', 'desc')
 
   // 分页
-  const PAGE_SIZE = 50
+  const PAGE_SIZE = 20
   const [currentPage, setCurrentPage] = useState(1)
   const totalPages = Math.ceil(sortedData.length / PAGE_SIZE)
   const paginatedData = sortedData.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
@@ -185,7 +186,69 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
   // 筛选变化时重置页码
   useEffect(() => {
     setCurrentPage(1)
-  }, [hazardRecords, riskLevel, selectedKpi, statusFilter, sourceFilter, industryFilter, teamFilter, dimensionFilter, keyword])
+  }, [hazardRecords, hazardLevelFilter, statusFilter, sourceFilter, industryFilter, teamFilter, dimensionFilter, keyword])
+
+  // 企业维度隐患统计
+  const enterpriseDimensionStats = useMemo(() => {
+    const stats: Record<string, { 
+      enterpriseName: string
+      expertName: string
+      机构职责: number
+      安全投入: number
+      教育培训: number
+      安全制度: number
+      双重预防: number
+      事故管理: number
+      应急管理: number
+      总计: number 
+    }> = {}
+    const dimensions = ['机构职责', '安全投入', '教育培训', '安全制度', '双重预防', '事故管理', '应急管理']
+    
+    filtered.forEach(h => {
+      if (!stats[h.enterprise_name]) {
+        stats[h.enterprise_name] = { 
+          enterpriseName: h.enterprise_name,
+          expertName: h.expert_name,
+          机构职责: 0,
+          安全投入: 0,
+          教育培训: 0,
+          安全制度: 0,
+          双重预防: 0,
+          事故管理: 0,
+          应急管理: 0,
+          总计: 0 
+        }
+      }
+      stats[h.enterprise_name].总计++
+      if (dimensions.includes(h.dimension)) {
+        stats[h.enterprise_name][h.dimension as keyof typeof stats[string]]++
+      }
+    })
+    
+    // 转为数组并按总隐患数排序
+    return Object.values(stats).sort((a, b) => b.总计 - a.总计).slice(0, 20)
+  }, [filtered])
+
+  // 企业表排序
+  const [enterpriseSortKey, setEnterpriseSortKey] = useState<string>('总计')
+  const [enterpriseSortDir, setEnterpriseSortDir] = useState<'asc' | 'desc'>('desc')
+
+  const handleEnterpriseSort = (key: string) => {
+    if (enterpriseSortKey === key) {
+      setEnterpriseSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setEnterpriseSortKey(key)
+      setEnterpriseSortDir('desc')
+    }
+  }
+
+  const sortedEnterpriseStats = useMemo(() => {
+    return [...enterpriseDimensionStats].sort((a, b) => {
+      const aVal = a[enterpriseSortKey as keyof typeof a] as number
+      const bVal = b[enterpriseSortKey as keyof typeof b] as number
+      return enterpriseSortDir === 'asc' ? aVal - bVal : bVal - aVal
+    })
+  }, [enterpriseDimensionStats, enterpriseSortKey, enterpriseSortDir])
 
   const total = hazardRecords.length
 
@@ -377,11 +440,54 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
 
       {/* 隐患列表 */}
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>
-          隐患明细列表
-          <span style={{ fontWeight: 400, color: '#9CA3AF', fontSize: 12, marginLeft: 8 }}>
-            （{sortedData.length} / {total} 条）
-          </span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>
+            隐患明细列表
+            <span style={{ fontWeight: 400, color: '#9CA3AF', fontSize: 12, marginLeft: 8 }}>
+              （{sortedData.length} / {total} 条）
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              const exportData = sortedData.map(h => ({
+                隐患描述: h.title,
+                主体责任: h.dimension,
+                隐患等级: h.level,
+                来源: h.source_detail,
+                企业名称: h.enterprise_name,
+                行业: h.enterprise_industry,
+                工作组: h.team_name,
+                专家: h.expert_name,
+                状态: STATUS_CONFIG[h.status]?.label || h.status,
+                发现时间: h.discovered_at,
+                整改期限: h.deadline,
+              }))
+              exportToCSV(exportData, [
+                { key: '隐患描述', label: '隐患描述' },
+                { key: '主体责任', label: '主体责任' },
+                { key: '隐患等级', label: '隐患等级' },
+                { key: '来源', label: '来源' },
+                { key: '企业名称', label: '企业名称' },
+                { key: '行业', label: '行业' },
+                { key: '工作组', label: '工作组' },
+                { key: '专家', label: '专家' },
+                { key: '状态', label: '状态' },
+                { key: '发现时间', label: '发现时间' },
+                { key: '整改期限', label: '整改期限' },
+              ], '隐患明细列表')
+            }}
+            style={{
+              padding: '4px 12px',
+              border: '1px solid #D1D5DB',
+              borderRadius: 4,
+              background: 'white',
+              color: '#374151',
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            ⬇ 导出
+          </button>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1100 }}>
@@ -557,6 +663,96 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
             </div>
           </div>
         )}
+
+        {/* 企业维度隐患统计表 */}
+        <div style={{ marginTop: 24, borderTop: '1px solid #E5E7EB', paddingTop: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>
+              企业维度隐患统计
+            </div>
+            <button onClick={() => exportToCSV(
+              sortedEnterpriseStats.map(row => ({
+                企业名称: row.enterpriseName,
+                专家: row.expertName,
+                机构职责: row['机构职责'],
+                安全投入: row['安全投入'],
+                教育培训: row['教育培训'],
+                安全制度: row['安全制度'],
+                双重预防: row['双重预防'],
+                事故管理: row['事故管理'],
+                应急管理: row['应急管理'],
+                总隐患数: row['总计'],
+              })),
+              [
+                { key: '企业名称', label: '企业名称' },
+                { key: '专家', label: '专家' },
+                { key: '机构职责', label: '机构职责' },
+                { key: '安全投入', label: '安全投入' },
+                { key: '教育培训', label: '教育培训' },
+                { key: '安全制度', label: '安全制度' },
+                { key: '双重预防', label: '双重预防' },
+                { key: '事故管理', label: '事故管理' },
+                { key: '应急管理', label: '应急管理' },
+                { key: '总隐患数', label: '总隐患数' },
+              ],
+              '企业维度隐患统计'
+            )} style={{ padding: '4px 12px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer' }}>⬇ 导出</button>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 900 }}>
+              <thead>
+                <tr style={{ background: '#F9FAFB' }}>
+                  {[
+                    { key: 'enterpriseName', label: '企业名称', sortable: true },
+                    { key: 'expertName', label: '专家', sortable: true },
+                    { key: '机构职责', label: '机构职责', sortable: true },
+                    { key: '安全投入', label: '安全投入', sortable: true },
+                    { key: '教育培训', label: '教育培训', sortable: true },
+                    { key: '安全制度', label: '安全制度', sortable: true },
+                    { key: '双重预防', label: '双重预防', sortable: true },
+                    { key: '事故管理', label: '事故管理', sortable: true },
+                    { key: '应急管理', label: '应急管理', sortable: true },
+                    { key: '总计', label: '总隐患数', sortable: true },
+                  ].map(col => (
+                    <th
+                      key={col.key}
+                      style={{ 
+                        ...thStyle, 
+                        fontWeight: 600, 
+                        cursor: col.sortable ? 'pointer' : 'default',
+                        color: enterpriseSortKey === col.key ? '#4F46E5' : '#374151',
+                      }}
+                      onClick={() => col.sortable && handleEnterpriseSort(col.key)}
+                    >
+                      {col.label}
+                      {col.sortable && enterpriseSortKey === col.key && (
+                        <span style={{ marginLeft: 4 }}>{enterpriseSortDir === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedEnterpriseStats.length === 0 ? (
+                  <tr><td colSpan={10} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: 20 }}>暂无数据</td></tr>
+                ) : sortedEnterpriseStats.map((row, i) => (
+                  <tr key={row.enterpriseName} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 500, color: '#1F2937', maxWidth: 180 }}>{row.enterpriseName}</td>
+                    <td style={{ ...tdStyle, color: '#4F46E5' }}>{row.expertName}</td>
+                    <td style={{ ...tdStyle, color: row['机构职责'] > 0 ? '#D97706' : '#9CA3AF', fontWeight: enterpriseSortKey === '机构职责' ? 600 : 400 }}>{row['机构职责'] || '-'}</td>
+                    <td style={{ ...tdStyle, color: row['安全投入'] > 0 ? '#D97706' : '#9CA3AF', fontWeight: enterpriseSortKey === '安全投入' ? 600 : 400 }}>{row['安全投入'] || '-'}</td>
+                    <td style={{ ...tdStyle, color: row['教育培训'] > 0 ? '#D97706' : '#9CA3AF', fontWeight: enterpriseSortKey === '教育培训' ? 600 : 400 }}>{row['教育培训'] || '-'}</td>
+                    <td style={{ ...tdStyle, color: row['安全制度'] > 0 ? '#D97706' : '#9CA3AF', fontWeight: enterpriseSortKey === '安全制度' ? 600 : 400 }}>{row['安全制度'] || '-'}</td>
+                    <td style={{ ...tdStyle, color: row['双重预防'] > 0 ? '#D97706' : '#9CA3AF', fontWeight: enterpriseSortKey === '双重预防' ? 600 : 400 }}>{row['双重预防'] || '-'}</td>
+                    <td style={{ ...tdStyle, color: row['事故管理'] > 0 ? '#D97706' : '#9CA3AF', fontWeight: enterpriseSortKey === '事故管理' ? 600 : 400 }}>{row['事故管理'] || '-'}</td>
+                    <td style={{ ...tdStyle, color: row['应急管理'] > 0 ? '#D97706' : '#9CA3AF', fontWeight: enterpriseSortKey === '应急管理' ? 600 : 400 }}>{row['应急管理'] || '-'}</td>
+                    <td style={{ ...tdStyle, fontWeight: 700, color: '#DC2626' }}>{row.总计}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   )

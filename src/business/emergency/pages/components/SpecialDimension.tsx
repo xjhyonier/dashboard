@@ -3,6 +3,7 @@ import { thStyle, tdStyle, inputStyle } from './styles'
 import type { SpecialDimensionProps } from './types'
 import { initDatabase, getTasks, getWorkGroups, getExperts, getHazards, getEnterprises } from '../../../../db'
 import type { Task, WorkGroup, Expert, Hazard, Enterprise } from '../../../../db/types'
+import { exportToCSV } from './exportUtils'
 
 const PAGE_SIZE = 10
 
@@ -277,6 +278,37 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi 
           onChange={e => { setKeyword(e.target.value); setCurrentPage(1) }}
           style={{ ...inputStyle, width: 180 }}
         />
+        <button onClick={() => exportToCSV(
+          currentTasks.map(t => ({
+            任务名称: t.name,
+            类型: t.type,
+            发布单位: t.publish_unit,
+            开始日期: t.start_date,
+            结束日期: t.end_date,
+            覆盖企业: t.total_count,
+            已完成: t.completed_count,
+            完成率: t.completion_rate + '%',
+            隐患数: t.hazard_count,
+            重大隐患: t.major_hazard_count,
+            创建人: t.creator,
+            状态: t.status,
+          })),
+          [
+            { key: '任务名称', label: '任务名称' },
+            { key: '类型', label: '类型' },
+            { key: '发布单位', label: '发布单位' },
+            { key: '开始日期', label: '开始日期' },
+            { key: '结束日期', label: '结束日期' },
+            { key: '覆盖企业', label: '覆盖企业' },
+            { key: '已完成', label: '已完成' },
+            { key: '完成率', label: '完成率' },
+            { key: '隐患数', label: '隐患数' },
+            { key: '重大隐患', label: '重大隐患' },
+            { key: '创建人', label: '创建人' },
+            { key: '状态', label: '状态' },
+          ],
+          '任务列表'
+        )} style={{ padding: '4px 12px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer' }}>⬇ 导出</button>
       </div>
 
       {/* 任务表格 */}

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { thStyle, tdStyle, inputStyle } from './styles'
 import type { IndustryDimensionProps } from './types'
 import { industryHazardAnalysis, enterprises10D } from '../mock/station-chief-v2'
+import { exportToCSV } from './exportUtils'
 
 export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi }: IndustryDimensionProps) {
   const [keyword, setKeyword] = useState('')
@@ -172,7 +173,28 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>行业隐患分析统计表</div>
-          <input type="text" placeholder="搜索行业名称" value={keyword} onChange={e => setKeyword(e.target.value)} style={inputStyle} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input type="text" placeholder="搜索行业名称" value={keyword} onChange={e => setKeyword(e.target.value)} style={inputStyle} />
+            <button onClick={() => exportToCSV(
+              filtered.map(d => ({
+                行业: d.industry,
+                隐患数: d.hazardCount,
+                重大隐患: d.majorHazardCount,
+                已整改: d.rectifiedCount,
+                限期整改: d.deadlineCount,
+                高频问题: d.topIssues.join('、'),
+              })),
+              [
+                { key: '行业', label: '行业' },
+                { key: '隐患数', label: '隐患数' },
+                { key: '重大隐患', label: '重大隐患' },
+                { key: '已整改', label: '已整改' },
+                { key: '限期整改', label: '限期整改' },
+                { key: '高频问题', label: '高频问题' },
+              ],
+              '行业隐患分析统计表'
+            )} style={{ padding: '4px 12px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer' }}>⬇ 导出</button>
+          </div>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
