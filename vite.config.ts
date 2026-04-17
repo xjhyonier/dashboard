@@ -6,4 +6,10 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: Number(loadEnv(mode, process.cwd()).VITE_PORT) || 38430,
   },
+  build: {
+    sourcemap: true,
+  },
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
+  }
 }))

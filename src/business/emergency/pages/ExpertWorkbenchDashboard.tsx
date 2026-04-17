@@ -165,20 +165,6 @@ export function ExpertWorkbenchDashboard() {
     )
   }
 
-    return (
-      <div className="flex gap-2">
-        {actionButton}
-        <button 
-          style={serviceButton}
-          onClick={() => handleOpenServiceRecord(task)}
-          aria-label="记录服务"
-        >
-          记录服务
-        </button>
-      </div>
-    )
-  }
-
   return (
     <>
       <RoleIndicator
@@ -236,35 +222,6 @@ export function ExpertWorkbenchDashboard() {
                           task.riskScore && task.riskScore <= 60 ? 'text-orange-600' :
                           'text-yellow-600'
                         }`}>
-                          {task.priority}
-                        </span>
-                        <div className="text-xs text-text-tertiary mt-1">分值:{task.riskScore}</div>
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-text">{task.enterprise}</div>
-                        <div className="text-sm text-text-secondary mt-1">{task.description}</div>
-                      </div>
-                      <div className="text-sm text-text-tertiary">
-                        截止: {task.deadline}
-                      </div>
-                    </div>
-            <SectionBlock title="闭环跟进">
-              <div className="space-y-3">
-                {[...expertWorkbenchMock.pendingTasks]
-                  .filter(task => task.category === 'Follow-up')
-                  .sort((a, b) => (a.riskScore || 0) - (b.riskScore || 0))
-                  .map((task, index) => (
-                    <div 
-                      key={index}
-                      className="card flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="w-20 text-center">
-                          <span className={`text-sm font-semibold ${
-                            task.riskScore && task.riskScore <= 30 ? 'text-red-600' :
-                            task.riskScore && task.riskScore <= 60 ? 'text-orange-600' :
-                            'text-yellow-600'
-                          }`}>
                           {task.priority}
                         </span>
                         <div className="text-xs text-text-tertiary mt-1">分值:{task.riskScore}</div>
