@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { thStyle, tdStyle, inputStyle } from './styles'
+import { useSortableTable } from './useSortableTable'
+import { SortableTh } from './SortableTh'
 import type { DutyDimensionProps } from './types'
 import { initDatabase, getWorkGroups, getGovernmentMembers, getExperts, getHazards, getExpertDimensions, getExpertPlatformBehavior } from '../../../../db'
 import type { WorkGroup, GovernmentMember, Expert, Hazard, ExpertDimensionScore, ExpertPlatformBehavior } from '../../../../db/types'
@@ -335,6 +337,15 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
         result = result.filter(m => m.work_groups.includes(teamName))
       }
     }
+    const priorityNames = ['张义', '余国生']
+    result.sort((a, b) => {
+      const aIdx = priorityNames.indexOf(a.name)
+      const bIdx = priorityNames.indexOf(b.name)
+      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx
+      if (aIdx !== -1) return -1
+      if (bIdx !== -1) return 1
+      return a.name.localeCompare(b.name)
+    })
     return result
   }, [memberViews, memberKeyword, selectedTeamId, workGroups])
 
@@ -358,6 +369,11 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
     }
     return result
   }, [expertViews, expertKeyword, selectedTeamId, workGroups, selectedExpertName])
+
+  // 排序
+  const { sortedData: sortedTeams, sort: sortTeams, handleSort: handleSortTeams } = useSortableTable(filteredTeams, 'name', 'asc')
+  const { sortedData: sortedMembers, sort: sortMembers, handleSort: handleSortMembers } = useSortableTable(filteredMembers, 'name', 'asc')
+  const { sortedData: sortedExperts, sort: sortExperts, handleSort: handleSortExperts } = useSortableTable(filteredExperts, 'name', 'asc')
 
   // 合计
   const totals = useMemo(() => {
@@ -460,22 +476,22 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
           <thead>
             <tr>
               <th style={thStyle}>工作组名称</th>
-              <th style={thStyle}>组长</th>
-              <th style={thStyle}>副站长</th>
-              <th style={thStyle}>检查企业</th>
-              <th style={thStyle}>隐患总数</th>
-              <th style={thStyle}>重大隐患</th>
-              <th style={thStyle}>已整改</th>
-              <th style={thStyle}>整改完成率</th>
-              <th style={thStyle}>逾期未整改</th>
-              <th style={thStyle}>整改中</th>
+              <SortableTh label="工作组名称" sortKey="name" sort={sortTeams} onSort={handleSortTeams} />
+              <SortableTh label="成员" sortKey="leader_name" sort={sortTeams} onSort={handleSortTeams} />
+              <SortableTh label="检查企业" sortKey="enterprise_count" sort={sortTeams} onSort={handleSortTeams} />
+              <SortableTh label="隐患总数" sortKey="hazard_total" sort={sortTeams} onSort={handleSortTeams} />
+              <SortableTh label="重大隐患" sortKey="hazard_major" sort={sortTeams} onSort={handleSortTeams} />
+              <SortableTh label="已整改" sortKey="hazard_rectified" sort={sortTeams} onSort={handleSortTeams} />
+              <SortableTh label="整改完成率" sortKey="closure_rate" sort={sortTeams} onSort={handleSortTeams} />
+              <SortableTh label="逾期未整改" sortKey="hazard_overdue" sort={sortTeams} onSort={handleSortTeams} />
+              <SortableTh label="整改中" sortKey="hazard_pending" sort={sortTeams} onSort={handleSortTeams} />
               <th style={thStyle}>重大风险（任务/时间）</th>
             </tr>
           </thead>
           <tbody>
-            {filteredTeams.length === 0 ? (
+            {sortedTeams.length === 0 ? (
               <tr><td colSpan={11} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的工作组</td></tr>
-            ) : filteredTeams.map((g, i) => {
+            ) : sortedTeams.map((g, i) => {
               const isSelected = selectedTeamId === g.id
               return (
                 <tr key={g.id} style={{
@@ -488,25 +504,10 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                   >
                     <span style={{ textDecoration: isSelected ? 'underline' : 'none' }}>{g.name}</span>
                   </td>
-                  <td
-                    style={{ ...tdStyle, color: '#4F46E5', cursor: 'pointer', textDecoration: 'underline' }}
-                    onClick={() => {
-                      setFilterByMember(g.leader_name)
-                      setSelectedMemberName(g.leader_name)
-                    }}
-                    title={`点击查看 ${g.leader_name} 负责的工作组`}
-                  >
-                    {g.leader_name}
-                  </td>
-                  <td
-                    style={{ ...tdStyle, color: '#059669', cursor: 'pointer', textDecoration: 'underline' }}
-                    onClick={() => {
-                      setFilterByMember(g.deputy_name)
-                      setSelectedMemberName(g.deputy_name)
-                    }}
-                    title={`点击查看 ${g.deputy_name} 负责的工作组`}
-                  >
-                    {g.deputy_name}
+                  <td style={tdStyle}>
+                    <span style={{ color: '#4F46E5', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setFilterByMember(g.leader_name); setSelectedMemberName(g.leader_name) }} title={`点击查看 ${g.leader_name} 负责的工作组`}>{g.leader_name}</span>
+                    <span style={{ color: '#9CA3AF', margin: '0 4px' }}>/</span>
+                    <span style={{ color: '#059669', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setFilterByMember(g.deputy_name); setSelectedMemberName(g.deputy_name) }} title={`点击查看 ${g.deputy_name} 负责的工作组`}>{g.deputy_name}</span>
                   </td>
                   <td
                     style={{ ...tdStyle, fontWeight: 500, cursor: g.enterprise_count > 0 ? 'pointer' : 'default', color: '#4F46E5', textDecoration: 'underline' }}
@@ -559,7 +560,6 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
               <tr style={{ background: '#F3F4F6', fontWeight: 600 }}>
                 <td style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
                 <td style={{ ...tdStyle, color: '#374151' }}>-</td>
-                <td style={{ ...tdStyle, color: '#374151' }}>-</td>
                 <td style={{ ...tdStyle, color: '#374151' }}>{totals.enterprise}</td>
                 <td style={{ ...tdStyle, color: '#374151' }}>{totals.hazard}</td>
                 <td style={{ ...tdStyle, color: '#DC2626' }}>{totals.serious}</td>
@@ -583,21 +583,27 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
             <button onClick={() => exportToCSV(
               filteredMembers.map(m => ({
                 姓名: m.name,
-                职务: m.position,
-                工作组: m.work_group,
-                检查企业: m.enterprise_count,
-                隐患总数: m.hazard_total,
-                重大隐患: m.hazard_major,
+                工作组: m.work_groups.join('、'),
+                负责企业: m.enterprise_count,
+                已检查企业: m.inspection_count,
+                发现隐患: m.hazard_found,
+                重大隐患: m.hazard_serious,
                 已整改: m.hazard_closed,
+                整改率: m.closure_rate + '%',
+                整改中: m.hazard_in_progress,
+                逾期未改: m.hazard_overdue,
               })),
               [
                 { key: '姓名', label: '姓名' },
-                { key: '职务', label: '职务' },
                 { key: '工作组', label: '工作组' },
-                { key: '检查企业', label: '检查企业' },
-                { key: '隐患总数', label: '隐患总数' },
+                { key: '负责企业', label: '负责企业' },
+                { key: '已检查企业', label: '已检查企业' },
+                { key: '发现隐患', label: '发现隐患' },
                 { key: '重大隐患', label: '重大隐患' },
                 { key: '已整改', label: '已整改' },
+                { key: '整改率', label: '整改率' },
+                { key: '整改中', label: '整改中' },
+                { key: '逾期未改', label: '逾期未改' },
               ],
               '人员履职情况表'
             )} style={{ padding: '4px 12px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer' }}>⬇ 导出</button>
@@ -606,23 +612,22 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr>
-              <th style={thStyle}>姓名</th>
-              <th style={thStyle}>职务</th>
+              <SortableTh label="姓名" sortKey="name" sort={sortMembers} onSort={handleSortMembers} />
               <th style={thStyle}>所在工作组</th>
-              <th style={thStyle}>负责企业</th>
-              <th style={thStyle}>已检查企业</th>
-              <th style={thStyle}>发现隐患</th>
-              <th style={thStyle}>重大隐患</th>
-              <th style={thStyle}>已整改</th>
-              <th style={thStyle}>整改率</th>
-              <th style={thStyle}>整改中</th>
-              <th style={thStyle}>逾期未改</th>
+              <SortableTh label="负责企业" sortKey="enterprise_count" sort={sortMembers} onSort={handleSortMembers} />
+              <SortableTh label="已检查企业" sortKey="inspection_count" sort={sortMembers} onSort={handleSortMembers} />
+              <SortableTh label="发现隐患" sortKey="hazard_found" sort={sortMembers} onSort={handleSortMembers} />
+              <SortableTh label="重大隐患" sortKey="hazard_serious" sort={sortMembers} onSort={handleSortMembers} />
+              <SortableTh label="已整改" sortKey="hazard_closed" sort={sortMembers} onSort={handleSortMembers} />
+              <SortableTh label="整改率" sortKey="closure_rate" sort={sortMembers} onSort={handleSortMembers} />
+              <SortableTh label="整改中" sortKey="hazard_in_progress" sort={sortMembers} onSort={handleSortMembers} />
+              <SortableTh label="逾期未改" sortKey="hazard_overdue" sort={sortMembers} onSort={handleSortMembers} />
             </tr>
           </thead>
           <tbody>
-            {filteredMembers.length === 0 ? (
-              <tr><td colSpan={11} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的人员</td></tr>
-            ) : filteredMembers.map((m, i) => (
+            {sortedMembers.length === 0 ? (
+              <tr><td colSpan={10} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的人员</td></tr>
+            ) : sortedMembers.map((m, i) => (
               <tr key={m.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                 <td
                   style={{ ...tdStyle, textAlign: 'left', fontWeight: 500, cursor: 'pointer', color: '#4F46E5', textDecoration: 'underline' }}
@@ -631,7 +636,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 >
                   {m.name}
                 </td>
-                <td style={tdStyle}>{m.position}</td>
+
                 <td style={{ ...tdStyle, textAlign: 'left' }}>
                   {m.work_groups.map((wg, idx) => (
                     <span
@@ -727,32 +732,32 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1200 }}>
             <thead>
               <tr>
-                <th style={thStyle}>姓名</th>
-                <th style={thStyle}>配合工作组</th>
-                <th style={thStyle}>负责</th>
-                <th style={thStyle}>检查</th>
-                <th style={thStyle}>发现隐患</th>
-                <th style={thStyle}>重大隐患</th>
-                <th style={thStyle}>已整改</th>
-                <th style={thStyle}>整改率</th>
-                <th style={thStyle}>整改中</th>
-                <th style={thStyle}>逾期</th>
-                <th style={thStyle}>风险标注</th>
-                <th style={thStyle}>视频待办</th>
-                <th style={thStyle}>隐患待办</th>
-                <th style={thStyle}>信息完善</th>
-                <th style={thStyle}>IM咨询</th>
-                <th style={thStyle}>服务日志</th>
-                <th style={thStyle}>现场看</th>
-                <th style={thStyle}>视频看</th>
-                <th style={thStyle}>AI看</th>
-                <th style={thStyle}>一企一档</th>
+                <SortableTh label="姓名" sortKey="name" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="配合工作组" sortKey="work_group" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="负责" sortKey="enterprise_count" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="检查" sortKey="check_count" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="发现隐患" sortKey="hazard_found" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="重大隐患" sortKey="hazard_serious" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="已整改" sortKey="hazard_closed" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="整改率" sortKey="closure_rate" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="整改中" sortKey="in_progress" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="逾期" sortKey="overdue" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="风险标注" sortKey="risk_mark" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="视频待办" sortKey="video_todo" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="隐患待办" sortKey="hazard_todo" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="信息完善" sortKey="info_complete" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="IM咨询" sortKey="im_chat" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="服务日志" sortKey="service_log" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="现场看" sortKey="on_site_visit" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="视频看" sortKey="video_watch" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="AI看" sortKey="ai_watch" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="一企一档" sortKey="enterprise_file" sort={sortExperts} onSort={handleSortExperts} />
               </tr>
             </thead>
             <tbody>
-              {filteredExperts.length === 0 ? (
+              {sortedExperts.length === 0 ? (
                 <tr><td colSpan={20} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的专家</td></tr>
-              ) : filteredExperts.map((e, i) => (
+              ) : sortedExperts.map((e, i) => (
                 <tr key={e.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                   <td
                     style={{ ...tdStyle, textAlign: 'left', fontWeight: 500, cursor: 'pointer', color: '#4F46E5', textDecoration: 'underline' }}

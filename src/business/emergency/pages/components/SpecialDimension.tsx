@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { thStyle, tdStyle, inputStyle } from './styles'
+import { useSortableTable } from './useSortableTable'
+import { SortableTh } from './SortableTh'
 import type { SpecialDimensionProps } from './types'
 import { initDatabase, getTasks, getWorkGroups, getExperts, getHazards, getEnterprises } from '../../../../db'
 import type { Task, WorkGroup, Expert, Hazard, Enterprise } from '../../../../db/types'
@@ -25,7 +27,7 @@ function calcTimeProgress(startDate: string, endDate: string): { percent: number
 
 type TaskTab = '日常检查' | '专项检查' | '督查督办' | '抽检'
 
-export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi }: SpecialDimensionProps) {
+export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi, onNavigateToHazard }: SpecialDimensionProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [workGroups, setWorkGroups] = useState<WorkGroup[]>([])
   const [experts, setExperts] = useState<Expert[]>([])
@@ -108,9 +110,12 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi 
     return list
   }, [filteredTasks, activeTab, keyword])
 
+  // 排序
+  const { sortedData: sortedTasks, sort, handleSort } = useSortableTable(currentTasks, 'start_date', 'desc')
+
   // 分页
-  const totalPages = Math.max(1, Math.ceil(currentTasks.length / PAGE_SIZE))
-  const pagedTasks = currentTasks.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(sortedTasks.length / PAGE_SIZE))
+  const pagedTasks = sortedTasks.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   // 统计
   const stats = useMemo(() => ({
@@ -222,6 +227,26 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi 
       .sort((a, b) => b.count - a.count)
   }, [selectedTask, hazards])
 
+  // 跳转隐患列表
+  const handleHazardClick = (type: string) => {
+    if (!onNavigateToHazard) return
+    // 根据当前 tab 确定监管类型
+    const supervisionType = typeMap[activeTab] || undefined
+    onNavigateToHazard({ status: supervisionType })
+  }
+
+  // 跳转隐患列表（按任务关联企业筛选）
+  const handleTaskHazardClick = (task: Task, level?: string) => {
+    if (!onNavigateToHazard) return
+    const params: any = {}
+    // 任务关联的企业可以作为企业筛选条件
+    if (task.enterprise_ids && task.enterprise_ids.length > 0) {
+      params.enterpriseIds = task.enterprise_ids
+    }
+    if (level) params.riskLevel = level
+    onNavigateToHazard(params)
+  }
+
   if (loading) {
     return <div style={{ padding: 40, textAlign: 'center', color: '#6B7280' }}>加载中...</div>
   }
@@ -316,14 +341,22 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi 
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr style={{ background: '#F9FAFB' }}>
-              {['#', '任务名称', '开始日期', '结束日期', '覆盖企业', '已完成', '完成率', '时间进度', '创建人', '状态'].map(h => (
-                <th key={h} style={{ ...thStyle, fontWeight: 600, fontSize: 11 }}>{h}</th>
-              ))}
+              <th style={{ ...thStyle, fontWeight: 600, fontSize: 11 }}>#</th>
+              <SortableTh label="任务名称" sortKey="name" sort={sort} onSort={handleSort} />
+              <SortableTh label="开始日期" sortKey="start_date" sort={sort} onSort={handleSort} />
+              <SortableTh label="结束日期" sortKey="end_date" sort={sort} onSort={handleSort} />
+              <SortableTh label="覆盖企业" sortKey="total_count" sort={sort} onSort={handleSort} />
+              <SortableTh label="已完成" sortKey="completed_count" sort={sort} onSort={handleSort} />
+              <SortableTh label="完成率" sortKey="completion_rate" sort={sort} onSort={handleSort} />
+              <th style={{ ...thStyle, fontWeight: 600, fontSize: 11 }}>时间进度</th>
+              <th style={{ ...thStyle, fontWeight: 600, fontSize: 11 }}>隐患数据</th>
+              <SortableTh label="创建人" sortKey="creator" sort={sort} onSort={handleSort} />
+              <SortableTh label="状态" sortKey="status" sort={sort} onSort={handleSort} />
             </tr>
           </thead>
           <tbody>
             {pagedTasks.length === 0 ? (
-              <tr><td colSpan={10} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>暂无数据</td></tr>
+              <tr><td colSpan={11} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>暂无数据</td></tr>
             ) : pagedTasks.map((t, i) => {
               const timeProgress = calcTimeProgress(t.start_date, t.end_date)
               const statusStyle = statusLabels[t.status] || { bg: '#F3F4F6', color: '#374151' }
@@ -362,6 +395,34 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi 
                     </div>
                   </td>
                   <td style={{ ...tdStyle, color: t.creator === '系统' ? '#9CA3AF' : '#4F46E5' }}>{t.creator}</td>
+                  <td style={tdStyle} onClick={e => e.stopPropagation()}>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                      <span
+                        onClick={() => handleTaskHazardClick(t)}
+                        style={{
+                          cursor: 'pointer',
+                          color: '#D97706',
+                          fontWeight: 600,
+                          textDecoration: 'underline',
+                        }}
+                        title="点击查看隐患详情"
+                      >
+                        {t.hazard_count}条
+                      </span>
+                      <span
+                        onClick={() => handleTaskHazardClick(t, 'major')}
+                        style={{
+                          cursor: 'pointer',
+                          color: '#DC2626',
+                          fontWeight: 600,
+                          textDecoration: 'underline',
+                        }}
+                        title="点击查看重大隐患详情"
+                      >
+                        {t.major_hazard_count}条
+                      </span>
+                    </div>
+                  </td>
                   <td style={tdStyle}>
                     <span style={{ ...statusStyle, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 500 }}>
                       {t.status}

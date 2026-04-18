@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { thStyle, tdStyle, inputStyle } from './styles'
 import type { HazardDimensionProps } from './types'
 import type { Hazard, HazardStatus, HazardDimension, HazardSourceDetail } from '../../../../db/types'
@@ -41,6 +42,7 @@ const SOURCE_CONFIG: Record<string, { label: string; color: string }> = {
 }
 
 export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, setSelectedKpi, navigateParams }: HazardDimensionProps) {
+  const [searchParams] = useSearchParams()
   const [hazardRecords, setHazardRecords] = useState<Hazard[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -55,6 +57,14 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
   const [dimensionFilter, setDimensionFilter] = useState<string>('all')
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [hazardLevelFilter, setHazardLevelFilter] = useState<string>('all')
+  // 企业ID列表筛选（任务关联企业）
+  const [enterpriseIdsFilter, setEnterpriseIdsFilter] = useState<string[]>(() => {
+    const ids = navigateParams?.enterpriseIds
+    if (ids && ids.length > 0) return ids
+    const urlIds = searchParams.get('enterpriseIds')
+    if (urlIds) return urlIds.split(',').filter(Boolean)
+    return []
+  })
 
   // 加载数据库数据
   useEffect(() => {
@@ -159,6 +169,8 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
       if (teamFilter !== 'all' && r.team_name !== teamFilter) return false
       // 专家筛选
       if (expertFilter !== 'all' && r.expert_name !== expertFilter) return false
+      // 企业ID列表筛选（任务关联企业）
+      if (enterpriseIdsFilter.length > 0 && !enterpriseIdsFilter.includes(r.enterprise_id)) return false
       // 维度筛选
       if (dimensionFilter !== 'all' && r.dimension !== dimensionFilter) return false
       // 关键词搜索
@@ -172,7 +184,7 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
       }
       return true
     })
-  }, [hazardRecords, hazardLevelFilter, statusFilter, sourceFilter, industryFilter, teamFilter, expertFilter, dimensionFilter, keyword])
+  }, [hazardRecords, hazardLevelFilter, statusFilter, sourceFilter, industryFilter, teamFilter, expertFilter, dimensionFilter, enterpriseIdsFilter, keyword])
 
   // 复用排序 hook - 使用 discovered_at 作为排序字段
   const { sortedData, sort, handleSort } = useSortableTable(filtered, 'discovered_at', 'desc')
@@ -186,7 +198,7 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
   // 筛选变化时重置页码
   useEffect(() => {
     setCurrentPage(1)
-  }, [hazardRecords, hazardLevelFilter, statusFilter, sourceFilter, industryFilter, teamFilter, dimensionFilter, keyword])
+  }, [hazardRecords, hazardLevelFilter, statusFilter, sourceFilter, industryFilter, teamFilter, enterpriseIdsFilter, dimensionFilter, keyword])
 
   // 企业维度隐患统计
   const enterpriseDimensionStats = useMemo(() => {
@@ -260,8 +272,48 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
     )
   }
 
+  // 判断是否有任务关联筛选
+  const hasTaskFilter = enterpriseIdsFilter.length > 0
+  const clearTaskFilter = () => {
+    setEnterpriseIdsFilter([])
+  }
+
   return (
     <div>
+      {/* 任务跳转提示 */}
+      {hasTaskFilter && (
+        <div style={{
+          background: '#EEF2FF',
+          border: '1px solid #C7D2FE',
+          borderRadius: 6,
+          padding: '10px 14px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: 12,
+        }}>
+          <div style={{ color: '#4338CA' }}>
+            <span style={{ fontWeight: 600 }}>筛选条件：</span>
+            <span>来自任务关联企业，共 <span style={{ fontWeight: 600, color: '#4F46E5' }}>{enterpriseIdsFilter.length}</span> 家企业</span>
+          </div>
+          <button
+            onClick={clearTaskFilter}
+            style={{
+              padding: '3px 10px',
+              borderRadius: 4,
+              border: '1px solid #C7D2FE',
+              background: 'white',
+              color: '#4F46E5',
+              fontSize: 11,
+              cursor: 'pointer',
+            }}
+          >
+            清除筛选
+          </button>
+        </div>
+      )}
+
       {/* 筛选器 */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap' }}>
         {/* 隐患等级筛选 */}

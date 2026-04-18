@@ -125,6 +125,7 @@ export function StationChiefV2Dashboard() {
     const newParams: Record<string, string> = { tab: 'hazard' }
     if (params.teamName) newParams.teamName = params.teamName
     if (params.enterpriseName) newParams.enterpriseName = params.enterpriseName
+    if (params.enterpriseIds && params.enterpriseIds.length > 0) newParams.enterpriseIds = params.enterpriseIds.join(',')
     if (params.expertName) newParams.expertName = params.expertName
     if (params.riskLevel && params.riskLevel !== 'all') newParams.riskLevel = params.riskLevel
     if (params.status) newParams.status = params.status
@@ -454,7 +455,7 @@ export function StationChiefV2Dashboard() {
 
       {dimension === 'duty' && <DutyDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} onNavigateToHazard={handleNavigateToHazard} onNavigateToState={handleNavigateToState} />}
       {dimension === 'industry' && <IndustryDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} />}
-      {dimension === 'special' && <SpecialDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} />}
+      {dimension === 'special' && <SpecialDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} onNavigateToHazard={handleNavigateToHazard} />}
       {dimension === 'state' && <StateDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} navigateParams={{
         teamName: searchParams.get('teamName') || undefined,
         enterpriseName: searchParams.get('enterpriseName') || undefined,

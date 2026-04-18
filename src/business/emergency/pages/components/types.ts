@@ -23,6 +23,7 @@ export interface SortableThProps {
 export interface HazardNavigateParams {
   teamName?: string        // 按工作组筛选
   enterpriseName?: string  // 按企业筛选
+  enterpriseIds?: string[] // 按企业ID列表筛选（任务关联企业）
   expertName?: string      // 按专家筛选
   riskLevel?: RiskLevel   // 按风险等级筛选
   status?: string         // 按状态筛选
@@ -90,6 +91,7 @@ export interface SpecialDimensionProps {
   riskLevel: RiskLevel
   timeRange: TimeRange
   selectedKpi: string | null
+  onNavigateToHazard?: (params: HazardNavigateParams) => void
 }
 
 export type Dimension = 'duty' | 'industry' | 'special' | 'state' | 'hazard'
