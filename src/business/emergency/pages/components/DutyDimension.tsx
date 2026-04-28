@@ -75,6 +75,7 @@ interface ExpertView {
   video_watch: number
   ai_watch: number
   enterprise_file: number
+  ai_total_score: number
   dimensions: {
     dim_1: number
     dim_2: number
@@ -140,7 +141,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
       // 获取该工作组负责的企业
       const wgHazards = hazardRecords.filter(h => h.team_name === wg.name)
       const hazard_total = wgHazards.length
-      const hazard_major = wgHazards.filter(h => h.level === 'major').length
+      const hazard_major = wgHazards.filter(h => h.level === '重大隐患').length
       const hazard_pending = wgHazards.filter(h => h.status === 'pending' || h.status === 'rectifying').length
       const hazard_rectified = wgHazards.filter(h => ['rectified', 'verified', 'closed'].includes(h.status)).length
       const hazard_overdue = wgHazards.filter(h => h.status === 'overdue').length
@@ -226,7 +227,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
     nameMap.forEach(view => {
       const mHazards = hazardRecords.filter(h => view.work_groups.includes(h.team_name || ''))
       view.hazard_found = mHazards.length
-      view.hazard_serious = mHazards.filter(h => h.level === 'major').length
+      view.hazard_serious = mHazards.filter(h => h.level === '重大隐患').length
       view.hazard_closed = mHazards.filter(h => ['rectified', 'verified', 'closed'].includes(h.status)).length
       view.hazard_in_progress = mHazards.filter(h => h.status === 'rectifying').length
       view.hazard_overdue = mHazards.filter(h => h.status === 'overdue').length
@@ -237,12 +238,12 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
       view.plan_count = Math.round(view.enterprise_count / 5)
       view.plan_completed = Math.round(view.plan_count * 0.8)
       view.plan_completion_rate = view.plan_count > 0 ? Math.round((view.plan_completed / view.plan_count) * 100) : 0
-      // 最近检查日期
+      // 最近检查日期（使用 discovered_at 作为代理）
       if (mHazards.length > 0) {
-        const validHazards = mHazards.filter(h => h.record_time)
+        const validHazards = mHazards.filter(h => h.discovered_at)
         if (validHazards.length > 0) {
-          const sortedHazards = [...validHazards].sort((a, b) => (b.record_time || '').localeCompare(a.record_time || ''))
-          view.last_inspection_date = sortedHazards[0]?.record_time?.split(' ')[0] || '-'
+          const sortedHazards = [...validHazards].sort((a, b) => (b.discovered_at || '').localeCompare(a.discovered_at || ''))
+          view.last_inspection_date = sortedHazards[0]?.discovered_at?.split(' ')[0] || '-'
         }
       }
     })
@@ -264,6 +265,10 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
         dim_7: dims.length > 0 ? Math.round(dims.reduce((s, d) => s + d.dim_7_score, 0) / dims.length) : 0,
       }
       const behavior = expertPlatformBehaviors[exp.id]
+      const ai_total_score = Math.round(
+        (avgDims.dim_1 + avgDims.dim_2 + avgDims.dim_3 + avgDims.dim_4 +
+         avgDims.dim_5 + avgDims.dim_6 + avgDims.dim_7) / 7
+      )
       return {
         id: exp.id,
         name: exp.name,
@@ -275,8 +280,8 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
         hazard_serious: behavior?.hazard_serious || 0,
         hazard_closed: behavior?.hazard_closed || 0,
         closure_rate: behavior?.closure_rate || 0,
-        in_progress: behavior?.in_progress || 0,
-        overdue: behavior?.overdue || 0,
+        in_progress: 0,
+        overdue: 0,
         risk_mark: behavior?.risk_mark || 0,
         video_todo: behavior?.video_todo || 0,
         hazard_todo: behavior?.hazard_todo || 0,
@@ -287,6 +292,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
         video_watch: behavior?.video_watch || 0,
         ai_watch: behavior?.ai_watch || 0,
         enterprise_file: behavior?.enterprise_file || 0,
+        ai_total_score,
         dimensions: avgDims,
       }
     })
@@ -448,7 +454,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
           <div style={{ display: 'flex', gap: 8 }}>
             <input type="text" placeholder="搜索工作组名称" value={teamKeyword} onChange={e => setTeamKeyword(e.target.value)} style={inputStyle} />
             <button onClick={() => exportToCSV(
-              filteredWorkGroups.map(wg => ({
+              filteredTeams.map(wg => ({
                 工作组名称: wg.name,
                 区域: wg.area,
                 风险等级: wg.risk_level,
@@ -475,22 +481,21 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr>
-              <th style={thStyle}>工作组名称</th>
               <SortableTh label="工作组名称" sortKey="name" sort={sortTeams} onSort={handleSortTeams} />
               <SortableTh label="成员" sortKey="leader_name" sort={sortTeams} onSort={handleSortTeams} />
-              <SortableTh label="检查企业" sortKey="enterprise_count" sort={sortTeams} onSort={handleSortTeams} />
+              <SortableTh label="监管企业数" sortKey="enterprise_count" sort={sortTeams} onSort={handleSortTeams} />
+              <SortableTh label="检查企业" sortKey="inspection_count" sort={sortTeams} onSort={handleSortTeams} />
               <SortableTh label="隐患总数" sortKey="hazard_total" sort={sortTeams} onSort={handleSortTeams} />
               <SortableTh label="重大隐患" sortKey="hazard_major" sort={sortTeams} onSort={handleSortTeams} />
               <SortableTh label="已整改" sortKey="hazard_rectified" sort={sortTeams} onSort={handleSortTeams} />
               <SortableTh label="整改完成率" sortKey="closure_rate" sort={sortTeams} onSort={handleSortTeams} />
               <SortableTh label="逾期未整改" sortKey="hazard_overdue" sort={sortTeams} onSort={handleSortTeams} />
               <SortableTh label="整改中" sortKey="hazard_pending" sort={sortTeams} onSort={handleSortTeams} />
-              <th style={thStyle}>重大风险（任务/时间）</th>
             </tr>
           </thead>
           <tbody>
             {sortedTeams.length === 0 ? (
-              <tr><td colSpan={11} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的工作组</td></tr>
+              <tr><td colSpan={10} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的工作组</td></tr>
             ) : sortedTeams.map((g, i) => {
               const isSelected = selectedTeamId === g.id
               return (
@@ -510,12 +515,13 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                     <span style={{ color: '#059669', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setFilterByMember(g.deputy_name); setSelectedMemberName(g.deputy_name) }} title={`点击查看 ${g.deputy_name} 负责的工作组`}>{g.deputy_name}</span>
                   </td>
                   <td
-                    style={{ ...tdStyle, fontWeight: 500, cursor: g.enterprise_count > 0 ? 'pointer' : 'default', color: '#4F46E5', textDecoration: 'underline' }}
-                    onClick={() => g.enterprise_count > 0 && onNavigateToState?.({ teamName: g.name })}
+                    style={{ ...tdStyle, fontWeight: 500, cursor: 'pointer', color: '#4F46E5', textDecoration: 'underline' }}
+                    onClick={() => onNavigateToState?.({ teamName: g.name })}
                     title="点击查看该工作组负责的企业"
                   >
                     {g.enterprise_count}
                   </td>
+                  <td style={tdStyle}>{g.inspection_count}</td>
                   <td
                     style={{ ...tdStyle, cursor: g.hazard_total > 0 ? 'pointer' : 'default' }}
                     onClick={() => g.hazard_total > 0 && onNavigateToHazard?.({ teamName: g.name })}
@@ -552,7 +558,6 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                   >
                     {g.hazard_pending}
                   </td>
-                  <td style={tdStyle}>{g.major_risk_progress}% | {g.time_progress}%</td>
                 </tr>
               )
             })}
@@ -561,15 +566,28 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 <td style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
                 <td style={{ ...tdStyle, color: '#374151' }}>-</td>
                 <td style={{ ...tdStyle, color: '#374151' }}>{totals.enterprise}</td>
+                <td style={{ ...tdStyle, color: '#374151' }}>-</td>
                 <td style={{ ...tdStyle, color: '#374151' }}>{totals.hazard}</td>
                 <td style={{ ...tdStyle, color: '#DC2626' }}>{totals.serious}</td>
                 <td style={{ ...tdStyle, color: '#059669' }}>{totals.closed}</td>
                 <td style={{ ...tdStyle, color: '#374151' }}>{totals.hazard > 0 ? Math.round((totals.closed / totals.hazard) * 100) : 0}%</td>
                 <td style={{ ...tdStyle, color: '#DC2626' }}>-</td>
                 <td style={{ ...tdStyle, color: '#D97706' }}>-</td>
-                <td style={{ ...tdStyle, color: '#374151' }}>-</td>
               </tr>
             )}
+            {/* 未分组行 */}
+            <tr style={{ background: '#FFFBEB', fontStyle: 'italic' }}>
+              <td style={{ ...tdStyle, textAlign: 'left', color: '#92400E', fontWeight: 500 }}>未分组</td>
+              <td style={{ ...tdStyle, color: '#9CA3AF' }}>-</td>
+              <td style={{ ...tdStyle, color: '#9CA3AF' }}>-</td>
+              <td style={{ ...tdStyle, color: '#9CA3AF' }}>-</td>
+              <td style={{ ...tdStyle, color: '#9CA3AF' }}>-</td>
+              <td style={{ ...tdStyle, color: '#9CA3AF' }}>-</td>
+              <td style={{ ...tdStyle, color: '#9CA3AF' }}>-</td>
+              <td style={{ ...tdStyle, color: '#9CA3AF' }}>-</td>
+              <td style={{ ...tdStyle, color: '#9CA3AF' }}>-</td>
+              <td style={{ ...tdStyle, color: '#9CA3AF' }}>-</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -586,7 +604,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 工作组: m.work_groups.join('、'),
                 负责企业: m.enterprise_count,
                 已检查企业: m.inspection_count,
-                发现隐患: m.hazard_found,
+                确认隐患数: m.hazard_found,
                 重大隐患: m.hazard_serious,
                 已整改: m.hazard_closed,
                 整改率: m.closure_rate + '%',
@@ -598,7 +616,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 { key: '工作组', label: '工作组' },
                 { key: '负责企业', label: '负责企业' },
                 { key: '已检查企业', label: '已检查企业' },
-                { key: '发现隐患', label: '发现隐患' },
+                { key: '确认隐患数', label: '确认隐患数' },
                 { key: '重大隐患', label: '重大隐患' },
                 { key: '已整改', label: '已整改' },
                 { key: '整改率', label: '整改率' },
@@ -613,10 +631,12 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
           <thead>
             <tr>
               <SortableTh label="姓名" sortKey="name" sort={sortMembers} onSort={handleSortMembers} />
+              <th style={thStyle}>职位</th>
               <th style={thStyle}>所在工作组</th>
               <SortableTh label="负责企业" sortKey="enterprise_count" sort={sortMembers} onSort={handleSortMembers} />
               <SortableTh label="已检查企业" sortKey="inspection_count" sort={sortMembers} onSort={handleSortMembers} />
-              <SortableTh label="发现隐患" sortKey="hazard_found" sort={sortMembers} onSort={handleSortMembers} />
+              <SortableTh label="检查完成率" sortKey="plan_completion_rate" sort={sortMembers} onSort={handleSortMembers} />
+              <th style={thStyle} title="已检查企业的隐患数量">确认隐患数 ⓘ</th>
               <SortableTh label="重大隐患" sortKey="hazard_serious" sort={sortMembers} onSort={handleSortMembers} />
               <SortableTh label="已整改" sortKey="hazard_closed" sort={sortMembers} onSort={handleSortMembers} />
               <SortableTh label="整改率" sortKey="closure_rate" sort={sortMembers} onSort={handleSortMembers} />
@@ -626,7 +646,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
           </thead>
           <tbody>
             {sortedMembers.length === 0 ? (
-              <tr><td colSpan={10} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的人员</td></tr>
+              <tr><td colSpan={12} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的人员</td></tr>
             ) : sortedMembers.map((m, i) => (
               <tr key={m.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                 <td
@@ -636,7 +656,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 >
                   {m.name}
                 </td>
-
+                <td style={{ ...tdStyle, color: '#6B7280' }}>{m.position || '-'}</td>
                 <td style={{ ...tdStyle, textAlign: 'left' }}>
                   {m.work_groups.map((wg, idx) => (
                     <span
@@ -657,10 +677,13 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                   {m.enterprise_count}
                 </td>
                 <td style={tdStyle}>{m.inspection_count}</td>
+                <td style={{ ...tdStyle, color: m.plan_completion_rate >= 80 ? '#059669' : m.plan_completion_rate >= 50 ? '#D97706' : '#DC2626' }}>
+                  {m.plan_completion_rate}%
+                </td>
                 <td
                   style={{ ...tdStyle, cursor: m.hazard_found > 0 ? 'pointer' : 'default' }}
                   onClick={() => m.hazard_found > 0 && onNavigateToHazard?.({ expertName: m.name })}
-                  title="点击查看发现的隐患"
+                  title="已检查企业的隐患数量，点击查看发现的隐患"
                 >
                   {m.hazard_found}
                 </td>
@@ -709,7 +732,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
               filteredExperts.map(e => ({
                 姓名: e.name,
                 配合工作组: e.work_group,
-                负责企业: e.responsible,
+                负责企业: e.enterprise_count,
                 检查次数: e.check_count,
                 发现隐患: e.hazard_found,
                 重大隐患: e.hazard_serious,
@@ -734,6 +757,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
               <tr>
                 <SortableTh label="姓名" sortKey="name" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="配合工作组" sortKey="work_group" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="AI评估总分" sortKey="ai_total_score" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="负责" sortKey="enterprise_count" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="检查" sortKey="check_count" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="发现隐患" sortKey="hazard_found" sort={sortExperts} onSort={handleSortExperts} />
@@ -756,7 +780,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
             </thead>
             <tbody>
               {sortedExperts.length === 0 ? (
-                <tr><td colSpan={20} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的专家</td></tr>
+                <tr><td colSpan={21} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的专家</td></tr>
               ) : sortedExperts.map((e, i) => (
                 <tr key={e.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                   <td
@@ -767,6 +791,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                     {e.name}
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'left' }}>{e.work_group}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600, color: e.ai_total_score >= 80 ? '#059669' : e.ai_total_score >= 65 ? '#D97706' : '#DC2626' }}>{e.ai_total_score}</td>
                   <td style={tdStyle}>{e.enterprise_count}</td>
                   <td style={tdStyle}>{e.check_count}</td>
                   <td
@@ -799,11 +824,22 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
 
       {/* （四）专家7维度绩效得分明细 */}
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>（四）专家7维度绩效得分明细</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>（四）专家7维度绩效得分明细</div>
+          <input
+            type="text"
+            placeholder="搜索姓名"
+            value={expertKeyword}
+            onChange={e => setExpertKeyword(e.target.value)}
+            style={{ ...inputStyle, width: 120 }}
+          />
+        </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr>
+              <th style={thStyle}>工作组</th>
               <th style={thStyle}>姓名</th>
+              <th style={thStyle}>总分</th>
               <th style={thStyle}>企业基础覆盖度</th>
               <th style={thStyle}>制度数字化完善度</th>
               <th style={thStyle}>风险识别精准度</th>
@@ -815,19 +851,27 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
           </thead>
           <tbody>
             {filteredExperts.length === 0 ? (
-              <tr><td colSpan={8} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>暂无数据</td></tr>
-            ) : filteredExperts.map((e, i) => (
-              <tr key={e.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 500 }}>{e.name}</td>
-                <td style={{ ...tdStyle, color: e.dimensions.dim_1 >= 80 ? '#059669' : e.dimensions.dim_1 >= 65 ? '#D97706' : '#DC2626' }}>{e.dimensions.dim_1}</td>
-                <td style={{ ...tdStyle, color: e.dimensions.dim_2 >= 80 ? '#059669' : e.dimensions.dim_2 >= 65 ? '#D97706' : '#DC2626' }}>{e.dimensions.dim_2}</td>
-                <td style={{ ...tdStyle, color: e.dimensions.dim_3 >= 80 ? '#059669' : e.dimensions.dim_3 >= 65 ? '#D97706' : '#DC2626' }}>{e.dimensions.dim_3}</td>
-                <td style={{ ...tdStyle, color: e.dimensions.dim_4 >= 80 ? '#059669' : e.dimensions.dim_4 >= 65 ? '#D97706' : '#DC2626' }}>{e.dimensions.dim_4}</td>
-                <td style={{ ...tdStyle, color: e.dimensions.dim_5 >= 80 ? '#059669' : e.dimensions.dim_5 >= 65 ? '#D97706' : '#DC2626' }}>{e.dimensions.dim_5}</td>
-                <td style={{ ...tdStyle, color: e.dimensions.dim_6 >= 80 ? '#059669' : e.dimensions.dim_6 >= 65 ? '#D97706' : '#DC2626' }}>{e.dimensions.dim_6}</td>
-                <td style={{ ...tdStyle, color: e.dimensions.dim_7 >= 80 ? '#059669' : e.dimensions.dim_7 >= 65 ? '#D97706' : '#DC2626' }}>{e.dimensions.dim_7}</td>
-              </tr>
-            ))}
+              <tr><td colSpan={10} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>暂无数据</td></tr>
+            ) : filteredExperts.map((e, i) => {
+              const totalScore = Math.round(
+                (e.dimensions.dim_1 + e.dimensions.dim_2 + e.dimensions.dim_3 + e.dimensions.dim_4 +
+                 e.dimensions.dim_5 + e.dimensions.dim_6 + e.dimensions.dim_7) / 7
+              )
+              return (
+                <tr key={e.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                  <td style={{ ...tdStyle, textAlign: 'left', color: '#6B7280' }}>{e.work_group}</td>
+                  <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 500 }}>{e.name}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600, color: totalScore >= 80 ? '#059669' : totalScore >= 65 ? '#D97706' : '#DC2626' }}>{totalScore}</td>
+                  <td style={{ ...tdStyle, color: e.dimensions.dim_1 >= 80 ? '#059669' : e.dimensions.dim_1 >= 65 ? '#D97706' : '#DC2626' }}>{e.dimensions.dim_1}</td>
+                  <td style={{ ...tdStyle, color: e.dimensions.dim_2 >= 80 ? '#059669' : e.dimensions.dim_2 >= 65 ? '#D97706' : '#DC2626' }}>{e.dimensions.dim_2}</td>
+                  <td style={{ ...tdStyle, color: e.dimensions.dim_3 >= 80 ? '#059669' : e.dimensions.dim_3 >= 65 ? '#D97706' : '#DC2626' }}>{e.dimensions.dim_3}</td>
+                  <td style={{ ...tdStyle, color: e.dimensions.dim_4 >= 80 ? '#059669' : e.dimensions.dim_4 >= 65 ? '#D97706' : '#DC2626' }}>{e.dimensions.dim_4}</td>
+                  <td style={{ ...tdStyle, color: e.dimensions.dim_5 >= 80 ? '#059669' : e.dimensions.dim_5 >= 65 ? '#D97706' : '#DC2626' }}>{e.dimensions.dim_5}</td>
+                  <td style={{ ...tdStyle, color: e.dimensions.dim_6 >= 80 ? '#059669' : e.dimensions.dim_6 >= 65 ? '#D97706' : '#DC2626' }}>{e.dimensions.dim_6}</td>
+                  <td style={{ ...tdStyle, color: e.dimensions.dim_7 >= 80 ? '#059669' : e.dimensions.dim_7 >= 65 ? '#D97706' : '#DC2626' }}>{e.dimensions.dim_7}</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

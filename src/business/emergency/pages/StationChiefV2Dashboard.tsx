@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../../../components/layout/PageHeader'
-import type { Dimension, HazardNavigateParams } from './components/types'
+import type { Dimension, HazardNavigateParams, RiskLevel } from './components/types'
 
 import { DutyDimension } from './components/DutyDimension'
 import { StateDimension } from './components/StateDimension'
@@ -107,7 +107,7 @@ export function StationChiefV2Dashboard() {
     return {
       enterprise: enterpriseCount || workGroups.reduce((s, g) => s + g.enterprise_count, 0),
       hazard: workGroups.reduce((s, g) => s + g.enterprise_count * 2, 0) || hazardRecords.length,
-      serious: hazardRecords.filter(h => h.level === 'major').length,
+      serious: hazardRecords.filter(h => h.level === '重大隐患').length,
       closed: hazardRecords.filter(h => ['verified', 'closed'].includes(h.status)).length,
       inProgress: hazardRecords.filter(h => h.status === 'rectifying').length,
       deadline: hazardRecords.filter(h => h.status === 'pending' || h.status === 'rectifying').length,
@@ -155,83 +155,7 @@ export function StationChiefV2Dashboard() {
     <div style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
       <PageHeader title="应急消防管理站看板" />
 
-      {/* KPI 卡片全局置顶 */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(8, 1fr)',
-        gap: 12,
-        marginBottom: 16,
-        padding: '16px',
-        background: '#FAFAFA',
-        border: '1px solid #E5E7EB',
-        borderRadius: 4,
-      }}>
-        {([
-          { key: 'enterprise', label: '检查企业',  value: kpiTotals.enterprise, unit: '家', color: '#374151' },
-          { key: 'hazard',    label: '隐患总数',  value: kpiTotals.hazard,    unit: '处', color: '#374151' },
-          { key: 'serious',   label: '重大隐患',  value: kpiTotals.serious,   unit: '处', color: '#DC2626' },
-          { key: 'closed',    label: '已整改',    value: kpiTotals.closed,    unit: '处', color: '#059669' },
-          { key: 'inProgress',label: '整改中',   value: kpiTotals.inProgress,unit: '处', color: '#D97706' },
-          { key: 'deadline', label: '限期整改数', value: kpiTotals.deadline,  unit: '处', color: '#7C3AED' },
-          { key: 'extended',  label: '延期整改数', value: kpiTotals.extended,  unit: '处', color: '#DC2626' },
-          { key: 'overdue',   label: '逾期未整改', value: kpiTotals.overdue,  unit: '处', color: '#DC2626' },
-        ] as const).map(item => {
-          const isActive = selectedKpi === item.key
-          return (
-            <div
-              key={item.key}
-              onClick={() => setSelectedKpi(isActive ? null : item.key)}
-              style={{
-                textAlign: 'center',
-                padding: '8px 4px',
-                borderRadius: 4,
-                border: `1px solid ${isActive ? item.color : 'transparent'}`,
-                background: isActive ? (item.key === 'enterprise' || item.key === 'hazard' ? '#F3F4F6' : '#FFF') : 'transparent',
-                cursor: 'pointer',
-                userSelect: 'none',
-                transition: 'all 0.15s',
-              }}
-              title="点击筛选，切换维度查看详情"
-            >
-              <div style={{ fontSize: 11, color: isActive ? item.color : '#9CA3AF', marginBottom: 4, fontWeight: isActive ? 500 : 400 }}>{item.label}</div>
-              <div style={{ fontSize: 20, fontWeight: 600, color: item.color }}>{item.value}</div>
-              <div style={{ fontSize: 11, color: '#9CA3AF' }}>{item.unit}</div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* 维度切换按钮 */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-        {[
-          { key: 'duty', label: '组织与人员' },
-          { key: 'industry', label: '行业分析' },
-          { key: 'special', label: '任务计划' },
-          { key: 'state', label: '企业状态' },
-          { key: 'hazard', label: '隐患详情' },
-          { key: 'trend', label: '趋势分析' },
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => handleDimensionChange(tab.key as Dimension)}
-            style={{
-              padding: '4px 12px',
-              borderRadius: 4,
-              border: '1px solid',
-              borderColor: dimension === tab.key ? '#4F46E5' : '#D1D5DB',
-              background: dimension === tab.key ? '#EEF2FF' : 'white',
-              color: dimension === tab.key ? '#4F46E5' : '#6B7280',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: 500,
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* 时间范围筛选 */}
+      {/* 时间范围筛选（置顶，在指标卡片上方） */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -437,20 +361,94 @@ export function StationChiefV2Dashboard() {
             重置
           </button>
         )}
+      </div>
 
-        {/* 当前筛选状态 */}
-        <div style={{ marginLeft: 'auto', fontSize: 12, color: '#9CA3AF' }}>
-          {dateRange.start} ~ {dateRange.end}
-          {selectedKpi && (
-            <span style={{ marginLeft: 8, padding: '1px 6px', background: '#F3F4F6', borderRadius: 3, color: '#7C3AED' }}>
-              {{
-                enterprise: '检查企业', hazard: '隐患总数', serious: '重大隐患',
-                closed: '已整改', inProgress: '整改中', deadline: '限期整改',
-                extended: '延期整改', overdue: '逾期未改',
-              }[selectedKpi] || selectedKpi}
-            </span>
-          )}
-        </div>
+      {/* KPI 指标卡片（在筛选区下方、tab 切换上方） */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, 1fr)',
+        gap: 12,
+        marginBottom: 12,
+        padding: '16px',
+        background: '#FAFAFA',
+        border: '1px solid #E5E7EB',
+        borderRadius: 4,
+      }}>
+        {([
+          { key: 'enterprise', label: '检查企业',  value: kpiTotals.enterprise, unit: '家', color: '#374151', tip: '远程监管户数（去除停业、虚拟注册等，共8900多）' },
+          { key: 'hazard',    label: '隐患总数',  value: kpiTotals.hazard,    unit: '处', color: '#374151', tip: '镇街监督检查过程中发现的隐患总数（日常监管+安全检查+三清三关）= 已整改+整改中' },
+          { key: 'serious',   label: '重大隐患',  value: kpiTotals.serious,   unit: '处', color: '#DC2626', tip: '' },
+          { key: 'closed',    label: '已整改',    value: kpiTotals.closed,    unit: '处', color: '#059669', tip: '' },
+          { key: 'inProgress',label: '整改中',   value: kpiTotals.inProgress,unit: '处', color: '#D97706', tip: '' },
+        ] as { key: string; label: string; value: number; unit: string; color: string; tip: string }[]).map(item => {
+          const isActive = selectedKpi === item.key
+          return (
+            <div
+              key={item.key}
+              onClick={() => setSelectedKpi(isActive ? null : item.key)}
+              style={{
+                textAlign: 'center',
+                padding: '8px 4px',
+                borderRadius: 4,
+                border: `1px solid ${isActive ? item.color : 'transparent'}`,
+                background: isActive ? (item.key === 'enterprise' || item.key === 'hazard' ? '#F3F4F6' : '#FFF') : 'transparent',
+                cursor: 'pointer',
+                userSelect: 'none',
+                transition: 'all 0.15s',
+              }}
+              title={item.tip ? item.tip : '点击筛选，切换维度查看详情'}
+            >
+              <div style={{ fontSize: 11, color: isActive ? item.color : '#9CA3AF', marginBottom: 4, fontWeight: isActive ? 500 : 400 }}>
+                {item.label}
+                {item.tip && <span style={{ marginLeft: 3, color: '#9CA3AF', fontSize: 10, cursor: 'help' }}>ⓘ</span>}
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: item.color }}>{item.value}</div>
+              <div style={{ fontSize: 11, color: '#9CA3AF' }}>{item.unit}</div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* 维度切换按钮（在筛选区下方） */}
+      <div style={{
+        display: 'flex',
+        gap: 0,
+        marginBottom: 16,
+        borderBottom: '2px solid #E5E7EB',
+        background: 'white',
+      }}>
+        {[
+          { key: 'duty', label: '组织与人员' },
+          { key: 'industry', label: '行业分析' },
+          { key: 'special', label: '任务计划' },
+          { key: 'state', label: '企业状态' },
+          { key: 'hazard', label: '隐患详情' },
+          { key: 'trend', label: '趋势分析' },
+        ].map(tab => {
+          const isActive = dimension === tab.key
+          return (
+            <button
+              key={tab.key}
+              onClick={() => handleDimensionChange(tab.key as Dimension)}
+              style={{
+                padding: '10px 20px',
+                border: 'none',
+                borderBottom: isActive ? '2px solid #4F46E5' : '2px solid transparent',
+                marginBottom: -2,
+                background: 'transparent',
+                color: isActive ? '#4F46E5' : '#6B7280',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: isActive ? 700 : 500,
+                letterSpacing: isActive ? 0.2 : 0,
+                transition: 'color 0.15s, border-color 0.15s',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
       </div>
 
       {dimension === 'duty' && <DutyDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} onNavigateToHazard={handleNavigateToHazard} onNavigateToState={handleNavigateToState} />}

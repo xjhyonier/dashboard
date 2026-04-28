@@ -1,6 +1,14 @@
 import { useState, useMemo } from 'react'
 import type { SortState } from './types'
 
+// 风险等级排序权重
+const riskLevelOrder: Record<string, number> = {
+  '重大风险': 1,
+  '较大风险': 2,
+  '一般风险': 3,
+  '低风险': 4,
+}
+
 export function useSortableTable<T>(data: T[], defaultSortKey?: keyof T, defaultDirection: 'asc' | 'desc' = 'desc') {
   const [sort, setSort] = useState<SortState<T>>({
     key: defaultSortKey || null,
@@ -15,6 +23,14 @@ export function useSortableTable<T>(data: T[], defaultSortKey?: keyof T, default
       if (aVal == null && bVal == null) return 0
       if (aVal == null) return sort.direction === 'asc' ? -1 : 1
       if (bVal == null) return sort.direction === 'asc' ? 1 : -1
+      // 针对风险等级字段使用自定义排序
+      if (sort.key === 'name' && typeof aVal === 'string' && typeof bVal === 'string') {
+        const aOrder = riskLevelOrder[aVal] || 999
+        const bOrder = riskLevelOrder[bVal] || 999
+        if (aOrder !== 999 && bOrder !== 999) {
+          return sort.direction === 'asc' ? aOrder - bOrder : bOrder - aOrder
+        }
+      }
       if (typeof aVal === 'string' && typeof bVal === 'string') {
         return sort.direction === 'asc' ? aVal.localeCompare(bVal, 'zh-CN') : bVal.localeCompare(aVal, 'zh-CN')
       }

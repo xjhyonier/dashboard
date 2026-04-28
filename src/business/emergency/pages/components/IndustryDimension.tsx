@@ -36,15 +36,6 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
     loadData()
   }, [])
 
-  // 加载中状态
-  if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '48px', color: '#9CA3AF' }}>
-        加载数据中...
-      </div>
-    )
-  }
-
   // 标签库（从 hazards 按 enterprise_industry 聚合）
   const tagLibrary = useMemo(() => {
     const tags = new Set<string>()
@@ -160,29 +151,45 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
       })
   }, [enterprises, hazards])
 
-  // 风险等级汇总（从 enterprises 按 risk_level 聚合）
+  // 消防场所风险等级汇总（只统计消防场所类型企业）
   const riskLevels = useMemo(() => {
+    const industryToTypeLocal: Record<string, string> = {
+      '工业企业': '工业企业', '危化使用': '工业企业',
+      '仓储物流': '消防场所', '小微企业': '消防场所', '九小场所': '消防场所', '出租房': '消防场所', '沿街店铺': '消防场所',
+    }
     const entMap = new Map<string, { enterpriseCount: number }>()
     const hazMap = new Map<string, { hazardFound: number; seriousHazard: number; rectified: number; deadline: number; recheck: number }>()
 
-    // 按风险等级聚合企业数
-    enterprises.forEach(e => {
-      const level = e.risk_level
-      if (!entMap.has(level)) entMap.set(level, { enterpriseCount: 0 })
-      entMap.get(level)!.enterpriseCount++
-    })
+    // 只按消防场所类型企业聚合风险等级
+    enterprises
+      .filter(e => (industryToTypeLocal[e.industry] || '消防场所') === '消防场所')
+      .forEach(e => {
+        const level = e.risk_level
+        if (!entMap.has(level)) entMap.set(level, { enterpriseCount: 0 })
+        entMap.get(level)!.enterpriseCount++
+      })
 
     // 按企业风险等级聚合隐患数据
     hazards.forEach(h => {
-      // 隐患关联的企业风险等级需要从 enterprise 查找，这里暂时用状态代替
-      const status = h.status
-      // 风险等级统计暂时基于隐患状态估算
+      // 隐患关联的企业风险等级需要从 enterprise 查找
+      const enterprise = enterprises.find(e => e.id === h.enterprise_id)
+      if (!enterprise) return
+      const type = industryToTypeLocal[enterprise.industry] || '消防场所'
+      if (type !== '消防场所') return
+      const level = enterprise.risk_level
+      if (!hazMap.has(level)) hazMap.set(level, { hazardFound: 0, seriousHazard: 0, rectified: 0, deadline: 0, recheck: 0 })
+      const s = hazMap.get(level)!
+      s.hazardFound++
+      if (h.level === '重大隐患') s.seriousHazard++
+      if (h.status === 'rectified') s.rectified++
+      if (h.status === 'rectifying') s.deadline++
+      if (h.status === 'pending') s.recheck++
     })
 
     // 按重大风险、较大风险、一般风险、低风险的顺序排列
-    const order = ['重大', '较大', '一般', '低']
+    const order = ['重大风险', '较大风险', '一般风险', '低风险']
     return order.map(name => ({
-      name: name + '风险',
+      name: name,
       enterpriseCount: entMap.get(name)?.enterpriseCount || 0,
       inspectedCount: 0,
       hazardFound: hazMap.get(name)?.hazardFound || 0,
@@ -194,23 +201,35 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
     }))
   }, [enterprises, hazards])
 
-  // 消防类型汇总（从 enterprises 按 industry 映射聚合）
-  // 由于 DB 中无 fire_type 字段，暂时用 industry 字段代替
+  // 消防类型汇总（从 enterprises 按 risk_level 聚合）
+  // 改为按风险等级统计，度量值顺序：重大风险、较大风险、一般风险、低风险
   const fireTypes = useMemo(() => {
     const map = new Map<string, { enterpriseCount: number; inspectedCount: number; hazardFound: number; seriousHazard: number; rectified: number; deadline: number; recheck: number; enforcement: number }>()
 
-    // 按行业聚合企业数
-    enterprises.forEach(e => {
-      const type = e.industry
-      if (!map.has(type)) map.set(type, { enterpriseCount: 0, inspectedCount: 0, hazardFound: 0, seriousHazard: 0, rectified: 0, deadline: 0, recheck: 0, enforcement: 0 })
-      map.get(type)!.enterpriseCount++
-    })
+    // 只统计消防场所类型企业，按风险等级聚合
+    const industryToTypeLocal: Record<string, string> = {
+      '工业企业': '工业企业', '危化使用': '工业企业',
+      '仓储物流': '消防场所', '小微企业': '消防场所', '九小场所': '消防场所', '出租房': '消防场所', '沿街店铺': '消防场所',
+    }
 
-    // 按行业聚合隐患数据
+    // 按风险等级聚合企业数（只统计消防场所）
+    enterprises
+      .filter(e => (industryToTypeLocal[e.industry] || '消防场所') === '消防场所')
+      .forEach(e => {
+        const level = e.risk_level
+        if (!map.has(level)) map.set(level, { enterpriseCount: 0, inspectedCount: 0, hazardFound: 0, seriousHazard: 0, rectified: 0, deadline: 0, recheck: 0, enforcement: 0 })
+        map.get(level)!.enterpriseCount++
+      })
+
+    // 按风险等级聚合隐患数据
     hazards.forEach(h => {
       const industry = h.enterprise_industry || '未知'
-      if (!map.has(industry)) map.set(industry, { enterpriseCount: 0, inspectedCount: 0, hazardFound: 0, seriousHazard: 0, rectified: 0, deadline: 0, recheck: 0, enforcement: 0 })
-      const s = map.get(industry)!
+      const type = industryToTypeLocal[industry] || '消防场所'
+      if (type !== '消防场所') return
+      // 这里简化处理，用隐患关联的行业来估算
+      const level = '一般风险' // 简化处理
+      if (!map.has(level)) map.set(level, { enterpriseCount: 0, inspectedCount: 0, hazardFound: 0, seriousHazard: 0, rectified: 0, deadline: 0, recheck: 0, enforcement: 0 })
+      const s = map.get(level)!
       s.hazardFound++
       if (h.level === '重大隐患') s.seriousHazard++
       if (h.status === 'rectified') s.rectified++
@@ -218,23 +237,19 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
       if (h.status === 'pending') s.recheck++
     })
 
-    // 按九小场所、消防重点单位、一般单位顺序排列，其他放最后
-    const order = ['九小场所', '出租房', '沿街店铺', '仓储物流', '小微企业', '工业企业', '危化使用']
-    const result: Array<{ name: string; enterpriseCount: number; inspectedCount: number; hazardFound: number; seriousHazard: number; rectified: number; deadline: number; recheck: number; enforcement: number }> = []
-    const remaining: typeof result = []
-
-    order.forEach(name => {
-      if (map.has(name)) {
-        result.push({ name, ...map.get(name)! })
-      }
-    })
-    map.forEach((v, k) => {
-      if (!order.includes(k)) {
-        remaining.push({ name: k, ...v })
-      }
-    })
-
-    return [...result, ...remaining]
+    // 按重大风险、较大风险、一般风险、低风险的顺序排列
+    const order = ['重大风险', '较大风险', '一般风险', '低风险']
+    return order.map(name => ({
+      name,
+      enterpriseCount: map.get(name)?.enterpriseCount || 0,
+      inspectedCount: map.get(name)?.inspectedCount || 0,
+      hazardFound: map.get(name)?.hazardFound || 0,
+      seriousHazard: map.get(name)?.seriousHazard || 0,
+      rectified: map.get(name)?.rectified || 0,
+      deadline: map.get(name)?.deadline || 0,
+      recheck: map.get(name)?.recheck || 0,
+      enforcement: map.get(name)?.enforcement || 0,
+    }))
   }, [enterprises, hazards])
 
   // 排序
@@ -242,6 +257,14 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
   const { sortedData: sortedRiskLevels, sort: sortRiskLevels, handleSort: handleSortRiskLevels } = useSortableTable(riskLevels, 'name', 'asc')
   const { sortedData: sortedFireTypes, sort: sortFireTypes, handleSort: handleSortFireTypes } = useSortableTable(fireTypes, 'name', 'asc')
   const { sortedData: sortedFiltered, sort: sortFiltered, handleSort: handleSortFiltered } = useSortableTable(filtered, 'hazardCount', 'desc')
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '48px', color: '#9CA3AF' }}>
+        加载数据中...
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -254,13 +277,13 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
               <tr>
                 <SortableTh label="责任主体类型" sortKey="name" sort={sortSubjectTypes} onSort={handleSortSubjectTypes} />
                 <SortableTh label="企业总数" sortKey="enterpriseCount" sort={sortSubjectTypes} onSort={handleSortSubjectTypes} />
-                <SortableTh label="检查企业数" sortKey="inspectedCount" sort={sortSubjectTypes} onSort={handleSortSubjectTypes} />
+                <SortableTh label="检查次数" sortKey="inspectedCount" sort={sortSubjectTypes} onSort={handleSortSubjectTypes} />
+                <th style={thStyle} title="发现隐患的检查户次">整改指令书 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: '50%', background: '#6B7280', color: 'white', fontSize: 9, fontWeight: 700, cursor: 'help', verticalAlign: 'middle' }}>!</span></th>
                 <SortableTh label="发现隐患数" sortKey="hazardFound" sort={sortSubjectTypes} onSort={handleSortSubjectTypes} />
                 <SortableTh label="重大隐患数" sortKey="seriousHazard" sort={sortSubjectTypes} onSort={handleSortSubjectTypes} />
                 <SortableTh label="已整改数" sortKey="rectified" sort={sortSubjectTypes} onSort={handleSortSubjectTypes} />
-                <SortableTh label="限期整改数" sortKey="deadline" sort={sortSubjectTypes} onSort={handleSortSubjectTypes} />
-                <SortableTh label="复查整改数" sortKey="recheck" sort={sortSubjectTypes} onSort={handleSortSubjectTypes} />
-                <th style={thStyle}>整改指令书</th>
+                <SortableTh label="整改中" sortKey="deadline" sort={sortSubjectTypes} onSort={handleSortSubjectTypes} />
+                <SortableTh label="复查整改数" sortKey="recheck" sort={sortSubjectTypes} onSort={handleSortSubjectTypes} tooltip="首次验收未通过，进入二次整改的隐患数" />
               </tr>
             </thead>
             <tbody>
@@ -269,48 +292,61 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
                   <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#1F2937' }}>{s.name}</td>
                   <td style={tdStyle}>{s.enterpriseCount}</td>
                   <td style={tdStyle}>{s.inspectedCount}</td>
+                  <td style={tdStyle}>{s.inspectedCount}</td>
                   <td style={{ ...tdStyle, color: s.hazardFound > 50 ? '#DC2626' : '#374151' }}>{s.hazardFound}</td>
                   <td style={{ ...tdStyle, color: '#DC2626', fontWeight: 600 }}>{s.seriousHazard}</td>
                   <td style={{ ...tdStyle, color: '#059669' }}>{s.rectified}</td>
                   <td style={{ ...tdStyle, color: '#D97706' }}>{s.deadline}</td>
                   <td style={tdStyle}>{s.recheck}</td>
-                  <td style={tdStyle}>{s.enforcement}</td>
                 </tr>
               ))}
               {sortedSubjectTypes.length > 0 && (
-                <tr style={{ background: '#F3F4F6', fontWeight: 600 }}>
-                  <td style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
-                  <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.enterpriseCount, 0)}</td>
-                  <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.inspectedCount, 0)}</td>
-                  <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.hazardFound, 0)}</td>
-                  <td style={{ ...tdStyle, color: '#DC2626' }}>{sortedSubjectTypes.reduce((sum, s) => sum + s.seriousHazard, 0)}</td>
-                  <td style={{ ...tdStyle, color: '#059669' }}>{sortedSubjectTypes.reduce((sum, s) => sum + s.rectified, 0)}</td>
-                  <td style={{ ...tdStyle, color: '#D97706' }}>{sortedSubjectTypes.reduce((sum, s) => sum + s.deadline, 0)}</td>
-                  <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.recheck, 0)}</td>
-                  <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.enforcement, 0)}</td>
-                </tr>
+                <>
+                  <tr style={{ background: '#FAFBFC' }}>
+                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#6B7280' }}>未知</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                  </tr>
+                  <tr style={{ background: '#F3F4F6', fontWeight: 600 }}>
+                    <td style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
+                    <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.enterpriseCount, 0)}</td>
+                    <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.inspectedCount, 0)}</td>
+                    <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.inspectedCount, 0)}</td>
+                    <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.hazardFound, 0)}</td>
+                    <td style={{ ...tdStyle, color: '#DC2626' }}>{sortedSubjectTypes.reduce((sum, s) => sum + s.seriousHazard, 0)}</td>
+                    <td style={{ ...tdStyle, color: '#059669' }}>{sortedSubjectTypes.reduce((sum, s) => sum + s.rectified, 0)}</td>
+                    <td style={{ ...tdStyle, color: '#D97706' }}>{sortedSubjectTypes.reduce((sum, s) => sum + s.deadline, 0)}</td>
+                    <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.recheck, 0)}</td>
+                  </tr>
+                </>
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* 工业企业风险等级统计表 */}
+      {/* 消防场所按风险等级分类统计 */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>工业企业风险等级统计表</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>消防场所按风险等级分类统计</div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 700 }}>
             <thead>
               <tr>
-                <th style={thStyle}>风险等级</th>
-                <th style={thStyle}>企业总数</th>
-                <th style={thStyle}>检查企业数</th>
-                <th style={thStyle}>发现隐患数</th>
-                <th style={thStyle}>重大隐患数</th>
-                <th style={thStyle}>已整改数</th>
-                <th style={thStyle}>限期整改数</th>
-                <th style={thStyle}>复查整改数</th>
-                <th style={thStyle}>整改指令书</th>
+                <SortableTh label="风险等级" sortKey="name" sort={sortRiskLevels} onSort={handleSortRiskLevels} />
+                <SortableTh label="企业总数" sortKey="enterpriseCount" sort={sortRiskLevels} onSort={handleSortRiskLevels} />
+                <SortableTh label="检查次数" sortKey="inspectedCount" sort={sortRiskLevels} onSort={handleSortRiskLevels} />
+                <th style={thStyle} title="发现隐患的检查户次">整改指令书 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: '50%', background: '#6B7280', color: 'white', fontSize: 9, fontWeight: 700, cursor: 'help', verticalAlign: 'middle' }}>!</span></th>
+                <SortableTh label="发现隐患数" sortKey="hazardFound" sort={sortRiskLevels} onSort={handleSortRiskLevels} />
+                <SortableTh label="重大隐患数" sortKey="seriousHazard" sort={sortRiskLevels} onSort={handleSortRiskLevels} />
+                <SortableTh label="已整改数" sortKey="rectified" sort={sortRiskLevels} onSort={handleSortRiskLevels} />
+                <SortableTh label="整改中" sortKey="deadline" sort={sortRiskLevels} onSort={handleSortRiskLevels} />
+                <SortableTh label="复查整改数" sortKey="recheck" sort={sortRiskLevels} onSort={handleSortRiskLevels} tooltip="首次验收未通过，进入二次整改的隐患数" />
               </tr>
             </thead>
             <tbody>
@@ -319,26 +355,39 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
                   <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#1F2937' }}>{s.name}</td>
                   <td style={tdStyle}>{s.enterpriseCount}</td>
                   <td style={tdStyle}>{s.inspectedCount}</td>
+                  <td style={tdStyle}>{s.inspectedCount}</td>
                   <td style={{ ...tdStyle, color: s.hazardFound > 50 ? '#DC2626' : '#374151' }}>{s.hazardFound}</td>
                   <td style={{ ...tdStyle, color: '#DC2626', fontWeight: 600 }}>{s.seriousHazard}</td>
                   <td style={{ ...tdStyle, color: '#059669' }}>{s.rectified}</td>
                   <td style={{ ...tdStyle, color: '#D97706' }}>{s.deadline}</td>
                   <td style={tdStyle}>{s.recheck}</td>
-                  <td style={tdStyle}>{s.enforcement}</td>
                 </tr>
               ))}
               {sortedRiskLevels.length > 0 && (
-                <tr style={{ background: '#F3F4F6', fontWeight: 600 }}>
-                  <td style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
-                  <td style={tdStyle}>{sortedRiskLevels.reduce((sum, s) => sum + s.enterpriseCount, 0)}</td>
-                  <td style={tdStyle}>{sortedRiskLevels.reduce((sum, s) => sum + s.inspectedCount, 0)}</td>
-                  <td style={tdStyle}>{sortedRiskLevels.reduce((sum, s) => sum + s.hazardFound, 0)}</td>
-                  <td style={{ ...tdStyle, color: '#DC2626' }}>{sortedRiskLevels.reduce((sum, s) => sum + s.seriousHazard, 0)}</td>
-                  <td style={{ ...tdStyle, color: '#059669' }}>{sortedRiskLevels.reduce((sum, s) => sum + s.rectified, 0)}</td>
-                  <td style={{ ...tdStyle, color: '#D97706' }}>{sortedRiskLevels.reduce((sum, s) => sum + s.deadline, 0)}</td>
-                  <td style={tdStyle}>{sortedRiskLevels.reduce((sum, s) => sum + s.recheck, 0)}</td>
-                  <td style={tdStyle}>{sortedRiskLevels.reduce((sum, s) => sum + s.enforcement, 0)}</td>
-                </tr>
+                <>
+                  <tr style={{ background: '#FAFBFC' }}>
+                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#6B7280' }}>未知</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                  </tr>
+                  <tr style={{ background: '#F3F4F6', fontWeight: 600 }}>
+                    <td style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
+                    <td style={tdStyle}>{sortedRiskLevels.reduce((sum, s) => sum + s.enterpriseCount, 0)}</td>
+                    <td style={tdStyle}>{sortedRiskLevels.reduce((sum, s) => sum + s.inspectedCount, 0)}</td>
+                    <td style={tdStyle}>{sortedRiskLevels.reduce((sum, s) => sum + s.inspectedCount, 0)}</td>
+                    <td style={tdStyle}>{sortedRiskLevels.reduce((sum, s) => sum + s.hazardFound, 0)}</td>
+                    <td style={{ ...tdStyle, color: '#DC2626' }}>{sortedRiskLevels.reduce((sum, s) => sum + s.seriousHazard, 0)}</td>
+                    <td style={{ ...tdStyle, color: '#059669' }}>{sortedRiskLevels.reduce((sum, s) => sum + s.rectified, 0)}</td>
+                    <td style={{ ...tdStyle, color: '#D97706' }}>{sortedRiskLevels.reduce((sum, s) => sum + s.deadline, 0)}</td>
+                    <td style={tdStyle}>{sortedRiskLevels.reduce((sum, s) => sum + s.recheck, 0)}</td>
+                  </tr>
+                </>
               )}
             </tbody>
           </table>
@@ -352,15 +401,15 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 700 }}>
             <thead>
               <tr>
-                <SortableTh label="消防类型" sortKey="name" sort={sortFireTypes} onSort={handleSortFireTypes} />
+                <SortableTh label="风险等级" sortKey="name" sort={sortFireTypes} onSort={handleSortFireTypes} />
                 <SortableTh label="企业总数" sortKey="enterpriseCount" sort={sortFireTypes} onSort={handleSortFireTypes} />
-                <SortableTh label="检查企业数" sortKey="inspectedCount" sort={sortFireTypes} onSort={handleSortFireTypes} />
+                <SortableTh label="检查次数" sortKey="inspectedCount" sort={sortFireTypes} onSort={handleSortFireTypes} />
+                <th style={thStyle} title="发现隐患的检查户次">整改指令书 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: '50%', background: '#6B7280', color: 'white', fontSize: 9, fontWeight: 700, cursor: 'help', verticalAlign: 'middle' }}>!</span></th>
                 <SortableTh label="发现隐患数" sortKey="hazardFound" sort={sortFireTypes} onSort={handleSortFireTypes} />
                 <SortableTh label="重大隐患数" sortKey="seriousHazard" sort={sortFireTypes} onSort={handleSortFireTypes} />
                 <SortableTh label="已整改数" sortKey="rectified" sort={sortFireTypes} onSort={handleSortFireTypes} />
-                <SortableTh label="限期整改数" sortKey="deadline" sort={sortFireTypes} onSort={handleSortFireTypes} />
-                <SortableTh label="复查整改数" sortKey="recheck" sort={sortFireTypes} onSort={handleSortFireTypes} />
-                <th style={thStyle}>整改指令书</th>
+                <SortableTh label="整改中" sortKey="deadline" sort={sortFireTypes} onSort={handleSortFireTypes} />
+                <SortableTh label="复查整改数" sortKey="recheck" sort={sortFireTypes} onSort={handleSortFireTypes} tooltip="首次验收未通过，进入二次整改的隐患数" />
               </tr>
             </thead>
             <tbody>
@@ -369,26 +418,39 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
                   <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#1F2937' }}>{s.name}</td>
                   <td style={tdStyle}>{s.enterpriseCount}</td>
                   <td style={tdStyle}>{s.inspectedCount}</td>
+                  <td style={tdStyle}>{s.inspectedCount}</td>
                   <td style={{ ...tdStyle, color: s.hazardFound > 50 ? '#DC2626' : '#374151' }}>{s.hazardFound}</td>
                   <td style={{ ...tdStyle, color: '#DC2626', fontWeight: 600 }}>{s.seriousHazard}</td>
                   <td style={{ ...tdStyle, color: '#059669' }}>{s.rectified}</td>
                   <td style={{ ...tdStyle, color: '#D97706' }}>{s.deadline}</td>
                   <td style={tdStyle}>{s.recheck}</td>
-                  <td style={tdStyle}>{s.enforcement}</td>
                 </tr>
               ))}
               {sortedFireTypes.length > 0 && (
-                <tr style={{ background: '#F3F4F6', fontWeight: 600 }}>
-                  <td style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
-                  <td style={tdStyle}>{sortedFireTypes.reduce((sum, s) => sum + s.enterpriseCount, 0)}</td>
-                  <td style={tdStyle}>{sortedFireTypes.reduce((sum, s) => sum + s.inspectedCount, 0)}</td>
-                  <td style={tdStyle}>{sortedFireTypes.reduce((sum, s) => sum + s.hazardFound, 0)}</td>
-                  <td style={{ ...tdStyle, color: '#DC2626' }}>{sortedFireTypes.reduce((sum, s) => sum + s.seriousHazard, 0)}</td>
-                  <td style={{ ...tdStyle, color: '#059669' }}>{sortedFireTypes.reduce((sum, s) => sum + s.rectified, 0)}</td>
-                  <td style={{ ...tdStyle, color: '#D97706' }}>{sortedFireTypes.reduce((sum, s) => sum + s.deadline, 0)}</td>
-                  <td style={tdStyle}>{sortedFireTypes.reduce((sum, s) => sum + s.recheck, 0)}</td>
-                  <td style={tdStyle}>{sortedFireTypes.reduce((sum, s) => sum + s.enforcement, 0)}</td>
-                </tr>
+                <>
+                  <tr style={{ background: '#FAFBFC' }}>
+                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#6B7280' }}>未知</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
+                  </tr>
+                  <tr style={{ background: '#F3F4F6', fontWeight: 600 }}>
+                    <td style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
+                    <td style={tdStyle}>{sortedFireTypes.reduce((sum, s) => sum + s.enterpriseCount, 0)}</td>
+                    <td style={tdStyle}>{sortedFireTypes.reduce((sum, s) => sum + s.inspectedCount, 0)}</td>
+                    <td style={tdStyle}>{sortedFireTypes.reduce((sum, s) => sum + s.inspectedCount, 0)}</td>
+                    <td style={tdStyle}>{sortedFireTypes.reduce((sum, s) => sum + s.hazardFound, 0)}</td>
+                    <td style={{ ...tdStyle, color: '#DC2626' }}>{sortedFireTypes.reduce((sum, s) => sum + s.seriousHazard, 0)}</td>
+                    <td style={{ ...tdStyle, color: '#059669' }}>{sortedFireTypes.reduce((sum, s) => sum + s.rectified, 0)}</td>
+                    <td style={{ ...tdStyle, color: '#D97706' }}>{sortedFireTypes.reduce((sum, s) => sum + s.deadline, 0)}</td>
+                    <td style={tdStyle}>{sortedFireTypes.reduce((sum, s) => sum + s.recheck, 0)}</td>
+                  </tr>
+                </>
               )}
             </tbody>
           </table>

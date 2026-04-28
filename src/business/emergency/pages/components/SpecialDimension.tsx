@@ -349,14 +349,15 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
               <SortableTh label="已完成" sortKey="completed_count" sort={sort} onSort={handleSort} />
               <SortableTh label="完成率" sortKey="completion_rate" sort={sort} onSort={handleSort} />
               <th style={{ ...thStyle, fontWeight: 600, fontSize: 11 }}>时间进度</th>
-              <th style={{ ...thStyle, fontWeight: 600, fontSize: 11 }}>隐患数据</th>
+              <SortableTh label="隐患总数" sortKey="hazard_count" sort={sort} onSort={handleSort} />
+              <SortableTh label="重大隐患数" sortKey="major_hazard_count" sort={sort} onSort={handleSort} />
               <SortableTh label="创建人" sortKey="creator" sort={sort} onSort={handleSort} />
               <SortableTh label="状态" sortKey="status" sort={sort} onSort={handleSort} />
             </tr>
           </thead>
           <tbody>
             {pagedTasks.length === 0 ? (
-              <tr><td colSpan={11} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>暂无数据</td></tr>
+              <tr><td colSpan={12} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>暂无数据</td></tr>
             ) : pagedTasks.map((t, i) => {
               const timeProgress = calcTimeProgress(t.start_date, t.end_date)
               const statusStyle = statusLabels[t.status] || { bg: '#F3F4F6', color: '#374151' }
@@ -385,44 +386,34 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
                   <td style={{ ...tdStyle }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <div style={{ width: 50, height: 5, background: '#E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
-                        <div style={{ 
-                          width: `${timeProgress.percent}%`, 
-                          height: '100%', 
+                        <div style={{
+                          width: `${timeProgress.percent}%`,
+                          height: '100%',
                           background: timeProgress.status === '滞后' ? '#DC2626' : '#4F46E5',
                         }} />
                       </div>
                       <span style={{ fontSize: 11, color: '#6B7280' }}>{timeProgress.percent}%</span>
                     </div>
                   </td>
-                  <td style={{ ...tdStyle, color: t.creator === '系统' ? '#9CA3AF' : '#4F46E5' }}>{t.creator}</td>
                   <td style={tdStyle} onClick={e => e.stopPropagation()}>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                      <span
-                        onClick={() => handleTaskHazardClick(t)}
-                        style={{
-                          cursor: 'pointer',
-                          color: '#D97706',
-                          fontWeight: 600,
-                          textDecoration: 'underline',
-                        }}
-                        title="点击查看隐患详情"
-                      >
-                        {t.hazard_count}条
-                      </span>
-                      <span
-                        onClick={() => handleTaskHazardClick(t, 'major')}
-                        style={{
-                          cursor: 'pointer',
-                          color: '#DC2626',
-                          fontWeight: 600,
-                          textDecoration: 'underline',
-                        }}
-                        title="点击查看重大隐患详情"
-                      >
-                        {t.major_hazard_count}条
-                      </span>
-                    </div>
+                    <span
+                      onClick={() => handleTaskHazardClick(t)}
+                      style={{ cursor: 'pointer', color: '#D97706', fontWeight: 600, textDecoration: 'underline' }}
+                      title="点击查看隐患详情"
+                    >
+                      {t.hazard_count}
+                    </span>
                   </td>
+                  <td style={tdStyle} onClick={e => e.stopPropagation()}>
+                    <span
+                      onClick={() => handleTaskHazardClick(t, 'major')}
+                      style={{ cursor: 'pointer', color: '#DC2626', fontWeight: 600, textDecoration: 'underline' }}
+                      title="点击查看重大隐患详情"
+                    >
+                      {t.major_hazard_count}
+                    </span>
+                  </td>
+                  <td style={{ ...tdStyle, color: t.creator === '系统' ? '#9CA3AF' : '#4F46E5' }}>{t.creator}</td>
                   <td style={tdStyle}>
                     <span style={{ ...statusStyle, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 500 }}>
                       {t.status}

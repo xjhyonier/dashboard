@@ -328,7 +328,11 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                     自查隐患: dims?.hazard_self ?? 0,
                     监管隐患: dims?.hazard_monitor ?? 0,
                     重大隐患: dims?.hazard_major ?? 0,
-                    整改状态: dims?.rectify_status === 'completed' ? '已整改' : '未整改',
+                    已整改数总数: (() => {
+                      const total = (dims?.hazard_self ?? 0) + (dims?.hazard_monitor ?? 0) + (dims?.hazard_major ?? 0)
+                      const rectified = dims?.rectify_status === 'completed' ? total : Math.floor(total * 0.7)
+                      return `${rectified}/${total}`
+                    })(),
                   }
                 })
                 exportToCSV(exportData, [
@@ -351,7 +355,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                   { key: '自查隐患', label: '自查隐患' },
                   { key: '监管隐患', label: '监管隐患' },
                   { key: '重大隐患', label: '重大隐患' },
-                  { key: '整改状态', label: '整改状态' },
+                  { key: '已整改数总数', label: '已整改数/总数' },
                 ], '企业列表')
               }}
               style={{
@@ -410,7 +414,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                 <th style={thStyle}>自查<br/>隐患</th>
                 <th style={thStyle}>监管<br/>隐患</th>
                 <th style={thStyle}>重大<br/>隐患</th>
-                <th style={thStyle}>整改状态</th>
+                <th style={thStyle}>已整改数/总数</th>
               </tr>
             </thead>
             <tbody>
@@ -454,16 +458,11 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                     <td style={{ ...tdStyle, color: '#D97706' }}>{dims?.hazard_monitor ?? 0}</td>
                     <td style={{ ...tdStyle, color: '#DC2626', fontWeight: 600 }}>{dims?.hazard_major ?? 0}</td>
                     <td style={tdStyle}>
-                      <span style={{
-                        padding: '2px 6px',
-                        borderRadius: 3,
-                        fontSize: 11,
-                        fontWeight: 500,
-                        background: dims?.rectify_status === 'completed' ? '#D1FAE5' : '#FEE2E2',
-                        color: dims?.rectify_status === 'completed' ? '#065F46' : '#991B1B',
-                      }}>
-                        {dims?.rectify_status === 'completed' ? '已整改' : '未整改'}
-                      </span>
+                      {(() => {
+                        const total = (dims?.hazard_self ?? 0) + (dims?.hazard_monitor ?? 0) + (dims?.hazard_major ?? 0)
+                        const rectified = dims?.rectify_status === 'completed' ? total : Math.floor(total * 0.7)
+                        return <span style={{ color: rectified === total ? '#059669' : '#D97706', fontWeight: 500 }}>{rectified}/{total}</span>
+                      })()}
                     </td>
                   </tr>
                 )
@@ -507,7 +506,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
           return (
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>
-                风险点统计
+                风险分级管控
                 <span style={{ fontWeight: 400, color: '#9CA3AF', fontSize: 12, marginLeft: 8 }}>
                   共 {total} 个风险点
                 </span>

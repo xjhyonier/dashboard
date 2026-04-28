@@ -94,4 +94,4 @@ export interface SpecialDimensionProps {
   onNavigateToHazard?: (params: HazardNavigateParams) => void
 }
 
-export type Dimension = 'duty' | 'industry' | 'special' | 'state' | 'hazard'
+export type Dimension = 'duty' | 'industry' | 'special' | 'state' | 'hazard' | 'trend'

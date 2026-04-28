@@ -546,11 +546,11 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
             <thead>
               <tr>
                 <th style={thStyle}>序号</th>
+                <SortableTh label="企业" sortKey="enterprise_name" sort={sort} onSort={handleSort} />
                 <SortableTh label="隐患描述" sortKey="title" sort={sort} onSort={handleSort} />
                 <SortableTh label="主体责任" sortKey="dimension" sort={sort} onSort={handleSort} />
                 <SortableTh label="等级" sortKey="level" sort={sort} onSort={handleSort} />
                 <SortableTh label="来源" sortKey="source_detail" sort={sort} onSort={handleSort} />
-                <SortableTh label="企业" sortKey="enterprise_name" sort={sort} onSort={handleSort} />
                 <SortableTh label="行业" sortKey="enterprise_industry" sort={sort} onSort={handleSort} />
                 <SortableTh label="状态" sortKey="status" sort={sort} onSort={handleSort} />
                 <SortableTh label="发现时间" sortKey="discovered_at" sort={sort} onSort={handleSort} />
@@ -571,6 +571,9 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                 return (
                   <tr key={r.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                     <td style={{ ...tdStyle, color: '#9CA3AF', fontSize: 11, width: 50 }}>{rowIndex}</td>
+                    <td style={{ ...tdStyle, textAlign: 'left', color: '#6B7280', minWidth: 180 }}>
+                      {r.enterprise_name || '-'}
+                    </td>
                     <td style={{ ...tdStyle, textAlign: 'left', color: '#374151', minWidth: 200 }} title={r.description}>
                       {r.title}
                     </td>
@@ -582,9 +585,6 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                     </td>
                     <td style={{ ...tdStyle, fontWeight: 500, color: sourceCfg.color }}>
                       {sourceCfg.label}
-                    </td>
-                    <td style={{ ...tdStyle, textAlign: 'left', color: '#6B7280', minWidth: 180 }}>
-                      {r.enterprise_name || '-'}
                     </td>
                     <td style={tdStyle}>
                       {r.enterprise_industry || '-'}
