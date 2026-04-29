@@ -117,7 +117,7 @@ function App() {
       {/* 内容区域 */}
       <div style={{ marginTop: '60px' }}>
         <Routes>
-          <Route path="/" element={<Navigate to="/emergency/expert/queue" replace />} />
+          <Route path="/" element={<Navigate to="/emergency/station-chief-v2" replace />} />
 
           <Route path="/quickbi/ceo" element={<CEODashboard />} />
           <Route path="/quickbi/product" element={<ProductDashboard />} />
@@ -131,7 +131,7 @@ function App() {
           <Route path="/emergency/enterprise-boss" element={<EnterpriseBossDashboard />} />
           <Route path="/emergency/monthly-report" element={<PlaceholderPage title="月度报告" />} />
 
-          <Route path="*" element={<Navigate to="/emergency/expert/queue" replace />} />
+          <Route path="*" element={<Navigate to="/emergency/station-chief-v2" replace />} />
         </Routes>
       </div>
     </div>
