@@ -187,13 +187,18 @@ export interface EnterpriseDimensions {
   plan_executed: boolean
   third_party_sync: boolean
   patrol_used: boolean
-  
+  patrol_casual: number       // 随手拍次数
+  patrol_daily: number        // 日常检查次数
+  patrol_special: number      // 专项检查次数
+
   // 六、教育培训
   training_done: boolean
   training_record: boolean
+  training_daily: number      // 日常培训次数
+  training_three_level: number // 三级培训次数
   
   // 七、作业票
-  work_permit: boolean
+  work_permit: number         // 作业票数
   
   // 八、隐患统计
   hazard_self: number     // 自查自纠隐患数

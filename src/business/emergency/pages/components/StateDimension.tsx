@@ -316,14 +316,14 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                     工作组: e.work_group,
                     信息采集: dims?.info_collected ? '是' : '否',
                     数据授权: dims?.data_authorized ? '是' : '否',
-                    风险点识别: dims?.risk_identified ? '是' : '否',
-                    机构职责: dims?.duty_rate ?? '-',
-                    安全制度: dims?.system_rate ?? '-',
-                    安全投入: dims?.invest_rate ?? '-',
-                    检查计划: dims?.plan_type || '-',
+                    风险点: riskPoints.filter(rp => rp.enterprise_id === e.id).length,
+                    机构职责: (dims?.duty_rate ?? 0) >= 80 ? '是' : '否',
+                    安全制度: (dims?.system_rate ?? 0) >= 80 ? '是' : '否',
+                    安全投入: (dims?.invest_rate ?? 0) >= 80 ? '是' : '否',
+                    检查计划: dims?.plan_type ? '有' : '无',
                     三方同步: dims?.third_party_sync ? '是' : '否',
-                    安全巡查: dims?.patrol_used ? '是' : '否',
-                    教育培训: dims?.training_done ? '是' : '否',
+                    安全检查: dims?.patrol_used ? `${(dims?.patrol_casual ?? 0) + (dims?.patrol_daily ?? 0) + (dims?.patrol_special ?? 0)}` : '-',
+                    教育培训: dims?.training_done ? `${(dims?.training_daily ?? 0) + (dims?.training_three_level ?? 0)}` : '-',
                     作业票: dims?.work_permit ?? 0,
                     自查隐患: dims?.hazard_self ?? 0,
                     监管隐患: dims?.hazard_monitor ?? 0,
@@ -343,13 +343,13 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                   { key: '工作组', label: '工作组' },
                   { key: '信息采集', label: '信息采集' },
                   { key: '数据授权', label: '数据授权' },
-                  { key: '风险点识别', label: '风险点识别' },
-                  { key: '机构职责', label: '机构职责%' },
-                  { key: '安全制度', label: '安全制度%' },
-                  { key: '安全投入', label: '安全投入%' },
+                  { key: '风险点', label: '风险点' },
+                  { key: '机构职责', label: '机构职责' },
+                  { key: '安全制度', label: '安全制度' },
+                  { key: '安全投入', label: '安全投入' },
                   { key: '检查计划', label: '检查计划' },
                   { key: '三方同步', label: '三方同步' },
-                  { key: '安全巡查', label: '安全巡查' },
+                  { key: '安全检查', label: '安全检查' },
                   { key: '教育培训', label: '教育培训' },
                   { key: '作业票', label: '作业票' },
                   { key: '自查隐患', label: '自查隐患' },
@@ -403,13 +403,13 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                 <th style={thStyle}>信息<br/>采集</th>
                 <th style={thStyle}>数据<br/>授权</th>
                 <th style={thStyle}>风险点</th>
-                <th style={thStyle}>机构<br/>职责%</th>
-                <th style={thStyle}>安全<br/>制度%</th>
-                <th style={thStyle}>安全<br/>投入%</th>
+                <th style={thStyle}>机构<br/>职责</th>
+                <th style={thStyle}>安全<br/>制度</th>
+                <th style={thStyle}>安全<br/>投入</th>
                 <th style={thStyle}>检查<br/>计划</th>
                 <th style={thStyle}>三方<br/>同步</th>
-                <th style={thStyle}>安全<br/>巡查</th>
-                <th style={thStyle}>教育<br/>培训</th>
+                <th style={thStyle} title="随手拍、日常检查、专项检查的次数">安全<br/>检查 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: '50%', background: '#6B7280', color: 'white', fontSize: 9, fontWeight: 700, cursor: 'help', verticalAlign: 'middle' }}>!</span></th>
+                <th style={thStyle} title="日常+三级培训次数">教育<br/>培训 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 13, height: 13, borderRadius: '50%', background: '#6B7280', color: 'white', fontSize: 9, fontWeight: 700, cursor: 'help', verticalAlign: 'middle' }}>!</span></th>
                 <th style={thStyle}>作业票</th>
                 <th style={thStyle}>自查<br/>隐患</th>
                 <th style={thStyle}>监管<br/>隐患</th>
@@ -443,17 +443,15 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                     <td style={{ ...tdStyle, color: '#4F46E5' }}>{expert?.name || '-'}</td>
                     <td style={{ ...tdStyle, color: dims?.info_collected ? '#059669' : '#DC2626' }}>{dims?.info_collected ? '✓' : '✗'}</td>
                     <td style={{ ...tdStyle, color: dims?.data_authorized ? '#059669' : '#D97706' }}>{dims?.data_authorized ? '✓' : '✗'}</td>
-                    <td style={{ ...tdStyle, color: dims?.risk_identified ? '#059669' : '#D97706' }}>{dims?.risk_identified ? '✓' : '✗'}</td>
-                    <td style={{ ...tdStyle, color: rateColor(dims?.duty_rate), fontWeight: 600 }}>{dims?.duty_rate ?? '-'}%</td>
-                    <td style={{ ...tdStyle, color: rateColor(dims?.system_rate), fontWeight: 600 }}>{dims?.system_rate ?? '-'}%</td>
-                    <td style={{ ...tdStyle, color: rateColor(dims?.invest_rate), fontWeight: 600 }}>{dims?.invest_rate ?? '-'}%</td>
-                    <td style={{ ...tdStyle, color: '#374151' }}>
-                      {dims?.plan_type ? { weekly: '按周', monthly: '按月', quarterly: '按季' }[dims.plan_type] || dims.plan_type : '-'}
-                    </td>
-                    <td style={{ ...tdStyle, color: dims?.third_party_sync ? '#059669' : '#9CA3AF' }}>{dims?.third_party_sync ? '✓' : '✗'}</td>
-                    <td style={{ ...tdStyle, color: dims?.patrol_used ? '#059669' : '#9CA3AF' }}>{dims?.patrol_used ? '✓' : '✗'}</td>
-                    <td style={{ ...tdStyle, color: dims?.training_done ? '#059669' : '#9CA3AF' }}>{dims?.training_done ? '✓' : '✗'}</td>
-                    <td style={{ ...tdStyle, color: (dims?.work_permit ?? 0) > 0 ? '#D97706' : '#9CA3AF' }}>{(dims?.work_permit ?? 0) > 0 ? '✓' : '✗'}</td>
+                    <td style={{ ...tdStyle, color: riskPoints.filter(rp => rp.enterprise_id === e.id).length > 0 ? '#059669' : '#9CA3AF', fontWeight: riskPoints.filter(rp => rp.enterprise_id === e.id).length > 0 ? 600 : 400 }}>{riskPoints.filter(rp => rp.enterprise_id === e.id).length}</td>
+                    <td style={{ ...tdStyle, color: (dims?.duty_rate ?? 0) >= 80 ? '#059669' : '#DC2626', fontWeight: 500 }}>{(dims?.duty_rate ?? 0) >= 80 ? '是' : '否'}</td>
+                    <td style={{ ...tdStyle, color: (dims?.system_rate ?? 0) >= 80 ? '#059669' : '#DC2626', fontWeight: 500 }}>{(dims?.system_rate ?? 0) >= 80 ? '是' : '否'}</td>
+                    <td style={{ ...tdStyle, color: (dims?.invest_rate ?? 0) >= 80 ? '#059669' : '#DC2626', fontWeight: 500 }}>{(dims?.invest_rate ?? 0) >= 80 ? '是' : '否'}</td>
+                    <td style={{ ...tdStyle, color: dims?.plan_type ? '#059669' : '#DC2626', fontWeight: 500 }}>{dims?.plan_type ? '有' : '无'}</td>
+                    <td style={{ ...tdStyle, color: dims?.third_party_sync ? '#059669' : '#DC2626', fontWeight: 500 }}>{dims?.third_party_sync ? '是' : '否'}</td>
+                    <td style={{ ...tdStyle, color: dims?.patrol_used ? '#059669' : '#9CA3AF' }}>{dims?.patrol_used ? `${(dims?.patrol_casual ?? 0) + (dims?.patrol_daily ?? 0) + (dims?.patrol_special ?? 0)}` : '-'}</td>
+                    <td style={{ ...tdStyle, color: dims?.training_done ? '#059669' : '#9CA3AF' }}>{dims?.training_done ? `${(dims?.training_daily ?? 0) + (dims?.training_three_level ?? 0)}` : '-'}</td>
+                    <td style={{ ...tdStyle, color: (dims?.work_permit ?? 0) > 0 ? '#D97706' : '#9CA3AF', fontWeight: (dims?.work_permit ?? 0) > 0 ? 600 : 400 }}>{dims?.work_permit ?? 0}</td>
                     <td style={{ ...tdStyle, color: '#D97706' }}>{dims?.hazard_self ?? 0}</td>
                     <td style={{ ...tdStyle, color: '#D97706' }}>{dims?.hazard_monitor ?? 0}</td>
                     <td style={{ ...tdStyle, color: '#DC2626', fontWeight: 600 }}>{dims?.hazard_major ?? 0}</td>
