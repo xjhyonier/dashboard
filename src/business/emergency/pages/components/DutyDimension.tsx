@@ -755,6 +755,10 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1200 }}>
             <thead>
               <tr>
+                <th colSpan={17} style={{ ...thStyle, borderBottom: 'none', padding: '4px 0' }}></th>
+                <th colSpan={4} style={{ ...thStyle, borderBottom: '1px solid #E5E7EB', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#7C3AED', background: '#F5F3FF', padding: '4px 0' }}>隐患来源</th>
+              </tr>
+              <tr>
                 <SortableTh label="姓名" sortKey="name" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="配合工作组" sortKey="work_group" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="AI评估总分" sortKey="ai_total_score" sort={sortExperts} onSort={handleSortExperts} />

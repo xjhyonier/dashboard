@@ -331,9 +331,9 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
         </div>
       </div>
 
-      {/* 消防场所按风险等级分类统计 */}
+      {/* 工业企业风险等级分类统计表 */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>消防场所按风险等级分类统计</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>工业企业风险等级分类统计表</div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 700 }}>
             <thead>
@@ -394,9 +394,9 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
         </div>
       </div>
 
-      {/* 消防类型汇总表 */}
+      {/* 消防场所风险等级分类统计表 */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>消防场所分类表</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>消防场所风险等级分类统计表</div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 700 }}>
             <thead>

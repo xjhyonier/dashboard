@@ -189,39 +189,7 @@ export function StationChiefV2Dashboard() {
               {opt.label}
             </button>
           ))}
-          <button
-            onClick={() => setTimeRange('custom')}
-            style={{
-              padding: '2px 8px',
-              borderRadius: 3,
-              border: '1px solid',
-              borderColor: timeRange === 'custom' ? '#4F46E5' : '#E5E7EB',
-              background: timeRange === 'custom' ? '#EEF2FF' : 'white',
-              color: timeRange === 'custom' ? '#4F46E5' : '#6B7280',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: timeRange === 'custom' ? 600 : 400,
-            }}
-          >
-            自定义
-          </button>
-          {timeRange === 'custom' && (
-            <>
-              <input
-                type="date"
-                value={customStart}
-                onChange={e => setCustomStart(e.target.value)}
-                style={{ padding: '2px 6px', border: '1px solid #E5E7EB', borderRadius: 3, fontSize: 12, color: '#374151', outline: 'none' }}
-              />
-              <span style={{ fontSize: 12, color: '#9CA3AF' }}>至</span>
-              <input
-                type="date"
-                value={customEnd}
-                onChange={e => setCustomEnd(e.target.value)}
-                style={{ padding: '2px 6px', border: '1px solid #E5E7EB', borderRadius: 3, fontSize: 12, color: '#374151', outline: 'none' }}
-              />
-            </>
-          )}
+
         </div>
 
         <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
@@ -366,7 +334,7 @@ export function StationChiefV2Dashboard() {
       {/* KPI 指标卡片（在筛选区下方、tab 切换上方） */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
+        gridTemplateColumns: 'repeat(6, 1fr)',
         gap: 12,
         marginBottom: 12,
         padding: '16px',
@@ -375,6 +343,7 @@ export function StationChiefV2Dashboard() {
         borderRadius: 4,
       }}>
         {([
+          { key: 'totalEnterprise', label: '监管企业数', value: enterprises.length, unit: '家', color: '#374151', tip: '纳入监管的企业总数' },
           { key: 'enterprise', label: '检查企业',  value: kpiTotals.enterprise, unit: '家', color: '#374151', tip: '远程监管户数（去除停业、虚拟注册等，共8900多）' },
           { key: 'hazard',    label: '隐患总数',  value: kpiTotals.hazard,    unit: '处', color: '#374151', tip: '镇街监督检查过程中发现的隐患总数（日常监管+安全检查+三清三关）= 已整改+整改中' },
           { key: 'serious',   label: '重大隐患',  value: kpiTotals.serious,   unit: '处', color: '#DC2626', tip: '' },
