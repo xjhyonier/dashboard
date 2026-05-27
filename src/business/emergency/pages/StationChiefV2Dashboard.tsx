@@ -19,6 +19,9 @@ const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'state', '
 const TODAY = new Date()
 const fmtDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
+const weekDay = TODAY.getDay() === 0 ? 6 : TODAY.getDay() - 1  // 周一为起始（0=周一）
+const weekStart = new Date(TODAY); weekStart.setDate(TODAY.getDate() - weekDay)
+const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6)
 const monthStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)
 const monthEnd = new Date(TODAY.getFullYear(), TODAY.getMonth() + 1, 0)
 const quarterMonth = Math.floor(TODAY.getMonth() / 3) * 3
@@ -27,7 +30,7 @@ const quarterEnd = new Date(TODAY.getFullYear(), quarterMonth + 3, 0)
 const yearStart = new Date(TODAY.getFullYear(), 0, 1)
 const yearEnd = new Date(TODAY.getFullYear(), 11, 31)
 
-type TimeRange = 'month' | 'quarter' | 'year' | 'custom'
+type TimeRange = 'week' | 'month' | 'quarter' | 'year' | 'custom'
 
 export function StationChiefV2Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -84,6 +87,7 @@ export function StationChiefV2Dashboard() {
   // 根据 timeRange 计算实际起止日期
   const dateRange = useMemo((): { start: string; end: string } => {
     switch (timeRange) {
+      case 'week':    return { start: fmtDate(weekStart),    end: fmtDate(weekEnd) }
       case 'month':   return { start: fmtDate(monthStart),   end: fmtDate(monthEnd) }
       case 'quarter': return { start: fmtDate(quarterStart), end: fmtDate(quarterEnd) }
       case 'year':    return { start: fmtDate(yearStart),    end: fmtDate(yearEnd) }
@@ -97,22 +101,28 @@ export function StationChiefV2Dashboard() {
   // 风险等级筛选状态
   const [riskLevel, setRiskLevel] = useState<'all' | 'major' | 'high' | 'medium' | 'low'>('all')
 
-  // KPI 汇总数据（全局，不受子维度筛选影响）
   const kpiTotals = useMemo(() => {
     const { start, end } = dateRange
     const inRange = hazardRecords.filter(h => {
       const discoveredAt = h.discovered_at || h.created_at
       return discoveredAt >= start && discoveredAt <= end
     })
+    const seriousAll = inRange.filter(h => h.level === '重大隐患')
+    const closedCount = inRange.filter(h => ['verified', 'closed', 'rectified'].includes(h.status)).length
+    const inProgressCount = inRange.filter(h => h.status === 'rectifying').length
+    const seriousClosed = seriousAll.filter(h => ['verified', 'closed', 'rectified'].includes(h.status)).length
+    const seriousInProgress = seriousAll.filter(h => h.status === 'rectifying').length
     return {
       enterprise: enterpriseCount || workGroups.reduce((s, g) => s + g.enterprise_count, 0),
-      hazard: workGroups.reduce((s, g) => s + g.enterprise_count * 2, 0) || hazardRecords.length,
-      serious: hazardRecords.filter(h => h.level === '重大隐患').length,
-      closed: hazardRecords.filter(h => ['verified', 'closed'].includes(h.status)).length,
-      inProgress: hazardRecords.filter(h => h.status === 'rectifying').length,
-      deadline: hazardRecords.filter(h => h.status === 'pending' || h.status === 'rectifying').length,
-      extended: hazardRecords.filter(h => h.status === 'overdue').length,
-      overdue: hazardRecords.filter(h => h.status === 'overdue').length,
+      hazard: closedCount + inProgressCount,
+      serious: seriousClosed + seriousInProgress,
+      seriousClosed,
+      seriousInProgress,
+      closed: closedCount,
+      inProgress: inProgressCount,
+      deadline: inRange.filter(h => h.status === 'pending' || h.status === 'rectifying').length,
+      extended: inRange.filter(h => h.status === 'overdue').length,
+      overdue: inRange.filter(h => h.status === 'overdue').length,
     }
   }, [dateRange, workGroups, hazardRecords, enterpriseCount])
 
@@ -138,6 +148,49 @@ export function StationChiefV2Dashboard() {
     if (params.teamName) newParams.teamName = params.teamName
     if (params.riskLevel && params.riskLevel !== 'all') newParams.riskLevel = params.riskLevel
     setSearchParams(newParams)
+  }
+
+  // KPI 卡片渲染组件
+  const KpiCard = ({ selectedKpi, setSelectedKpi, item, accentBar, compact }: {
+    selectedKpi: string | null
+    setSelectedKpi: (k: string | null) => void
+    item: { key: string; label: string; value: number; unit: string; color: string; tip?: string }
+    accentBar?: string
+    compact?: boolean
+  }) => {
+    const isActive = selectedKpi === item.key
+    return (
+      <div
+        key={item.key}
+        onClick={() => setSelectedKpi(isActive ? null : item.key)}
+        style={{
+          flex: compact ? 1 : undefined,
+          flexShrink: compact ? undefined : 0,
+          position: 'relative',
+          overflow: 'hidden',
+          textAlign: 'center',
+          padding: compact ? '6px 6px' : '12px 16px',
+          borderRadius: 6,
+          border: `1px solid ${isActive ? item.color : 'transparent'}`,
+          background: isActive ? '#F9FAFB' : 'transparent',
+          cursor: 'pointer',
+          userSelect: 'none',
+          transition: 'all 0.15s',
+          minWidth: compact ? 60 : 100,
+        }}
+        title={item.tip || item.label}
+      >
+        {accentBar && (
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: accentBar }} />
+        )}
+        <div style={{ fontSize: compact ? 10 : 11, color: isActive ? item.color : '#6B7280', marginBottom: compact ? 2 : 4, fontWeight: 500, whiteSpace: 'nowrap' }}>
+          {item.label}
+          {item.tip && <span style={{ marginLeft: 3, color: '#9CA3AF', fontSize: 10 }}>ⓘ</span>}
+        </div>
+        <div style={{ fontSize: compact ? 18 : 24, fontWeight: 700, color: item.color, lineHeight: 1.1 }}>{item.value}</div>
+        <div style={{ fontSize: compact ? 10 : 11, color: '#9CA3AF', marginTop: 2 }}>{item.unit}</div>
+      </div>
+    )
   }
 
   if (loading) {
@@ -167,9 +220,11 @@ export function StationChiefV2Dashboard() {
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#9CA3AF' }}>时间:</span>
           {([
+            { key: 'week' as TimeRange, label: '本周' },
             { key: 'month' as TimeRange, label: '本月' },
             { key: 'quarter' as TimeRange, label: '本季' },
             { key: 'year' as TimeRange, label: '本年' },
+            { key: 'custom' as TimeRange, label: '自定义' },
           ] as const).map(opt => (
             <button
               key={opt.key}
@@ -189,7 +244,24 @@ export function StationChiefV2Dashboard() {
               {opt.label}
             </button>
           ))}
-
+          {/* 自定义日期输入 */}
+          {timeRange === 'custom' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}>
+              <input
+                type="date"
+                value={customStart}
+                onChange={e => setCustomStart(e.target.value)}
+                style={{ padding: '1px 6px', border: '1px solid #D1D5DB', borderRadius: 3, fontSize: 12, color: '#374151', outline: 'none' }}
+              />
+              <span style={{ fontSize: 12, color: '#9CA3AF' }}>至</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={e => setCustomEnd(e.target.value)}
+                style={{ padding: '1px 6px', border: '1px solid #D1D5DB', borderRadius: 3, fontSize: 12, color: '#374151', outline: 'none' }}
+              />
+            </div>
+          )}
         </div>
 
         <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
@@ -333,49 +405,98 @@ export function StationChiefV2Dashboard() {
 
       {/* KPI 指标卡片（在筛选区下方、tab 切换上方） */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(6, 1fr)',
+        display: 'flex',
         gap: 12,
         marginBottom: 12,
-        padding: '16px',
-        background: '#FAFAFA',
-        border: '1px solid #E5E7EB',
-        borderRadius: 4,
+        alignItems: 'stretch',
       }}>
-        {([
-          { key: 'totalEnterprise', label: '监管企业数', value: enterprises.length, unit: '家', color: '#374151', tip: '纳入监管的企业总数' },
-          { key: 'enterprise', label: '检查企业',  value: kpiTotals.enterprise, unit: '家', color: '#374151', tip: '远程监管户数（去除停业、虚拟注册等，共8900多）' },
-          { key: 'hazard',    label: '隐患总数',  value: kpiTotals.hazard,    unit: '处', color: '#374151', tip: '镇街监督检查过程中发现的隐患总数（日常监管+安全检查+三清三关）= 已整改+整改中' },
-          { key: 'serious',   label: '重大隐患',  value: kpiTotals.serious,   unit: '处', color: '#DC2626', tip: '' },
-          { key: 'closed',    label: '已整改',    value: kpiTotals.closed,    unit: '处', color: '#059669', tip: '' },
-          { key: 'inProgress',label: '整改中',   value: kpiTotals.inProgress,unit: '处', color: '#D97706', tip: '' },
-        ] as { key: string; label: string; value: number; unit: string; color: string; tip: string }[]).map(item => {
-          const isActive = selectedKpi === item.key
-          return (
-            <div
-              key={item.key}
-              onClick={() => setSelectedKpi(isActive ? null : item.key)}
-              style={{
-                textAlign: 'center',
-                padding: '8px 4px',
-                borderRadius: 4,
-                border: `1px solid ${isActive ? item.color : 'transparent'}`,
-                background: isActive ? (item.key === 'enterprise' || item.key === 'hazard' ? '#F3F4F6' : '#FFF') : 'transparent',
-                cursor: 'pointer',
-                userSelect: 'none',
-                transition: 'all 0.15s',
-              }}
-              title={item.tip ? item.tip : '点击筛选，切换维度查看详情'}
-            >
-              <div style={{ fontSize: 11, color: isActive ? item.color : '#9CA3AF', marginBottom: 4, fontWeight: isActive ? 500 : 400 }}>
-                {item.label}
-                {item.tip && <span style={{ marginLeft: 3, color: '#9CA3AF', fontSize: 10, cursor: 'help' }}>ⓘ</span>}
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 600, color: item.color }}>{item.value}</div>
-              <div style={{ fontSize: 11, color: '#9CA3AF' }}>{item.unit}</div>
-            </div>
-          )
-        })}
+        {/* 安全责任主体总数 */}
+        <KpiCard
+          selectedKpi={selectedKpi}
+          setSelectedKpi={setSelectedKpi}
+          item={{ key: 'safetySubject', label: '安全责任主体总数', value: enterprises.length, unit: '家', color: '#1D4ED8', tip: '纳入安全监管的企业（安全责任主体）总数' }}
+          accentBar="#3B82F6"
+        />
+        {/* 检查企业 */}
+        <KpiCard
+          selectedKpi={selectedKpi}
+          setSelectedKpi={setSelectedKpi}
+          item={{ key: 'enterprise', label: '检查企业', value: kpiTotals.enterprise, unit: '家', color: '#374151', tip: '远程监管户数（去除停业、虚拟注册等，共8900多）' }}
+        />
+
+        {/* 隐患统计组 */}
+        <div style={{
+          flex: 1,
+          border: '1px solid #D1D5DB',
+          borderRadius: 8,
+          background: '#FAFAFA',
+          padding: '8px 10px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          minWidth: 0,
+        }}>
+          <div style={{ fontSize: 11, color: '#6B7280', textAlign: 'center', fontWeight: 600, paddingBottom: 4, borderBottom: '1px dashed #E5E7EB', whiteSpace: 'nowrap' }}>
+            隐患总数 = 已整改 + 整改中
+          </div>
+          <div style={{ display: 'flex', gap: 8, flex: 1 }}>
+            <KpiCard
+              selectedKpi={selectedKpi}
+              setSelectedKpi={setSelectedKpi}
+              item={{ key: 'hazard', label: '隐患总数', value: kpiTotals.hazard, unit: '处', color: '#374151', tip: '镇街监督检查发现的隐患总数' }}
+              compact
+            />
+            <KpiCard
+              selectedKpi={selectedKpi}
+              setSelectedKpi={setSelectedKpi}
+              item={{ key: 'closed', label: '已整改', value: kpiTotals.closed, unit: '处', color: '#059669' }}
+              compact
+            />
+            <KpiCard
+              selectedKpi={selectedKpi}
+              setSelectedKpi={setSelectedKpi}
+              item={{ key: 'inProgress', label: '整改中', value: kpiTotals.inProgress, unit: '处', color: '#D97706' }}
+              compact
+            />
+          </div>
+        </div>
+
+        {/* 重大隐患统计组 */}
+        <div style={{
+          flex: 1,
+          border: '1px solid #FECACA',
+          borderRadius: 8,
+          background: '#FFF5F5',
+          padding: '8px 10px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          minWidth: 0,
+        }}>
+          <div style={{ fontSize: 11, color: '#991B1B', textAlign: 'center', fontWeight: 600, paddingBottom: 4, borderBottom: '1px dashed #FECACA', whiteSpace: 'nowrap' }}>
+            重大隐患总数 = 已整改 + 整改中
+          </div>
+          <div style={{ display: 'flex', gap: 8, flex: 1 }}>
+            <KpiCard
+              selectedKpi={selectedKpi}
+              setSelectedKpi={setSelectedKpi}
+              item={{ key: 'serious', label: '重大隐患总数', value: kpiTotals.serious, unit: '处', color: '#DC2626' }}
+              compact
+            />
+            <KpiCard
+              selectedKpi={selectedKpi}
+              setSelectedKpi={setSelectedKpi}
+              item={{ key: 'seriousClosed', label: '重大隐患已整改', value: kpiTotals.seriousClosed, unit: '处', color: '#059669' }}
+              compact
+            />
+            <KpiCard
+              selectedKpi={selectedKpi}
+              setSelectedKpi={setSelectedKpi}
+              item={{ key: 'seriousInProgress', label: '重大隐患整改中', value: kpiTotals.seriousInProgress, unit: '处', color: '#D97706' }}
+              compact
+            />
+          </div>
+        </div>
       </div>
 
       {/* 维度切换按钮（在筛选区下方） */}
@@ -390,7 +511,7 @@ export function StationChiefV2Dashboard() {
           { key: 'duty', label: '组织与人员' },
           { key: 'industry', label: '行业分析' },
           { key: 'special', label: '任务计划' },
-          { key: 'state', label: '企业状态' },
+          { key: 'state', label: '责任主体分析' },
           { key: 'hazard', label: '隐患详情' },
           { key: 'trend', label: '趋势分析' },
         ].map(tab => {

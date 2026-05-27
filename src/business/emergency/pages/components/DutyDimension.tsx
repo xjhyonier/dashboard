@@ -16,8 +16,7 @@ interface WorkGroupView {
   enterprise_count: number
   inspection_count: number
   leader_name: string
-  deputy_name: string
-  member_count: number
+  member_names: string
   hazard_total: number
   hazard_major: number
   hazard_pending: number
@@ -150,8 +149,8 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
       // 获取该工作组的人员
       const wgMembers = governmentMembers.filter(m => m.work_group === wg.name)
       const leader = wgMembers.find(m => m.position === '组长')
-      const deputy = wgMembers.find(m => m.position === '副站长')
-      const member_count = wgMembers.length
+      const regularMembers = wgMembers.filter(m => m.position !== '组长' && m.name !== '张义' && m.name !== '余国生')
+      const member_names = regularMembers.map(m => m.name).join('、') || '-'
 
       // 模拟检查次数和计划数据
       const inspection_count = Math.round(wg.enterprise_count * 2.5)
@@ -171,8 +170,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
         enterprise_count: wg.enterprise_count,
         inspection_count,
         leader_name: leader?.name || '-',
-        deputy_name: deputy?.name || '-',
-        member_count,
+        member_names,
         hazard_total,
         hazard_major,
         hazard_pending,
@@ -314,11 +312,9 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
       const kw = teamKeyword.trim().toLowerCase()
       result = result.filter(g => g.name.toLowerCase().includes(kw))
     }
-    // 按成员名称过滤（点击组长/副站长时生效）
+    // 按成员名称过滤
     if (filterByMember) {
-      result = result.filter(g => 
-        g.leader_name === filterByMember || g.deputy_name === filterByMember
-      )
+      result = result.filter(g => g.leader_name === filterByMember || g.member_names.includes(filterByMember))
     }
     if (riskLevel !== 'all') {
       const riskMap: Record<string, string> = { major: '重大', high: '较大', medium: '一般', low: '低' }
@@ -459,7 +455,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 区域: wg.area,
                 风险等级: wg.risk_level,
                 组长: wg.leader_name,
-                副站长: wg.deputy_name,
+                组员: wg.member_names,
                 检查企业: wg.enterprise_count,
                 隐患总数: wg.hazard_total,
                 重大隐患: wg.hazard_major,
@@ -469,7 +465,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 { key: '区域', label: '区域' },
                 { key: '风险等级', label: '风险等级' },
                 { key: '组长', label: '组长' },
-                { key: '副站长', label: '副站长' },
+                { key: '组员', label: '组员' },
                 { key: '检查企业', label: '检查企业' },
                 { key: '隐患总数', label: '隐患总数' },
                 { key: '重大隐患', label: '重大隐患' },
@@ -482,7 +478,8 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
           <thead>
             <tr>
               <SortableTh label="工作组名称" sortKey="name" sort={sortTeams} onSort={handleSortTeams} />
-              <SortableTh label="成员" sortKey="leader_name" sort={sortTeams} onSort={handleSortTeams} />
+              <SortableTh label="组长" sortKey="leader_name" sort={sortTeams} onSort={handleSortTeams} />
+              <SortableTh label="组员" sortKey="leader_name" sort={sortTeams} onSort={handleSortTeams} />
               <SortableTh label="监管企业数" sortKey="enterprise_count" sort={sortTeams} onSort={handleSortTeams} />
               <SortableTh label="检查企业" sortKey="inspection_count" sort={sortTeams} onSort={handleSortTeams} />
               <SortableTh label="隐患总数" sortKey="hazard_total" sort={sortTeams} onSort={handleSortTeams} />
@@ -495,7 +492,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
           </thead>
           <tbody>
             {sortedTeams.length === 0 ? (
-              <tr><td colSpan={10} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的工作组</td></tr>
+              <tr><td colSpan={11} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的工作组</td></tr>
             ) : sortedTeams.map((g, i) => {
               const isSelected = selectedTeamId === g.id
               return (
@@ -511,8 +508,18 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                   </td>
                   <td style={tdStyle}>
                     <span style={{ color: '#4F46E5', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setFilterByMember(g.leader_name); setSelectedMemberName(g.leader_name) }} title={`点击查看 ${g.leader_name} 负责的工作组`}>{g.leader_name}</span>
-                    <span style={{ color: '#9CA3AF', margin: '0 4px' }}>/</span>
-                    <span style={{ color: '#059669', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setFilterByMember(g.deputy_name); setSelectedMemberName(g.deputy_name) }} title={`点击查看 ${g.deputy_name} 负责的工作组`}>{g.deputy_name}</span>
+                  </td>
+                  <td style={{ ...tdStyle, fontSize: 11 }}>
+                    {g.member_names === '-' ? (
+                      <span style={{ color: '#9CA3AF' }}>-</span>
+                    ) : (
+                      g.member_names.split('、').map((name, idx) => (
+                        <span key={idx}>
+                          <span style={{ color: '#059669', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setFilterByMember(name); setSelectedMemberName(name) }} title={`点击查看 ${name} 负责的工作组`}>{name}</span>
+                          {idx < g.member_names.split('、').length - 1 && <span style={{ color: '#9CA3AF' }}>、</span>}
+                        </span>
+                      ))
+                    )}
                   </td>
                   <td
                     style={{ ...tdStyle, fontWeight: 500, cursor: 'pointer', color: '#4F46E5', textDecoration: 'underline' }}
@@ -565,6 +572,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
               <tr style={{ background: '#F3F4F6', fontWeight: 600 }}>
                 <td style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
                 <td style={{ ...tdStyle, color: '#374151' }}>-</td>
+                <td style={{ ...tdStyle, color: '#374151' }}>-</td>
                 <td style={{ ...tdStyle, color: '#374151' }}>{totals.enterprise}</td>
                 <td style={{ ...tdStyle, color: '#374151' }}>-</td>
                 <td style={{ ...tdStyle, color: '#374151' }}>{totals.hazard}</td>
@@ -578,6 +586,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
             {/* 未分组行 */}
             <tr style={{ background: '#FFFBEB', fontStyle: 'italic' }}>
               <td style={{ ...tdStyle, textAlign: 'left', color: '#92400E', fontWeight: 500 }}>未分组</td>
+              <td style={{ ...tdStyle, color: '#9CA3AF' }}>-</td>
               <td style={{ ...tdStyle, color: '#9CA3AF' }}>-</td>
               <td style={{ ...tdStyle, color: '#9CA3AF' }}>-</td>
               <td style={{ ...tdStyle, color: '#9CA3AF' }}>-</td>

@@ -4,8 +4,8 @@ import { useSortableTable } from './useSortableTable'
 import { SortableTh } from './SortableTh'
 import { EnterpriseStatePath } from '../../../../components/shared/EnterpriseStatePath'
 import type { StateDimensionProps } from './types'
-import { initDatabase, getEnterprises, getExperts, getEnterpriseDimensions, getRiskPoints, db } from '../../../../db'
-import type { Enterprise, EnterpriseDimensions, Expert, RiskPoint, RiskPointControl } from '../../../../db/types'
+import { initDatabase, getEnterprises, getExperts, getEnterpriseDimensions, getRiskPoints } from '../../../../db'
+import type { Enterprise, EnterpriseDimensions, Expert, RiskPoint } from '../../../../db/types'
 import { exportToCSV } from './exportUtils'
 
 // 合并企业数据
@@ -21,12 +21,22 @@ const RISK_COLORS: Record<string, string> = {
   '低': '#3B82F6',
 }
 
+// 风险等级显示名映射
+const getRiskLevelLabel = (level: string): string => {
+  const map: Record<string, string> = {
+    '重大': '重大风险',
+    '较大': '较大风险',
+    '一般': '一般风险',
+    '低': '低风险',
+  }
+  return map[level] || level
+}
+
 export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams }: StateDimensionProps) {
   const [enterprises, setEnterprises] = useState<EnterpriseWithDimensions[]>([])
   const [experts, setExperts] = useState<Expert[]>([])
   const [dimensionsMap, setDimensionsMap] = useState<Record<string, EnterpriseDimensions>>({})
   const [riskPoints, setRiskPoints] = useState<RiskPoint[]>([])
-  const [riskPointControls, setRiskPointControls] = useState<RiskPointControl[]>([])
   const [selectedEnterpriseId, setSelectedEnterpriseId] = useState<string | null>(null)
   const [riskLevelFilter, setRiskLevelFilter] = useState<string>('all')
   const [riskPointPage, setRiskPointPage] = useState(1)
@@ -36,14 +46,12 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
   // 路径节点选中状态
   const [selectedNode, setSelectedNode] = useState<{ id: string; label: string; count: string } | null>(null)
 
-  // 专家筛选（支持 URL 参数）
-  const [selectedExpert, setSelectedExpert] = useState<string>(navigateParams?.expertName || 'all')
+  // 风险点搜索
+  const [riskPointNameFilter, setRiskPointNameFilter] = useState('')
+  const [riskPointEnterpriseFilter, setRiskPointEnterpriseFilter] = useState('')
 
-  // 工作组筛选（支持 URL 参数）
-  const [selectedTeam, setSelectedTeam] = useState<string>(navigateParams?.teamName || 'all')
-
-  // 风险等级筛选
-  const [selectedRisk, setSelectedRisk] = useState<string>('all')
+  // 企业状态路径图折叠
+  const [statePathCollapsed, setStatePathCollapsed] = useState(true)
 
   // 企业列表关键词筛选
   const [entKeyword, setEntKeyword] = useState('')
@@ -107,10 +115,6 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
         // 加载所有风险点和管控措施
         const points = await getRiskPoints()
         setRiskPoints(points)
-        
-        // 加载所有管控措施
-        const controls = db.riskPointControls
-        setRiskPointControls(controls)
       } catch (err) {
         console.error('Failed to load enterprises:', err)
       } finally {
@@ -120,41 +124,10 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
     loadData()
   }, [])
 
-  // 专家选项
-  const expertOptions = useMemo(() => {
-    return ['all', ...experts.map(e => e.name)]
-  }, [experts])
-
-  // 风险等级映射
-  const riskLevelMap: Record<string, string> = {
-    major: '重大',
-    high: '较大',
-    medium: '一般',
-    low: '低',
-  }
-
   // 过滤后的企业
   const { sortedData: filteredEnterprises, sort, handleSort } = useSortableTable<EnterpriseWithDimensions>(
     useMemo(() => {
       let result = enterprises
-      // 专家筛选
-      if (selectedExpert !== 'all') {
-        const expert = experts.find(e => e.name === selectedExpert)
-        if (expert) {
-          result = result.filter(e => e.expert_id === expert.id)
-        }
-      }
-      // 工作组筛选
-      if (selectedTeam !== 'all') {
-        result = result.filter(e => e.work_group === selectedTeam)
-      }
-      // 风险等级筛选
-      if (selectedRisk !== 'all') {
-        const mappedLevel = riskLevelMap[selectedRisk]
-        if (mappedLevel) {
-          result = result.filter(e => e.risk_level === mappedLevel)
-        }
-      }
       // 路径节点筛选
       if (selectedNode) {
         const filterFn = nodeIdToFilter(selectedNode.id)
@@ -170,7 +143,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
         )
       }
       return result
-    }, [enterprises, selectedExpert, selectedTeam, selectedRisk, entKeyword, experts, selectedNode]),
+    }, [enterprises, entKeyword, selectedNode]),
     'name',
     'asc'
   )
@@ -191,100 +164,43 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
 
   return (
     <div>
-      {/* 企业状态路径图 */}
-      <EnterpriseStatePath
-        expertId={selectedExpert === 'all' ? undefined : selectedExpert}
-        riskLevel={selectedRisk === 'all' ? undefined : selectedRisk}
-        onNodeSelect={node => setSelectedNode(node)}
-        hidePopup
-      />
-
-      {/* 选中节点提示 */}
-      {selectedNode && (
-        <div style={{ marginBottom: 12, padding: '8px 12px', background: '#EEF2FF', borderRadius: 6, fontSize: 12, color: '#4F46E5' }}>
-          已选中：{selectedNode.label}（{selectedNode.count} 家）
-          <button
-            onClick={() => setSelectedNode(null)}
-            style={{ marginLeft: 8, padding: '2px 8px', border: '1px solid #C7D2FE', borderRadius: 4, background: 'white', color: '#4F46E5', cursor: 'pointer', fontSize: 11 }}
-          >
-            取消选择
-          </button>
+      {/* 企业状态路径（待完善） */}
+      <div style={{ marginBottom: 16, border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
+        <div
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#F9FAFB', borderBottom: statePathCollapsed ? 'none' : '1px solid #E5E7EB', cursor: 'pointer', userSelect: 'none' }}
+          onClick={() => setStatePathCollapsed(!statePathCollapsed)}
+        >
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#6B7280' }}>
+            企业状态路径（待完善）
+            {statePathCollapsed && selectedNode && (
+              <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 400, color: '#4F46E5' }}>已选中：{selectedNode.label}（{selectedNode.count} 家）</span>
+            )}
+          </span>
+          <span style={{ fontSize: 14, color: '#9CA3AF', transition: 'transform 0.2s', transform: statePathCollapsed ? 'rotate(180deg)' : 'rotate(0deg)' }}>▲</span>
         </div>
-      )}
+        {!statePathCollapsed && (
+          <>
+            <EnterpriseStatePath
+              onNodeSelect={node => setSelectedNode(node)}
+              hidePopup
+            />
 
-      {/* 专家 + 风险等级筛选 */}
-      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', marginBottom: 16, flexWrap: 'wrap' }}>
-        {/* 专家筛选 */}
-        <div>
-          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>按专家筛选</div>
-          <select
-            value={selectedExpert}
-            onChange={e => { setSelectedExpert(e.target.value); setCurrentPage(1) }}
-            style={{ padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4, fontSize: 12, color: '#374151', outline: 'none', minWidth: 140 }}
-          >
-            {expertOptions.map(name => (
-              <option key={name} value={name}>{name === 'all' ? '全部专家' : name}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* 工作组筛选 */}
-        <div>
-          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>按工作组筛选</div>
-          <select
-            value={selectedTeam}
-            onChange={e => { setSelectedTeam(e.target.value); setCurrentPage(1) }}
-            style={{ padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4, fontSize: 12, color: '#374151', outline: 'none', minWidth: 140 }}
-          >
-            <option value="all">全部工作组</option>
-            {Array.from(new Set(enterprises.map(e => e.work_group))).sort().map(wg => (
-              <option key={wg} value={wg}>{wg}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* 风险等级筛选 */}
-        <div>
-          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>按风险等级筛选</div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {([
-              { key: 'all', label: '全部' },
-              { key: 'major', label: '重大风险' },
-              { key: 'high', label: '较大风险' },
-              { key: 'medium', label: '一般风险' },
-              { key: 'low', label: '低风险' },
-            ] as const).map(opt => {
-              const active = selectedRisk === opt.key
-              const colors: Record<string, { border: string; bg: string; text: string }> = {
-                all: { border: '#4F46E5', bg: '#EEF2FF', text: '#3730A3' },
-                major: { border: '#DC2626', bg: '#FEE2E2', text: '#991B1B' },
-                high: { border: '#D97706', bg: '#FEF3C7', text: '#92400E' },
-                medium: { border: '#D97706', bg: '#FEF3C7', text: '#92400E' },
-                low: { border: '#059669', bg: '#D1FAE5', text: '#065F46' },
-              }
-              const cfg = colors[opt.key]
-              return (
+            {/* 选中节点提示 */}
+            {selectedNode && (
+              <div style={{ padding: '8px 14px', background: '#EEF2FF', fontSize: 12, color: '#4F46E5', display: 'flex', alignItems: 'center', gap: 8 }}>
+                已选中：{selectedNode.label}（{selectedNode.count} 家）
                 <button
-                  key={opt.key}
-                  onClick={() => { setSelectedRisk(opt.key); setCurrentPage(1) }}
-                  style={{
-                    padding: '3px 10px',
-                    borderRadius: 4,
-                    border: `1px solid ${active ? cfg.border : '#D1D5DB'}`,
-                    background: active ? cfg.bg : 'white',
-                    color: active ? cfg.text : '#6B7280',
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    fontWeight: active ? 600 : 400,
-                  }}
+                  onClick={() => setSelectedNode(null)}
+                  style={{ marginLeft: 'auto', padding: '2px 8px', border: '1px solid #C7D2FE', borderRadius: 4, background: 'white', color: '#4F46E5', cursor: 'pointer', fontSize: 11 }}
                 >
-                  {opt.label}
+                  取消选择
                 </button>
-              )
-            })}
-          </div>
-        </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
+
 
       {/* 企业列表 */}
       <div>
@@ -373,9 +289,9 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
             >
               ⬇ 导出
             </button>
-            {(selectedExpert !== 'all' || selectedTeam !== 'all' || selectedRisk !== 'all' || entKeyword) && (
+            {entKeyword && (
               <button
-                onClick={() => { setSelectedExpert('all'); setSelectedTeam('all'); setSelectedRisk('all'); setEntKeyword(''); setCurrentPage(1) }}
+                onClick={() => { setEntKeyword(''); setCurrentPage(1) }}
                 style={{
                   padding: '4px 10px',
                   border: '1px solid #D1D5DB',
@@ -501,6 +417,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
           const counts = { '重大': 0, '较大': 0, '一般': 0, '低': 0 }
           riskPoints.forEach(rp => { if (counts[rp.level] !== undefined) counts[rp.level]++ })
           const total = riskPoints.length || 1
+          const riskLabelMap: Record<string, string> = { '重大': '重大风险', '较大': '较大风险', '一般': '一般风险', '低': '低风险' }
           return (
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>
@@ -539,7 +456,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                       onClick={() => setRiskLevelFilter(riskLevelFilter === level ? 'all' : level)}
                     >
                       <span style={{ color: 'white', fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap' }}>
-                        {percent >= 8 ? `${level} ${percent}%` : ''}
+                        {percent >= 8 ? `${riskLabelMap[level]} ${percent}%` : ''}
                       </span>
                     </div>
                   ) : null
@@ -564,7 +481,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                     }}
                   >
                     <span style={{ width: 10, height: 10, borderRadius: 2, background: RISK_COLORS[level] }} />
-                    {level}: {counts[level]}个
+                    {riskLabelMap[level]}: {counts[level]}个
                     {riskLevelFilter === level && <span style={{ marginLeft: 2 }}>✕</span>}
                   </span>
                 ))}
@@ -573,13 +490,31 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
           )
         })()}
 
+        {/* 风险点搜索 */}
+        <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <input
+            type="text"
+            placeholder="搜索风险点名称"
+            value={riskPointNameFilter}
+            onChange={e => { setRiskPointNameFilter(e.target.value); setRiskPointPage(1) }}
+            style={{ ...inputStyle, width: 200 }}
+          />
+          <input
+            type="text"
+            placeholder="搜索企业名称"
+            value={riskPointEnterpriseFilter}
+            onChange={e => { setRiskPointEnterpriseFilter(e.target.value); setRiskPointPage(1) }}
+            style={{ ...inputStyle, width: 200 }}
+          />
+        </div>
+
         {/* 风险点表格 */}
         <div style={{ background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
               <thead>
                 <tr style={{ background: '#F9FAFB' }}>
-                  {['风险点名称', '企业', '类型', '风险等级', '检查计划', '最近检查', '频次', '管控措施', '管控状态'].map(h => (
+                  {['风险点名称', '企业', '类型', '风险等级', '检查计划', '最近检查', '频次', '管控状态'].map(h => (
                     <th key={h} style={{ ...thStyle, fontWeight: 600 }}>{h}</th>
                   ))}
                 </tr>
@@ -593,16 +528,26 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                   if (riskLevelFilter !== 'all') {
                     filteredPoints = filteredPoints.filter(rp => rp.level === riskLevelFilter)
                   }
+                  // 风险点名称搜索
+                  if (riskPointNameFilter.trim()) {
+                    const kw = riskPointNameFilter.trim().toLowerCase()
+                    filteredPoints = filteredPoints.filter(rp => rp.name.toLowerCase().includes(kw))
+                  }
+                  // 企业名称搜索
+                  if (riskPointEnterpriseFilter.trim()) {
+                    const kw = riskPointEnterpriseFilter.trim().toLowerCase()
+                    filteredPoints = filteredPoints.filter(rp => {
+                      const ent = enterprises.find(e => e.id === rp.enterprise_id)
+                      return ent ? ent.name.toLowerCase().includes(kw) : false
+                    })
+                  }
                   const totalPages = Math.ceil(filteredPoints.length / RISK_POINT_PAGE_SIZE) || 1
                   const pagedPoints = filteredPoints.slice((riskPointPage - 1) * RISK_POINT_PAGE_SIZE, riskPointPage * RISK_POINT_PAGE_SIZE)
                   return pagedPoints.length === 0 ? (
-                    <tr><td colSpan={9} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: 20 }}>暂无数据</td></tr>
+                    <tr><td colSpan={8} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: 20 }}>暂无数据</td></tr>
                   ) : pagedPoints.map((rp, i) => {
                     const ent = enterprises.find(e => e.id === rp.enterprise_id)
                     const planLabels: Record<string, string> = { weekly: '按周', monthly: '按月', quarterly: '按季' }
-                    // 获取该风险点的管控措施
-                    const controls = (riskPointControls || []).filter(rc => rc.risk_point_id === rp.id)
-                    const firstMeasure = controls.length > 0 ? controls[0].measure : '-'
                     return (
                       <tr key={rp.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                         <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 500, color: '#1F2937' }}>{rp.name}</td>
@@ -613,17 +558,12 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                         <td style={tdStyle}>{rp.type}</td>
                         <td style={{ ...tdStyle, fontWeight: 600 }}>
                           <span style={{ padding: '2px 6px', borderRadius: 3, background: RISK_COLORS[rp.level] + '20', color: RISK_COLORS[rp.level] }}>
-                            {rp.level}
+                            {getRiskLevelLabel(rp.level)}
                           </span>
                         </td>
                         <td style={tdStyle}>{planLabels[rp.plan_type] || rp.plan_type}</td>
                         <td style={tdStyle}>{rp.last_check_at || '-'}</td>
                         <td style={tdStyle}>{rp.check_frequency}</td>
-                        <td style={{ ...tdStyle, textAlign: 'left', color: '#6B7280', maxWidth: 150 }}>
-                          <span title={firstMeasure} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {firstMeasure}
-                          </span>
-                        </td>
                         <td style={tdStyle}>
                           <span style={{
                             padding: '2px 6px',
@@ -650,6 +590,17 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                 : riskPoints
               if (riskLevelFilter !== 'all') {
                 filteredPoints = filteredPoints.filter(rp => rp.level === riskLevelFilter)
+              }
+              if (riskPointNameFilter.trim()) {
+                const kw = riskPointNameFilter.trim().toLowerCase()
+                filteredPoints = filteredPoints.filter(rp => rp.name.toLowerCase().includes(kw))
+              }
+              if (riskPointEnterpriseFilter.trim()) {
+                const kw = riskPointEnterpriseFilter.trim().toLowerCase()
+                filteredPoints = filteredPoints.filter(rp => {
+                  const ent = enterprises.find(e => e.id === rp.enterprise_id)
+                  return ent ? ent.name.toLowerCase().includes(kw) : false
+                })
               }
               const totalPages = Math.ceil(filteredPoints.length / RISK_POINT_PAGE_SIZE) || 1
               return (

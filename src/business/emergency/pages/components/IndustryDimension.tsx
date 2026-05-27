@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { thStyle, tdStyle, inputStyle } from './styles'
 import { useSortableTable } from './useSortableTable'
 import { SortableTh } from './SortableTh'
@@ -288,43 +288,65 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
             </thead>
             <tbody>
               {sortedSubjectTypes.map((s, i) => (
-                <tr key={s.name} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                  <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#1F2937' }}>{s.name}</td>
-                  <td style={tdStyle}>{s.enterpriseCount}</td>
-                  <td style={tdStyle}>{s.inspectedCount}</td>
-                  <td style={tdStyle}>{s.inspectedCount}</td>
-                  <td style={{ ...tdStyle, color: s.hazardFound > 50 ? '#DC2626' : '#374151' }}>{s.hazardFound}</td>
-                  <td style={{ ...tdStyle, color: '#DC2626', fontWeight: 600 }}>{s.seriousHazard}</td>
-                  <td style={{ ...tdStyle, color: '#059669' }}>{s.rectified}</td>
-                  <td style={{ ...tdStyle, color: '#D97706' }}>{s.deadline}</td>
-                  <td style={tdStyle}>{s.recheck}</td>
-                </tr>
+                <React.Fragment key={s.name}>
+                  <tr style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#1F2937' }}>{s.name}</td>
+                    <td style={tdStyle}>{s.enterpriseCount}</td>
+                    <td style={tdStyle}>{s.inspectedCount}</td>
+                    <td style={tdStyle}>{s.inspectedCount}</td>
+                    <td style={{ ...tdStyle, color: s.hazardFound > 50 ? '#DC2626' : '#374151' }}>{s.hazardFound}</td>
+                    <td style={{ ...tdStyle, color: '#DC2626', fontWeight: 600 }}>{s.seriousHazard}</td>
+                    <td style={{ ...tdStyle, color: '#059669' }}>{s.rectified}</td>
+                    <td style={{ ...tdStyle, color: '#D97706' }}>{s.deadline}</td>
+                    <td style={tdStyle}>{s.recheck}</td>
+                  </tr>
+                  {/* 消防场所下方显示子行（缩进） */}
+                  {s.name === '消防场所' && (
+                    <>
+                      {/* 未知（子行，缩进） */}
+                      <tr style={{ background: '#F9FAFB' }}>
+                        <td style={{ ...tdStyle, textAlign: 'left', color: '#9CA3AF', paddingLeft: 24 }}>
+                          <span style={{ color: '#9CA3AF', marginRight: 2 }}>└</span>未知
+                        </td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>23</td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>15</td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>12</td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>18</td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>2</td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>11</td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>5</td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>3</td>
+                      </tr>
+                      {/* 市场内低风险责任主体户数（子行，缩进） */}
+                      <tr style={{ background: '#F9FAFB' }}>
+                        <td style={{ ...tdStyle, textAlign: 'left', color: '#9CA3AF', paddingLeft: 24 }}>
+                          <span style={{ color: '#9CA3AF', marginRight: 2 }}>└</span>市场内低风险责任主体户数
+                        </td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>87</td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>64</td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>58</td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>42</td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>1</td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>33</td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>7</td>
+                        <td style={{ ...tdStyle, color: '#9CA3AF' }}>6</td>
+                      </tr>
+                    </>
+                  )}
+                </React.Fragment>
               ))}
               {sortedSubjectTypes.length > 0 && (
-                <>
-                  <tr style={{ background: '#FAFBFC' }}>
-                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#6B7280' }}>未知</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                  </tr>
-                  <tr style={{ background: '#F3F4F6', fontWeight: 600 }}>
-                    <td style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
-                    <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.enterpriseCount, 0)}</td>
-                    <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.inspectedCount, 0)}</td>
-                    <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.inspectedCount, 0)}</td>
-                    <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.hazardFound, 0)}</td>
-                    <td style={{ ...tdStyle, color: '#DC2626' }}>{sortedSubjectTypes.reduce((sum, s) => sum + s.seriousHazard, 0)}</td>
-                    <td style={{ ...tdStyle, color: '#059669' }}>{sortedSubjectTypes.reduce((sum, s) => sum + s.rectified, 0)}</td>
-                    <td style={{ ...tdStyle, color: '#D97706' }}>{sortedSubjectTypes.reduce((sum, s) => sum + s.deadline, 0)}</td>
-                    <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.recheck, 0)}</td>
-                  </tr>
-                </>
+                <tr style={{ background: '#F3F4F6', fontWeight: 600 }}>
+                  <td style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
+                  <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.enterpriseCount, 0)}</td>
+                  <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.inspectedCount, 0)}</td>
+                  <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.inspectedCount, 0)}</td>
+                  <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.hazardFound, 0)}</td>
+                  <td style={{ ...tdStyle, color: '#DC2626' }}>{sortedSubjectTypes.reduce((sum, s) => sum + s.seriousHazard, 0)}</td>
+                  <td style={{ ...tdStyle, color: '#059669' }}>{sortedSubjectTypes.reduce((sum, s) => sum + s.rectified, 0)}</td>
+                  <td style={{ ...tdStyle, color: '#D97706' }}>{sortedSubjectTypes.reduce((sum, s) => sum + s.deadline, 0)}</td>
+                  <td style={tdStyle}>{sortedSubjectTypes.reduce((sum, s) => sum + s.recheck, 0)}</td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -351,31 +373,38 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
             </thead>
             <tbody>
               {sortedRiskLevels.map((s, i) => (
-                <tr key={s.name} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                  <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#1F2937' }}>{s.name}</td>
-                  <td style={tdStyle}>{s.enterpriseCount}</td>
-                  <td style={tdStyle}>{s.inspectedCount}</td>
-                  <td style={tdStyle}>{s.inspectedCount}</td>
-                  <td style={{ ...tdStyle, color: s.hazardFound > 50 ? '#DC2626' : '#374151' }}>{s.hazardFound}</td>
-                  <td style={{ ...tdStyle, color: '#DC2626', fontWeight: 600 }}>{s.seriousHazard}</td>
-                  <td style={{ ...tdStyle, color: '#059669' }}>{s.rectified}</td>
-                  <td style={{ ...tdStyle, color: '#D97706' }}>{s.deadline}</td>
-                  <td style={tdStyle}>{s.recheck}</td>
-                </tr>
+                <React.Fragment key={s.name}>
+                  <tr style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#1F2937' }}>{s.name}</td>
+                    <td style={tdStyle}>{s.enterpriseCount}</td>
+                    <td style={tdStyle}>{s.inspectedCount}</td>
+                    <td style={tdStyle}>{s.inspectedCount}</td>
+                    <td style={{ ...tdStyle, color: s.hazardFound > 50 ? '#DC2626' : '#374151' }}>{s.hazardFound}</td>
+                    <td style={{ ...tdStyle, color: '#DC2626', fontWeight: 600 }}>{s.seriousHazard}</td>
+                    <td style={{ ...tdStyle, color: '#059669' }}>{s.rectified}</td>
+                    <td style={{ ...tdStyle, color: '#D97706' }}>{s.deadline}</td>
+                    <td style={tdStyle}>{s.recheck}</td>
+                  </tr>
+                  {/* 低风险下方显示"未知"子行 */}
+                  {s.name === '低风险' && (
+                    <tr style={{ background: '#F9FAFB' }}>
+                      <td style={{ ...tdStyle, textAlign: 'left', color: '#9CA3AF', paddingLeft: 24 }}>
+                        <span style={{ color: '#9CA3AF', marginRight: 2 }}>└</span>未知
+                      </td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>31</td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>19</td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>14</td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>22</td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>0</td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>16</td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>4</td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>2</td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
               {sortedRiskLevels.length > 0 && (
                 <>
-                  <tr style={{ background: '#FAFBFC' }}>
-                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#6B7280' }}>未知</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                  </tr>
                   <tr style={{ background: '#F3F4F6', fontWeight: 600 }}>
                     <td style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
                     <td style={tdStyle}>{sortedRiskLevels.reduce((sum, s) => sum + s.enterpriseCount, 0)}</td>
@@ -414,31 +443,38 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
             </thead>
             <tbody>
               {sortedFireTypes.map((s, i) => (
-                <tr key={s.name} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                  <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#1F2937' }}>{s.name}</td>
-                  <td style={tdStyle}>{s.enterpriseCount}</td>
-                  <td style={tdStyle}>{s.inspectedCount}</td>
-                  <td style={tdStyle}>{s.inspectedCount}</td>
-                  <td style={{ ...tdStyle, color: s.hazardFound > 50 ? '#DC2626' : '#374151' }}>{s.hazardFound}</td>
-                  <td style={{ ...tdStyle, color: '#DC2626', fontWeight: 600 }}>{s.seriousHazard}</td>
-                  <td style={{ ...tdStyle, color: '#059669' }}>{s.rectified}</td>
-                  <td style={{ ...tdStyle, color: '#D97706' }}>{s.deadline}</td>
-                  <td style={tdStyle}>{s.recheck}</td>
-                </tr>
+                <React.Fragment key={s.name}>
+                  <tr style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#1F2937' }}>{s.name}</td>
+                    <td style={tdStyle}>{s.enterpriseCount}</td>
+                    <td style={tdStyle}>{s.inspectedCount}</td>
+                    <td style={tdStyle}>{s.inspectedCount}</td>
+                    <td style={{ ...tdStyle, color: s.hazardFound > 50 ? '#DC2626' : '#374151' }}>{s.hazardFound}</td>
+                    <td style={{ ...tdStyle, color: '#DC2626', fontWeight: 600 }}>{s.seriousHazard}</td>
+                    <td style={{ ...tdStyle, color: '#059669' }}>{s.rectified}</td>
+                    <td style={{ ...tdStyle, color: '#D97706' }}>{s.deadline}</td>
+                    <td style={tdStyle}>{s.recheck}</td>
+                  </tr>
+                  {/* 低风险下方显示"未知"子行 */}
+                  {s.name === '低风险' && (
+                    <tr style={{ background: '#F9FAFB' }}>
+                      <td style={{ ...tdStyle, textAlign: 'left', color: '#9CA3AF', paddingLeft: 24 }}>
+                        <span style={{ color: '#9CA3AF', marginRight: 2 }}>└</span>未知
+                      </td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>56</td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>38</td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>29</td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>34</td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>1</td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>24</td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>8</td>
+                      <td style={{ ...tdStyle, color: '#9CA3AF' }}>4</td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
               {sortedFireTypes.length > 0 && (
                 <>
-                  <tr style={{ background: '#FAFBFC' }}>
-                    <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600, color: '#6B7280' }}>未知</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                    <td style={{ ...tdStyle, color: '#6B7280' }}>0</td>
-                  </tr>
                   <tr style={{ background: '#F3F4F6', fontWeight: 600 }}>
                     <td style={{ ...tdStyle, textAlign: 'left', color: '#374151' }}>合计</td>
                     <td style={tdStyle}>{sortedFireTypes.reduce((sum, s) => sum + s.enterpriseCount, 0)}</td>
@@ -469,7 +505,7 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
                 隐患数: d.hazardCount,
                 重大隐患: d.majorHazardCount,
                 已整改: d.rectifiedCount,
-                限期整改: d.deadlineCount,
+                整改中: d.deadlineCount,
                 高频问题: d.topIssues.join('、'),
               })),
               [
@@ -477,7 +513,7 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
                 { key: '隐患数', label: '隐患数' },
                 { key: '重大隐患', label: '重大隐患' },
                 { key: '已整改', label: '已整改' },
-                { key: '限期整改', label: '限期整改' },
+                { key: '整改中', label: '整改中' },
                 { key: '高频问题', label: '高频问题' },
               ],
               '标签隐患分析统计表'
@@ -650,7 +686,7 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
               <SortableTh label="隐患数" sortKey="hazardCount" sort={sortFiltered} onSort={handleSortFiltered} />
               <SortableTh label="重大隐患" sortKey="majorHazardCount" sort={sortFiltered} onSort={handleSortFiltered} />
               <SortableTh label="已整改" sortKey="rectifiedCount" sort={sortFiltered} onSort={handleSortFiltered} />
-              <SortableTh label="限期整改" sortKey="deadlineCount" sort={sortFiltered} onSort={handleSortFiltered} />
+              <SortableTh label="整改中" sortKey="deadlineCount" sort={sortFiltered} onSort={handleSortFiltered} />
               <th style={thStyle}>高频问题 Top3</th>
             </tr>
           </thead>

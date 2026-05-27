@@ -193,10 +193,21 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
     '已过期': { bg: '#FEE2E2', color: '#991B1B' },
   }
 
+  // 隐患等级映射（显示名）
+  const getDisplayLevel = (level: string): string => {
+    const map: Record<string, string> = {
+      '重大风险': '重大事故风险',
+      '一般风险': '一般事故风险',
+      '重大隐患': '重大事故风险',
+      '一般隐患': '一般事故风险',
+    }
+    return map[level] || level
+  }
+
   // 隐患等级样式
   const hazardLevelColors: Record<string, string> = {
-    '重大隐患': '#DC2626',
-    '一般隐患': '#D97706',
+    '重大事故风险': '#DC2626',
+    '一般事故风险': '#D97706',
   }
 
   // 选中任务关联的隐患汇总
@@ -210,7 +221,7 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
     const titleStats: Record<string, { level: string; count: number; enterpriseIds: Set<string> }> = {}
     filteredHazards.forEach(h => {
       if (!titleStats[h.title]) {
-        titleStats[h.title] = { level: h.level, count: 0, enterpriseIds: new Set() }
+        titleStats[h.title] = { level: getDisplayLevel(h.level), count: 0, enterpriseIds: new Set() }
       }
       titleStats[h.title].count++
       titleStats[h.title].enterpriseIds.add(h.enterprise_id)
@@ -532,7 +543,7 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: '#FAFAFA' }}>
-                {['排名', '问题类型', '出现次数', '关联企业数', '风险等级'].map(h => (
+                {['排名', '问题类型', '出现次数', '关联企业数', '隐患等级'].map(h => (
                   <th key={h} style={{ ...thStyle, fontWeight: 600, fontSize: 11 }}>{h}</th>
                 ))}
               </tr>

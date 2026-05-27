@@ -19,8 +19,8 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 }
 
 const LEVEL_CONFIG: Record<string, { label: string; color: string }> = {
-  '重大隐患': { label: '重大隐患', color: '#DC2626' },
-  '一般隐患': { label: '一般隐患', color: '#D97706' },
+  '重大隐患': { label: '重大事故隐患', color: '#DC2626' },
+  '一般隐患': { label: '一般事故隐患', color: '#D97706' },
 }
 
 const DIMENSION_CONFIG: Record<string, { label: string; color: string }> = {
@@ -326,8 +326,8 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
               const cfg = level === '全部'
                 ? { label: '全部', color: '#4F46E5', bg: '#EEF2FF', textColor: '#3730A3' }
                 : level === '重大隐患'
-                  ? { label: '重大隐患', color: '#DC2626', bg: '#FEE2E2', textColor: '#991B1B' }
-                  : { label: '一般隐患', color: '#D97706', bg: '#FEF3C7', textColor: '#92400E' }
+                  ? { label: '重大事故隐患', color: '#DC2626', bg: '#FEE2E2', textColor: '#991B1B' }
+                  : { label: '一般事故隐患', color: '#D97706', bg: '#FEF3C7', textColor: '#92400E' }
               const active = hazardLevelFilter === level || (level === '全部' && hazardLevelFilter === 'all')
               const count = level === '全部' ? hazardLevelCounts.all : hazardLevelCounts[level as '重大隐患' | '一般隐患']
               return (
