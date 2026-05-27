@@ -10,9 +10,12 @@
         var redirect = sessionStorage.getItem('redirect');
         if (redirect) {
           sessionStorage.removeItem('redirect');
-          // 去掉 /dashboard/ 前缀，得到应用内部路径
-          var appPath = redirect.replace(/^\/dashboard\//, '/');
-          history.replaceState(null, '', appPath);
+          // 去掉 /dashboard 前缀（如果有），得到应用内部路径
+          var appPath = redirect.replace(/^\/dashboard/, '');
+          if (appPath.charAt(0) !== '/') appPath = '/' + appPath;
+          // 重新拼回 /dashboard 前缀，与 BrowserRouter basename 一致
+          var fullPath = '/dashboard' + appPath;
+          history.replaceState(null, '', fullPath);
         }
       })();
     </script>
