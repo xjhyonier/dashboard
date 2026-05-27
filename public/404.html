@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting...</title>
+  <script>
+    // 记录用户原始访问路径，然后跳转到应用根目录
+    var path = location.pathname + location.search + location.hash;
+    sessionStorage.setItem('redirect', path);
+    location.replace('/dashboard/');
+  </script>
+</head>
+<body>
+  <p>正在跳转...</p>
+</body>
+</html>
