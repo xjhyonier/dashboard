@@ -16,6 +16,9 @@ import type { WorkGroup, Hazard, Expert, Enterprise } from '../../../db/types'
 
 const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'state', 'hazard', 'trend', 'yuzhi']
 
+// 顶级页面标识
+type TopLevelPage = 'station' | 'yuzhi'
+
 // 日期工具
 const TODAY = new Date()
 const fmtDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -79,6 +82,9 @@ export function StationChiefV2Dashboard() {
   // 从 URL 读取 tab 参数，默认 'duty'
   const urlDimension = searchParams.get('tab')
   const dimension: Dimension = VALID_DIMENSIONS.includes(urlDimension as Dimension) ? urlDimension as Dimension : 'duty'
+
+  // 顶级页面：station（应急消防管理站看板）或 yuzhi（村社数据看板）
+  const topPage: TopLevelPage = searchParams.get('page') === 'yuzhi' ? 'yuzhi' : 'station'
 
   // 日期筛选状态
   const [timeRange, setTimeRange] = useState<TimeRange>('month')
@@ -207,6 +213,54 @@ export function StationChiefV2Dashboard() {
 
   return (
     <div style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
+      {/* 顶级页面切换 */}
+      <div style={{
+        display: 'flex',
+        gap: 0,
+        marginBottom: 16,
+        borderBottom: '2px solid #E5E7EB',
+        background: 'white',
+      }}>
+        <button
+          onClick={() => setSearchParams({})}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            borderBottom: topPage === 'station' ? '2px solid #4F46E5' : '2px solid transparent',
+            marginBottom: -2,
+            background: 'transparent',
+            color: topPage === 'station' ? '#4F46E5' : '#6B7280',
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: topPage === 'station' ? 700 : 500,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          应急消防管理站看板
+        </button>
+        <button
+          onClick={() => setSearchParams({ page: 'yuzhi' })}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            borderBottom: topPage === 'yuzhi' ? '2px solid #4F46E5' : '2px solid transparent',
+            marginBottom: -2,
+            background: 'transparent',
+            color: topPage === 'yuzhi' ? '#4F46E5' : '#6B7280',
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: topPage === 'yuzhi' ? 700 : 500,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          村社数据看板
+        </button>
+      </div>
+
+      {topPage === 'yuzhi' ? (
+        <YuzhiSyncDimension />
+      ) : (
+        <>
       <PageHeader title="应急消防管理站看板" />
 
       {/* 时间范围筛选（置顶，在指标卡片上方） */}
@@ -515,7 +569,6 @@ export function StationChiefV2Dashboard() {
           { key: 'state', label: '责任主体分析' },
           { key: 'hazard', label: '隐患详情' },
           { key: 'trend', label: '趋势分析' },
-          { key: 'yuzhi', label: '余智护杭任务同步分析' },
         ].map(tab => {
           const isActive = dimension === tab.key
           return (
@@ -568,7 +621,8 @@ export function StationChiefV2Dashboard() {
         filterEnterprise={filterEnterprise}
         filterIndustry={filterIndustry}
       />}
-      {dimension === 'yuzhi' && <YuzhiSyncDimension />}
+        </>
+      )}
     </div>
   )
 }
