@@ -9,11 +9,12 @@ import { HazardDimension } from './components/HazardDimension'
 import { IndustryDimension } from './components/IndustryDimension'
 import { SpecialDimension } from './components/SpecialDimension'
 import { TrendDimension } from './components/TrendDimension'
+import { YuzhiSyncDimension } from './components/YuzhiSyncDimension'
 
 import { initDatabase, getWorkGroups, getHazards, getEnterpriseStats, getExperts, getEnterprises } from '../../../db'
 import type { WorkGroup, Hazard, Expert, Enterprise } from '../../../db/types'
 
-const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'state', 'hazard', 'trend']
+const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'state', 'hazard', 'trend', 'yuzhi']
 
 // 日期工具
 const TODAY = new Date()
@@ -514,6 +515,7 @@ export function StationChiefV2Dashboard() {
           { key: 'state', label: '责任主体分析' },
           { key: 'hazard', label: '隐患详情' },
           { key: 'trend', label: '趋势分析' },
+          { key: 'yuzhi', label: '余智护杭任务同步分析' },
         ].map(tab => {
           const isActive = dimension === tab.key
           return (
@@ -566,6 +568,7 @@ export function StationChiefV2Dashboard() {
         filterEnterprise={filterEnterprise}
         filterIndustry={filterIndustry}
       />}
+      {dimension === 'yuzhi' && <YuzhiSyncDimension />}
     </div>
   )
 }
