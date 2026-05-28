@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 
 // ─── 表1数据：14项已同步任务分析 ────────────────────────────────────────
 interface SyncRow {
@@ -145,8 +145,26 @@ function RateBar({ rate }: { rate: string }) {
 
 export function YuzhiSyncDimension() {
   const [villageKeyword, setVillageKeyword] = useState('')
-  const [sortBy, setSortBy] = useState<'village' | 'total' | 'done' | 'rate'>('village')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [selectedVillages, setSelectedVillages] = useState<string[]>([])
+  const [draftSelected, setDraftSelected] = useState<string[]>([])
+  const [showVillageDropdown, setShowVillageDropdown] = useState(false)
+  const [sortBy, setSortBy] = useState<'village' | 'total' | 'done' | 'rate'>('rate')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLDivElement>(null)
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
+
+  // 点击下拉面板外部时关闭
+  useEffect(() => {
+    if (!showVillageDropdown) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowVillageDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showVillageDropdown])
 
   const handleSort = (col: typeof sortBy) => {
     if (sortBy === col) {
@@ -157,10 +175,18 @@ export function YuzhiSyncDimension() {
     }
   }
 
+  const allVillages = useMemo(() => VILLAGE_ROWS.filter(r => !r.isTotal), [])
+
   const filteredVillages = useMemo(() => {
-    const data = VILLAGE_ROWS.filter(r => !r.isTotal)
-    const keyword = villageKeyword.trim()
-    const matched = keyword ? data.filter(r => r.village.includes(keyword)) : data
+    let matched = allVillages
+    // 多选筛选
+    if (selectedVillages.length > 0) {
+      matched = matched.filter(r => selectedVillages.includes(r.village))
+    } else {
+      // 文本搜索作为后备
+      const keyword = villageKeyword.trim()
+      if (keyword) matched = matched.filter(r => r.village.includes(keyword))
+    }
     const sorted = [...matched].sort((a, b) => {
       let cmp = 0
       if (sortBy === 'village') cmp = a.village.localeCompare(b.village, 'zh')
@@ -170,13 +196,33 @@ export function YuzhiSyncDimension() {
       return sortDir === 'asc' ? cmp : -cmp
     })
     return sorted
-  }, [villageKeyword, sortBy, sortDir])
+  }, [allVillages, selectedVillages, villageKeyword, sortBy, sortDir])
 
-  const totalRow = VILLAGE_ROWS.find(r => r.isTotal)!
+  const toggleVillage = (v: string) => {
+    setDraftSelected(prev =>
+      prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]
+    )
+  }
+  const confirmVillageFilter = () => {
+    setSelectedVillages(draftSelected)
+    setShowVillageDropdown(false)
+  }
+  const clearVillageFilter = () => {
+    setDraftSelected([])
+    setSelectedVillages([])
+    setShowVillageDropdown(false)
+  }
 
-  const SortTh = ({ col, label, align = 'center' }: { col: typeof sortBy; label: string; align?: 'left' | 'center' | 'right' }) => (
+  const totalRow = useMemo(() => {
+    const data = selectedVillages.length > 0 ? filteredVillages : allVillages
+    const sum = data.reduce((acc, r) => ({ total: acc.total + r.total, done: acc.done + r.done }), { total: 0, done: 0 })
+    const rate = sum.total > 0 ? ((sum.done / sum.total) * 100).toFixed(2) + '%' : '0.00%'
+    return { village: '合计', total: sum.total, done: sum.done, rate, isTotal: true } as VillageRow
+  }, [filteredVillages, allVillages, selectedVillages])
+
+  const SortTh = ({ col, label, align = 'center', extraStyle }: { col: typeof sortBy; label: string; align?: 'left' | 'center' | 'right'; extraStyle?: React.CSSProperties }) => (
     <th
-      style={{ ...th, cursor: 'pointer', textAlign: align, userSelect: 'none' }}
+      style={{ ...th, cursor: 'pointer', textAlign: align, userSelect: 'none', ...extraStyle }}
       onClick={() => handleSort(col)}
     >
       {label}
@@ -301,40 +347,139 @@ export function YuzhiSyncDimension() {
           <div>
             <span style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>表2：村社检查任务统计</span>
             <span style={{ marginLeft: 12, fontSize: 12, color: '#6B7280' }}>
-              共 {VILLAGE_ROWS.filter(r => !r.isTotal).length} 个村社，合计 {totalRow.total.toLocaleString()} 任务，
+              共 {selectedVillages.length > 0 ? filteredVillages.length : allVillages.length} 个村社，合计 {totalRow.total.toLocaleString()} 任务，
               已完成 {totalRow.done.toLocaleString()}（{totalRow.rate}）
             </span>
           </div>
-          <input
-            type="text"
-            value={villageKeyword}
-            onChange={e => setVillageKeyword(e.target.value)}
-            placeholder="搜索村社名称..."
-            style={{
-              padding: '4px 10px',
-              border: '1px solid #D1D5DB',
-              borderRadius: 4,
-              fontSize: 13,
-              outline: 'none',
-              minWidth: 160,
-            }}
-          />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {selectedVillages.length > 0 && (
+              <span style={{ fontSize: 12, color: '#6B7280' }}>已选 {selectedVillages.length} 个村社</span>
+            )}
+            <div style={{ position: 'relative' }}>
+              <div
+                ref={triggerRef}
+                onClick={() => {
+                  if (!showVillageDropdown) {
+                    setDraftSelected([...selectedVillages])
+                    // 计算面板位置：用固定定位脱离父容器裁剪
+                    if (triggerRef.current) {
+                      const rect = triggerRef.current.getBoundingClientRect()
+                      setDropdownStyle({
+                        position: 'fixed',
+                        top: rect.bottom + 2,
+                        left: rect.left,
+                        width: 260,
+                        maxHeight: 360,
+                      })
+                    }
+                  }
+                  setShowVillageDropdown(!showVillageDropdown)
+                }}
+                style={{
+                  padding: '5px 10px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: 4,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  background: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  minWidth: 160,
+                  userSelect: 'none',
+                }}
+              >
+                <span style={{ color: selectedVillages.length > 0 ? '#111827' : '#9CA3AF' }}>
+                  {selectedVillages.length > 0
+                    ? selectedVillages.length === 1
+                      ? selectedVillages[0]
+                      : `${selectedVillages[0]} 等${selectedVillages.length}个`
+                    : '筛选村社...'}
+                </span>
+                <span style={{ marginLeft: 'auto', fontSize: 10, color: '#9CA3AF' }}>
+                  {showVillageDropdown ? '▲' : '▼'}
+                </span>
+              </div>
+              {showVillageDropdown && (
+                <div ref={dropdownRef} style={{
+                  ...dropdownStyle,
+                  background: 'white',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: 6,
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                  zIndex: 1000,
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}>
+                  <div style={{ padding: '6px 10px', borderBottom: '1px solid #F3F4F6', display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <button
+                      onClick={clearVillageFilter}
+                      style={{
+                        border: 'none', background: '#F3F4F6', borderRadius: 3, cursor: 'pointer',
+                        fontSize: 11, padding: '2px 8px', color: '#6B7280',
+                      }}
+                    >清除</button>
+                    <button
+                      onClick={() => setDraftSelected(allVillages.map(v => v.village))}
+                      style={{
+                        border: 'none', background: '#F3F4F6', borderRadius: 3, cursor: 'pointer',
+                        fontSize: 11, padding: '2px 8px', color: '#6B7280',
+                      }}
+                    >全选</button>
+                    <div style={{ flex: 1 }} />
+                    <button
+                      onClick={confirmVillageFilter}
+                      style={{
+                        border: 'none', background: '#4F46E5', borderRadius: 3, cursor: 'pointer',
+                        fontSize: 11, padding: '2px 10px', color: 'white',
+                      }}
+                    >确定</button>
+                  </div>
+                  <div style={{ overflowY: 'auto', flex: 1 }}>
+                    {allVillages.map(v => {
+                      const checked = draftSelected.includes(v.village)
+                      return (
+                        <label
+                          key={v.village}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            padding: '5px 10px', cursor: 'pointer', fontSize: 13,
+                            background: checked ? '#EFF6FF' : 'transparent',
+                          }}
+                          onMouseEnter={e => { if (!checked) (e.currentTarget as HTMLElement).style.background = '#F9FAFB' }}
+                          onMouseLeave={e => { if (!checked) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleVillage(v.village)}
+                            style={{ accentColor: '#4F46E5' }}
+                          />
+                          {v.village}
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
+                <th style={{ ...th, width: 50, borderRight: '1px solid #E5E7EB' }}>#</th>
                 <SortTh col="village" label="村社" align="left" />
                 <SortTh col="total" label="任务数" />
                 <SortTh col="done" label="已完成数" />
-                <th style={{ ...th, borderRight: 'none', minWidth: 160 }}>
-                  完成百分比
-                </th>
+                <SortTh col="rate" label="完成百分比" extraStyle={{ borderRight: 'none', minWidth: 160 }} />
               </tr>
             </thead>
             <tbody>
               {filteredVillages.map((row, i) => (
                 <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#FAFAFA' }}>
+                  <td style={td({ textAlign: 'center', color: '#9CA3AF', fontSize: 12, fontWeight: 500 })}>{i + 1}</td>
                   <td style={td({ fontWeight: 500 })}>{row.village}</td>
                   <td style={td({ textAlign: 'center' })}>{row.total.toLocaleString()}</td>
                   <td style={td({ textAlign: 'center', color: row.done === 0 ? '#9CA3AF' : '#111827', fontWeight: row.done > 0 ? 600 : 400 })}>
@@ -347,13 +492,14 @@ export function YuzhiSyncDimension() {
               ))}
               {filteredVillages.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '24px', color: '#9CA3AF', fontSize: 13 }}>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: '#9CA3AF', fontSize: 13 }}>
                     未找到匹配的村社
                   </td>
                 </tr>
               )}
               {/* 合计行 */}
               <tr style={{ background: '#F3F4F6', fontWeight: 700, borderTop: '2px solid #E5E7EB' }}>
+                <td style={td({ textAlign: 'center', color: '#9CA3AF', fontSize: 12 })}></td>
                 <td style={td({ fontWeight: 700, color: '#111827' })}>合计</td>
                 <td style={td({ textAlign: 'center', fontWeight: 700 })}>{totalRow.total.toLocaleString()}</td>
                 <td style={td({ textAlign: 'center', fontWeight: 700 })}>{totalRow.done.toLocaleString()}</td>
