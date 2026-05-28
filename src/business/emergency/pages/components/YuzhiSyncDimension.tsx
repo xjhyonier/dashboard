@@ -17,7 +17,7 @@ const SYNC_ROWS: SyncRow[] = [
   { status: '已创建', destination: '村社任务', exception: '无异常，余智护杭任务已同步至村社/镇街', count: 2664, percent: '50.86%' },
   { status: '', destination: '镇街任务', exception: '无异常，余智护杭任务已同步至村社/镇街', count: 195, percent: '3.72%' },
   // 检查完成
-  { status: '检查完成', destination: '村社任务', exception: '无异常，余智护杭任务已同步至村社/镇街', count: 2379, percent: '45.42%' },
+  { status: '检查完成', destination: '村社任务', exception: '无异常，余智护杭任务已同步至村社/镇街，并在一起安完成了检查', count: 2379, percent: '45.42%' },
   // 小计1
   { status: '', destination: '', exception: '小计', count: 5238, percent: '', isSubtotal: true, subtotalCount: 5238 },
   // 数据校验异常
@@ -336,6 +336,24 @@ export function YuzhiSyncDimension() {
     setDraftSelected([])
     setSelectedVillages([])
     setShowVillageDropdown(false)
+  }
+
+  // 导出表2明细为CSV
+  const exportSyncDetail = () => {
+    const header = '状态,任务去向,异常信息,任务数,占比'
+    const dataRows = SYNC_ROWS
+      .filter(r => !r.isSubtotal && !r.isTotal)
+      .map(r => `"${r.status}","${r.destination}","${r.exception}",${r.count},"${r.percent}"`)
+    // 添加BOM以支持Excel正确识别中文
+    const BOM = '\uFEFF'
+    const csv = BOM + header + '\n' + dataRows.join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `余智护杭任务同步明细_${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   // 全量汇总统计（用于表1顶部统计行）
@@ -830,6 +848,23 @@ export function YuzhiSyncDimension() {
               <span style={{ color: '#374151' }}>数据校验异常 8,627（62.22%）</span>
             </div>
           </div>
+          <button
+            onClick={exportSyncDetail}
+            style={{
+              padding: '4px 14px',
+              border: '1px solid #4F46E5',
+              borderRadius: 4,
+              background: 'white',
+              color: '#4F46E5',
+              fontSize: 12,
+              fontWeight: 500,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              marginLeft: 12,
+            }}
+          >
+            导出明细
+          </button>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
