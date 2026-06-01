@@ -228,7 +228,8 @@ export function YuzhiSyncDimension() {
   useEffect(() => {
     if (!showVillageDropdown) return
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (dropdownRef.current && !dropdownRef.current.contains(target) && triggerRef.current && !triggerRef.current.contains(target)) {
         setShowVillageDropdown(false)
       }
     }
@@ -356,10 +357,11 @@ export function YuzhiSyncDimension() {
     URL.revokeObjectURL(url)
   }
 
-  // 全量汇总统计（用于表1顶部统计行）
+  // 全量汇总统计（用于表1顶部统计行 - 基于筛选后的数据）
   const overallStats = useMemo(() => {
     const zero: TaskSub = { total: 0, done: 0, hazard: 0, rectified: 0, rectifying: 0 }
-    const sum = allVillages.reduce((acc, r) => ({
+    const data = filteredVillages // 使用筛选后的数据
+    const sum = data.reduce((acc, r) => ({
       fzjz: {
         total: acc.fzjz.total + r.fzjz.total,
         done: acc.fzjz.done + r.fzjz.done,
@@ -383,7 +385,7 @@ export function YuzhiSyncDimension() {
       },
     }), { fzjz: zero, rcjc: zero, sync141: zero })
     return sum
-  }, [allVillages])
+  }, [filteredVillages])
 
   // 动态合计行
   const totalRow = useMemo(() => {
@@ -476,8 +478,149 @@ export function YuzhiSyncDimension() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
+      {/* ─── 全局筛选栏 ─────────────────────────────────────── */}
+      <div style={{
+        padding: '12px 16px',
+        background: 'white',
+        border: '1px solid #E5E7EB',
+        borderRadius: 8,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        flexWrap: 'wrap',
+      }}>
+        {/* 时间筛选 */}
+        <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>任务创建时间：</span>
+        {/* 快速筛选 */}
+        {(['month', 'lastMonth', 'quarter', 'year'] as const).map(range => {
+          const labels: Record<string, string> = { month: '本月', lastMonth: '上月', quarter: '本季', year: '本年' }
+          const active = quickRange === range
+          return (
+            <button
+              key={range}
+              onClick={() => applyQuickRange(range)}
+              style={{
+                padding: '2px 10px',
+                border: active ? '1px solid #4F46E5' : '1px solid #D1D5DB',
+                borderRadius: 4,
+                background: active ? '#EEF2FF' : 'white',
+                color: active ? '#4F46E5' : '#6B7280',
+                fontSize: 11,
+                cursor: 'pointer',
+                fontWeight: active ? 600 : 400,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {labels[range]}
+            </button>
+          )
+        })}
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={e => { setDateFrom(e.target.value); setQuickRange('') }}
+          style={{
+            padding: '3px 8px', border: '1px solid #D1D5DB', borderRadius: 4,
+            fontSize: 12, color: '#374151', width: 130,
+          }}
+        />
+        <span style={{ fontSize: 12, color: '#9CA3AF' }}>至</span>
+        <input
+          type="date"
+          value={dateTo}
+          onChange={e => { setDateTo(e.target.value); setQuickRange('') }}
+          style={{
+            padding: '3px 8px', border: '1px solid #D1D5DB', borderRadius: 4,
+            fontSize: 12, color: '#374151', width: 130,
+          }}
+        />
+        {(dateFrom || dateTo) && (
+          <button
+            onClick={clearDate}
+            style={{
+              padding: '3px 8px', border: '1px solid #FCA5A5', borderRadius: 4,
+              background: '#FEF2F2', color: '#DC2626', fontSize: 11, cursor: 'pointer',
+            }}
+          >
+            清除时间
+          </button>
+        )}
+        {/* 分隔 */}
+        <div style={{ width: 1, height: 20, background: '#E5E7EB', margin: '0 4px' }} />
+        {/* 村社筛选 */}
+        <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>村社：</span>
+        {selectedVillages.length > 0 && (
+          <span style={{ fontSize: 12, color: '#6B7280' }}>已选 {selectedVillages.length} 个</span>
+        )}
+        <div style={{ position: 'relative' }}>
+          <div
+            ref={triggerRef}
+            onClick={() => {
+              if (!showVillageDropdown) {
+                setDraftSelected([...selectedVillages])
+                if (triggerRef.current) {
+                  setDropdownStyle({
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    width: 260,
+                    maxHeight: 360,
+                    marginTop: 2,
+                  })
+                }
+              }
+              setShowVillageDropdown(!showVillageDropdown)
+            }}
+            style={{
+              padding: '3px 10px', border: '1px solid #D1D5DB', borderRadius: 4,
+              fontSize: 12, cursor: 'pointer', background: 'white',
+              display: 'flex', alignItems: 'center', gap: 6, minWidth: 140, userSelect: 'none',
+            }}
+          >
+            <span style={{ color: selectedVillages.length > 0 ? '#111827' : '#9CA3AF' }}>
+              {selectedVillages.length > 0
+                ? selectedVillages.length === 1
+                  ? selectedVillages[0]
+                  : `${selectedVillages[0]} 等${selectedVillages.length}个`
+                : '全部村社'}
+            </span>
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#9CA3AF' }}>
+              {showVillageDropdown ? '▲' : '▼'}
+            </span>
+          </div>
+          {showVillageDropdown && (
+            <div ref={dropdownRef} style={{
+              ...dropdownStyle, background: 'white', border: '1px solid #E5E7EB',
+              borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 1000,
+              display: 'flex', flexDirection: 'column',
+            }}>
+              <div style={{ padding: '6px 10px', borderBottom: '1px solid #F3F4F6', display: 'flex', gap: 6, flexShrink: 0 }}>
+                <button onClick={clearVillageFilter} style={{ border: 'none', background: '#F3F4F6', borderRadius: 3, cursor: 'pointer', fontSize: 11, padding: '2px 8px', color: '#6B7280' }}>清除</button>
+                <button onClick={() => setDraftSelected(allVillages.map(v => v.village))} style={{ border: 'none', background: '#F3F4F6', borderRadius: 3, cursor: 'pointer', fontSize: 11, padding: '2px 8px', color: '#6B7280' }}>全选</button>
+                <div style={{ flex: 1 }} />
+                <button onClick={confirmVillageFilter} style={{ border: 'none', background: '#4F46E5', borderRadius: 3, cursor: 'pointer', fontSize: 11, padding: '2px 10px', color: 'white' }}>确定</button>
+              </div>
+              <div style={{ overflowY: 'auto', flex: 1 }}>
+                {allVillages.map(v => {
+                  const checked = draftSelected.includes(v.village)
+                  return (
+                    <label key={v.village} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', cursor: 'pointer', fontSize: 13, background: checked ? '#EFF6FF' : 'transparent' }}
+                      onMouseEnter={e => { if (!checked) (e.currentTarget as HTMLElement).style.background = '#F9FAFB' }}
+                      onMouseLeave={e => { if (!checked) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                    >
+                      <input type="checkbox" checked={checked} onChange={() => toggleVillage(v.village)} style={{ accentColor: '#4F46E5' }} />
+                      {v.village}
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* ─── 指标统计看板 ─────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 12 }}>
         {[
           {
             label: '企业数',
@@ -487,6 +630,8 @@ export function YuzhiSyncDimension() {
             bg: '#EFF6FF',
             border: '#BFDBFE',
             icon: '🏢',
+            registered: 1056,
+            registeredRate: '82.12%',
           },
           {
             label: '场所数',
@@ -496,6 +641,8 @@ export function YuzhiSyncDimension() {
             bg: '#F0FDF4',
             border: '#A7F3D0',
             icon: '🏪',
+            registered: 2890,
+            registeredRate: '83.72%',
           },
           {
             label: '出租房数',
@@ -505,6 +652,8 @@ export function YuzhiSyncDimension() {
             bg: '#FAF5FF',
             border: '#DDD6FE',
             icon: '🏠',
+            registered: 720,
+            registeredRate: '82.19%',
           },
         ].map(item => (
           <div
@@ -516,16 +665,30 @@ export function YuzhiSyncDimension() {
               borderRadius: 8,
               padding: '16px 20px',
               display: 'flex',
-              alignItems: 'center',
-              gap: 14,
+              flexDirection: 'column',
+              gap: 10,
             }}
           >
-            <div style={{ fontSize: 28 }}>{item.icon}</div>
-            <div>
-              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, marginBottom: 4 }}>{item.label}</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span style={{ fontSize: 28, fontWeight: 700, color: item.color, lineHeight: 1 }}>{item.value.toLocaleString()}</span>
-                <span style={{ fontSize: 12, color: item.color, fontWeight: 500 }}>{item.unit}</span>
+            {/* 顶部：图标 + 主指标 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ fontSize: 28 }}>{item.icon}</div>
+              <div>
+                <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, marginBottom: 4 }}>{item.label}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                  <span style={{ fontSize: 28, fontWeight: 700, color: item.color, lineHeight: 1 }}>{item.value.toLocaleString()}</span>
+                  <span style={{ fontSize: 12, color: item.color, fontWeight: 500 }}>{item.unit}</span>
+                </div>
+              </div>
+            </div>
+            {/* 底部：子指标 */}
+            <div style={{ display: 'flex', gap: 16, borderTop: `1px dashed ${item.border}`, paddingTop: 8 }}>
+              <div>
+                <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 2 }}>已注册数</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: item.color }}>{item.registered.toLocaleString()}<span style={{ fontSize: 10, fontWeight: 500, marginLeft: 2 }}>{item.unit}</span></div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 2 }}>注册率</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: item.color }}>{item.registeredRate}</div>
               </div>
             </div>
           </div>
@@ -543,171 +706,81 @@ export function YuzhiSyncDimension() {
             </span>
           </div>
         </div>
-        {/* 统计分析 */}
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6', background: 'linear-gradient(135deg, #F0F9FF 0%, #F8FAFC 100%)', fontSize: 12, color: '#374151', lineHeight: 2 }}>
-          <div style={{ fontWeight: 600, color: '#111827', marginBottom: 4 }}>
-            截止{new Date().toISOString().slice(0, 10)}，良渚街道{allVillages.length}个村社任务检查情况如下：
+        {/* 统计分析 - 卡片式 */}
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6', background: '#FAFBFC' }}>
+          <div style={{ fontWeight: 600, color: '#111827', marginBottom: 10, fontSize: 13 }}>
+            截止{new Date().toISOString().slice(0, 10)}，良渚街道{filteredVillages.length}个村社任务检查情况如下：
           </div>
-          <div>
-            <span style={{ fontWeight: 600, color: '#111827' }}>总计：</span>
-            任务总数：<b>{overallStats.fzjz.total + overallStats.rcjc.total + overallStats.sync141.total}</b>，
-            完成率：<b style={{ color: rateColor(rateStr(overallStats.fzjz.done + overallStats.rcjc.done + overallStats.sync141.done, overallStats.fzjz.total + overallStats.rcjc.total + overallStats.sync141.total)) }}>{rateStr(overallStats.fzjz.done + overallStats.rcjc.done + overallStats.sync141.done, overallStats.fzjz.total + overallStats.rcjc.total + overallStats.sync141.total)}</b>，
-            查出隐患数：<b style={{ color: '#DC2626' }}>{overallStats.fzjz.hazard + overallStats.rcjc.hazard + overallStats.sync141.hazard}</b>，
-            隐患整改完成率：<b style={{ color: rateColor(rateStr(overallStats.fzjz.rectified + overallStats.rcjc.rectified + overallStats.sync141.rectified, overallStats.fzjz.hazard + overallStats.rcjc.hazard + overallStats.sync141.hazard)) }}>{rateStr(overallStats.fzjz.rectified + overallStats.rcjc.rectified + overallStats.sync141.rectified, overallStats.fzjz.hazard + overallStats.rcjc.hazard + overallStats.sync141.hazard)}</b>
-          </div>
-          <div>
-            <span style={{ fontWeight: 600, color: '#1E40AF' }}>防灾减灾：</span>
-            任务总数：<b>{overallStats.fzjz.total}</b>，
-            完成率：<b style={{ color: rateColor(rateStr(overallStats.fzjz.done, overallStats.fzjz.total)) }}>{rateStr(overallStats.fzjz.done, overallStats.fzjz.total)}</b>，
-            查出隐患数：<b style={{ color: '#DC2626' }}>{overallStats.fzjz.hazard}</b>，
-            隐患整改完成率：<b style={{ color: rateColor(rateStr(overallStats.fzjz.rectified, overallStats.fzjz.hazard)) }}>{rateStr(overallStats.fzjz.rectified, overallStats.fzjz.hazard)}</b>
-          </div>
-          <div>
-            <span style={{ fontWeight: 600, color: '#059669' }}>日常检查：</span>
-            任务总数：<b>{overallStats.rcjc.total}</b>，
-            完成率：<b style={{ color: rateColor(rateStr(overallStats.rcjc.done, overallStats.rcjc.total)) }}>{rateStr(overallStats.rcjc.done, overallStats.rcjc.total)}</b>，
-            查出隐患数：<b style={{ color: '#DC2626' }}>{overallStats.rcjc.hazard}</b>，
-            隐患整改完成率：<b style={{ color: rateColor(rateStr(overallStats.rcjc.rectified, overallStats.rcjc.hazard)) }}>{rateStr(overallStats.rcjc.rectified, overallStats.rcjc.hazard)}</b>
-          </div>
-          <div>
-            <span style={{ fontWeight: 600, color: '#7C3AED' }}>141同步：</span>
-            任务总数：<b>{overallStats.sync141.total}</b>，
-            完成率：<b style={{ color: rateColor(rateStr(overallStats.sync141.done, overallStats.sync141.total)) }}>{rateStr(overallStats.sync141.done, overallStats.sync141.total)}</b>，
-            查出隐患数：<b style={{ color: '#DC2626' }}>{overallStats.sync141.hazard}</b>，
-            隐患整改完成率：<b style={{ color: rateColor(rateStr(overallStats.sync141.rectified, overallStats.sync141.hazard)) }}>{rateStr(overallStats.sync141.rectified, overallStats.sync141.hazard)}</b>
-          </div>
-        </div>
-        {/* 筛选栏 */}
-        <div style={{ padding: '8px 16px', borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          {/* 时间筛选 */}
-          <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>任务创建时间：</span>
-          {/* 快速筛选 */}
-          {(['month', 'lastMonth', 'quarter', 'year'] as const).map(range => {
-            const labels: Record<string, string> = { month: '本月', lastMonth: '上月', quarter: '本季', year: '本年' }
-            const active = quickRange === range
-            return (
-              <button
-                key={range}
-                onClick={() => applyQuickRange(range)}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+            {([
+              {
+                label: '总计',
+                color: '#111827',
+                bg: '#F9FAFB',
+                border: '#D1D5DB',
+                total: overallStats.fzjz.total + overallStats.rcjc.total + overallStats.sync141.total,
+                doneRate: rateStr(overallStats.fzjz.done + overallStats.rcjc.done + overallStats.sync141.done, overallStats.fzjz.total + overallStats.rcjc.total + overallStats.sync141.total),
+                hazard: overallStats.fzjz.hazard + overallStats.rcjc.hazard + overallStats.sync141.hazard,
+                rectRate: rateStr(overallStats.fzjz.rectified + overallStats.rcjc.rectified + overallStats.sync141.rectified, overallStats.fzjz.hazard + overallStats.rcjc.hazard + overallStats.sync141.hazard),
+              },
+              {
+                label: '防灾减灾',
+                color: '#1E40AF',
+                bg: '#EFF6FF',
+                border: '#BFDBFE',
+                total: overallStats.fzjz.total,
+                doneRate: rateStr(overallStats.fzjz.done, overallStats.fzjz.total),
+                hazard: overallStats.fzjz.hazard,
+                rectRate: rateStr(overallStats.fzjz.rectified, overallStats.fzjz.hazard),
+              },
+              {
+                label: '日常检查',
+                color: '#059669',
+                bg: '#F0FDF4',
+                border: '#A7F3D0',
+                total: overallStats.rcjc.total,
+                doneRate: rateStr(overallStats.rcjc.done, overallStats.rcjc.total),
+                hazard: overallStats.rcjc.hazard,
+                rectRate: rateStr(overallStats.rcjc.rectified, overallStats.rcjc.hazard),
+              },
+              {
+                label: '141同步',
+                color: '#7C3AED',
+                bg: '#FAF5FF',
+                border: '#DDD6FE',
+                total: overallStats.sync141.total,
+                doneRate: rateStr(overallStats.sync141.done, overallStats.sync141.total),
+                hazard: overallStats.sync141.hazard,
+                rectRate: rateStr(overallStats.sync141.rectified, overallStats.sync141.hazard),
+              },
+            ] as const).map(card => (
+              <div
+                key={card.label}
                 style={{
-                  padding: '2px 10px',
-                  border: active ? '1px solid #4F46E5' : '1px solid #D1D5DB',
-                  borderRadius: 4,
-                  background: active ? '#EEF2FF' : 'white',
-                  color: active ? '#4F46E5' : '#6B7280',
-                  fontSize: 11,
-                  cursor: 'pointer',
-                  fontWeight: active ? 600 : 400,
-                  whiteSpace: 'nowrap',
+                  background: card.bg,
+                  border: `1px solid ${card.border}`,
+                  borderRadius: 8,
+                  padding: '10px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
                 }}
               >
-                {labels[range]}
-              </button>
-            )
-          })}
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={e => { setDateFrom(e.target.value); setQuickRange('') }}
-            style={{
-              padding: '3px 8px', border: '1px solid #D1D5DB', borderRadius: 4,
-              fontSize: 12, color: '#374151', width: 130,
-            }}
-          />
-          <span style={{ fontSize: 12, color: '#9CA3AF' }}>至</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={e => { setDateTo(e.target.value); setQuickRange('') }}
-            style={{
-              padding: '3px 8px', border: '1px solid #D1D5DB', borderRadius: 4,
-              fontSize: 12, color: '#374151', width: 130,
-            }}
-          />
-          {(dateFrom || dateTo) && (
-            <button
-              onClick={clearDate}
-              style={{
-                padding: '3px 8px', border: '1px solid #FCA5A5', borderRadius: 4,
-                background: '#FEF2F2', color: '#DC2626', fontSize: 11, cursor: 'pointer',
-              }}
-            >
-              清除时间
-            </button>
-          )}
-          {/* 分隔 */}
-          <div style={{ width: 1, height: 20, background: '#E5E7EB', margin: '0 4px' }} />
-          {/* 村社筛选 */}
-          <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>村社：</span>
-          {selectedVillages.length > 0 && (
-            <span style={{ fontSize: 12, color: '#6B7280' }}>已选 {selectedVillages.length} 个</span>
-          )}
-          <div style={{ position: 'relative' }}>
-            <div
-              ref={triggerRef}
-              onClick={() => {
-                if (!showVillageDropdown) {
-                  setDraftSelected([...selectedVillages])
-                  if (triggerRef.current) {
-                    const rect = triggerRef.current.getBoundingClientRect()
-                    setDropdownStyle({
-                      position: 'fixed',
-                      top: rect.bottom + 2,
-                      left: rect.left,
-                      width: 260,
-                      maxHeight: 360,
-                    })
-                  }
-                }
-                setShowVillageDropdown(!showVillageDropdown)
-              }}
-              style={{
-                padding: '3px 10px', border: '1px solid #D1D5DB', borderRadius: 4,
-                fontSize: 12, cursor: 'pointer', background: 'white',
-                display: 'flex', alignItems: 'center', gap: 6, minWidth: 140, userSelect: 'none',
-              }}
-            >
-              <span style={{ color: selectedVillages.length > 0 ? '#111827' : '#9CA3AF' }}>
-                {selectedVillages.length > 0
-                  ? selectedVillages.length === 1
-                    ? selectedVillages[0]
-                    : `${selectedVillages[0]} 等${selectedVillages.length}个`
-                  : '全部村社'}
-              </span>
-              <span style={{ marginLeft: 'auto', fontSize: 10, color: '#9CA3AF' }}>
-                {showVillageDropdown ? '▲' : '▼'}
-              </span>
-            </div>
-              {showVillageDropdown && (
-                <div ref={dropdownRef} style={{
-                  ...dropdownStyle, background: 'white', border: '1px solid #E5E7EB',
-                  borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 1000,
-                  display: 'flex', flexDirection: 'column',
-                }}>
-                  <div style={{ padding: '6px 10px', borderBottom: '1px solid #F3F4F6', display: 'flex', gap: 6, flexShrink: 0 }}>
-                    <button onClick={clearVillageFilter} style={{ border: 'none', background: '#F3F4F6', borderRadius: 3, cursor: 'pointer', fontSize: 11, padding: '2px 8px', color: '#6B7280' }}>清除</button>
-                    <button onClick={() => setDraftSelected(allVillages.map(v => v.village))} style={{ border: 'none', background: '#F3F4F6', borderRadius: 3, cursor: 'pointer', fontSize: 11, padding: '2px 8px', color: '#6B7280' }}>全选</button>
-                    <div style={{ flex: 1 }} />
-                    <button onClick={confirmVillageFilter} style={{ border: 'none', background: '#4F46E5', borderRadius: 3, cursor: 'pointer', fontSize: 11, padding: '2px 10px', color: 'white' }}>确定</button>
-                  </div>
-                  <div style={{ overflowY: 'auto', flex: 1 }}>
-                    {allVillages.map(v => {
-                      const checked = draftSelected.includes(v.village)
-                      return (
-                        <label key={v.village} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', cursor: 'pointer', fontSize: 13, background: checked ? '#EFF6FF' : 'transparent' }}
-                          onMouseEnter={e => { if (!checked) (e.currentTarget as HTMLElement).style.background = '#F9FAFB' }}
-                          onMouseLeave={e => { if (!checked) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-                        >
-                          <input type="checkbox" checked={checked} onChange={() => toggleVillage(v.village)} style={{ accentColor: '#4F46E5' }} />
-                          {v.village}
-                        </label>
-                      )
-                    })}
-                  </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: card.color }}>{card.label}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: 11, color: '#374151' }}>
+                  <span style={{ color: '#6B7280' }}>任务总数</span>
+                  <span style={{ fontWeight: 700, textAlign: 'right' }}>{card.total.toLocaleString()}</span>
+                  <span style={{ color: '#6B7280' }}>完成率</span>
+                  <span style={{ fontWeight: 700, textAlign: 'right', color: rateColor(card.doneRate) }}>{card.doneRate}</span>
+                  <span style={{ color: '#6B7280' }}>查出隐患数</span>
+                  <span style={{ fontWeight: 700, textAlign: 'right', color: '#DC2626' }}>{card.hazard.toLocaleString()}</span>
+                  <span style={{ color: '#6B7280' }}>隐患整改完成率</span>
+                  <span style={{ fontWeight: 700, textAlign: 'right', color: rateColor(card.rectRate) }}>{card.rectRate}</span>
                 </div>
-              )}
-            </div>
+              </div>
+            ))}
           </div>
+        </div>
 
         {/* 图例 */}
         <div style={{ padding: '8px 16px', display: 'flex', gap: 16, fontSize: 11, color: '#6B7280', borderBottom: '1px solid #F3F4F6' }}>
