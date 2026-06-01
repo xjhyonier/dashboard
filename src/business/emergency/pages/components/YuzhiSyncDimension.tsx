@@ -476,6 +476,62 @@ export function YuzhiSyncDimension() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
+      {/* ─── 指标统计看板 ─────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+        {[
+          {
+            label: '企业数',
+            value: 1286,
+            unit: '家',
+            color: '#1D4ED8',
+            bg: '#EFF6FF',
+            border: '#BFDBFE',
+            icon: '🏢',
+          },
+          {
+            label: '场所数',
+            value: 3452,
+            unit: '处',
+            color: '#059669',
+            bg: '#F0FDF4',
+            border: '#A7F3D0',
+            icon: '🏪',
+          },
+          {
+            label: '出租房数',
+            value: 876,
+            unit: '套',
+            color: '#7C3AED',
+            bg: '#FAF5FF',
+            border: '#DDD6FE',
+            icon: '🏠',
+          },
+        ].map(item => (
+          <div
+            key={item.label}
+            style={{
+              flex: 1,
+              background: item.bg,
+              border: `1px solid ${item.border}`,
+              borderRadius: 8,
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+            }}
+          >
+            <div style={{ fontSize: 28 }}>{item.icon}</div>
+            <div>
+              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, marginBottom: 4 }}>{item.label}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 28, fontWeight: 700, color: item.color, lineHeight: 1 }}>{item.value.toLocaleString()}</span>
+                <span style={{ fontSize: 12, color: item.color, fontWeight: 500 }}>{item.unit}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* ─── 表1：村社检查任务统计 ─────────────────────────────── */}
       <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
         {/* 标题栏 */}

@@ -472,11 +472,17 @@ export function StationChiefV2Dashboard() {
           item={{ key: 'safetySubject', label: '安全责任主体总数', value: enterprises.length, unit: '家', color: '#1D4ED8', tip: '纳入安全监管的企业（安全责任主体）总数' }}
           accentBar="#3B82F6"
         />
-        {/* 检查企业 */}
+        {/* 检查次数 */}
         <KpiCard
           selectedKpi={selectedKpi}
           setSelectedKpi={setSelectedKpi}
-          item={{ key: 'enterprise', label: '检查企业', value: kpiTotals.enterprise, unit: '家', color: '#374151', tip: '远程监管户数（去除停业、虚拟注册等，共8900多）' }}
+          item={{ key: 'checkCount', label: '检查次数', value: 8240, unit: '次', color: '#B45309' }}
+        />
+        {/* 覆盖户数 */}
+        <KpiCard
+          selectedKpi={selectedKpi}
+          setSelectedKpi={setSelectedKpi}
+          item={{ key: 'enterprise', label: '覆盖户数', value: kpiTotals.enterprise, unit: '户', color: '#374151', tip: '远程监管户数（去除停业、虚拟注册等，共8900多）' }}
         />
 
         {/* 隐患统计组 */}
