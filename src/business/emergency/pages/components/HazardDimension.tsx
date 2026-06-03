@@ -455,7 +455,7 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
           <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>关键词搜索</div>
           <input
             type="text"
-            placeholder="企业名称 / 隐患描述 / 专家"
+            placeholder="责任主体名称 / 隐患描述 / 检查人员"
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
             style={inputStyle}
@@ -506,10 +506,10 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                 主体责任: h.dimension,
                 隐患等级: h.level,
                 来源: h.source_detail,
-                企业名称: h.enterprise_name,
+                责任主体名称: h.enterprise_name,
                 行业: h.enterprise_industry,
                 工作组: h.team_name,
-                专家: h.expert_name,
+                检查人员: h.expert_name,
                 状态: STATUS_CONFIG[h.status]?.label || h.status,
                 发现时间: h.discovered_at,
                 整改期限: h.deadline,
@@ -519,10 +519,10 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                 { key: '主体责任', label: '主体责任' },
                 { key: '隐患等级', label: '隐患等级' },
                 { key: '来源', label: '来源' },
-                { key: '企业名称', label: '企业名称' },
+                { key: '责任主体名称', label: '责任主体名称' },
                 { key: '行业', label: '行业' },
                 { key: '工作组', label: '工作组' },
-                { key: '专家', label: '专家' },
+                { key: '检查人员', label: '检查人员' },
                 { key: '状态', label: '状态' },
                 { key: '发现时间', label: '发现时间' },
                 { key: '整改期限', label: '整改期限' },
@@ -546,7 +546,7 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
             <thead>
               <tr>
                 <th style={thStyle}>序号</th>
-                <SortableTh label="企业" sortKey="enterprise_name" sort={sort} onSort={handleSort} />
+                <SortableTh label="责任主体名称" sortKey="enterprise_name" sort={sort} onSort={handleSort} />
                 <SortableTh label="隐患描述" sortKey="title" sort={sort} onSort={handleSort} />
                 <SortableTh label="主体责任" sortKey="dimension" sort={sort} onSort={handleSort} />
                 <SortableTh label="等级" sortKey="level" sort={sort} onSort={handleSort} />
@@ -720,12 +720,12 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
         <div style={{ marginTop: 24, borderTop: '1px solid #E5E7EB', paddingTop: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>
-              企业维度隐患统计
+              责任主体维度隐患统计
             </div>
             <button onClick={() => exportToCSV(
               sortedEnterpriseStats.map(row => ({
-                企业名称: row.enterpriseName,
-                专家: row.expertName,
+                责任主体名称: row.enterpriseName,
+                检查人员: row.expertName,
                 机构职责: row['机构职责'],
                 安全投入: row['安全投入'],
                 教育培训: row['教育培训'],
@@ -736,8 +736,8 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                 总隐患数: row['总计'],
               })),
               [
-                { key: '企业名称', label: '企业名称' },
-                { key: '专家', label: '专家' },
+                { key: '责任主体名称', label: '责任主体名称' },
+                { key: '检查人员', label: '检查人员' },
                 { key: '机构职责', label: '机构职责' },
                 { key: '安全投入', label: '安全投入' },
                 { key: '教育培训', label: '教育培训' },
@@ -747,7 +747,7 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                 { key: '应急管理', label: '应急管理' },
                 { key: '总隐患数', label: '总隐患数' },
               ],
-              '企业维度隐患统计'
+              '责任主体维度隐患统计'
             )} style={{ padding: '4px 12px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer' }}>⬇ 导出</button>
           </div>
           <div style={{ overflowX: 'auto' }}>
@@ -755,8 +755,8 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
               <thead>
                 <tr style={{ background: '#F9FAFB' }}>
                   {[
-                    { key: 'enterpriseName', label: '企业名称', sortable: true },
-                    { key: 'expertName', label: '专家', sortable: true },
+                    { key: 'enterpriseName', label: '责任主体名称', sortable: true },
+                    { key: 'expertName', label: '检查人员', sortable: true },
                     { key: '机构职责', label: '机构职责', sortable: true },
                     { key: '安全投入', label: '安全投入', sortable: true },
                     { key: '教育培训', label: '教育培训', sortable: true },
