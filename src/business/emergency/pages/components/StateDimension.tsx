@@ -206,7 +206,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>
-            企业列表
+            责任主体列表
             <span style={{ fontWeight: 400, color: '#9CA3AF', fontSize: 12, marginLeft: 8 }}>
               共 {filteredEnterprises.length} 家
             </span>
@@ -214,7 +214,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
               type="text"
-              placeholder="搜索企业名称 / 工作组 / 行业"
+              placeholder="搜索责任主体名称 / 工作组 / 行业"
               value={entKeyword}
               onChange={e => { setEntKeyword(e.target.value); setCurrentPage(1) }}
               style={inputStyle}
@@ -225,7 +225,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                   const dims = dimensionsMap[e.id]
                   const expert = experts.find(exp => exp.id === e.expert_id)
                   return {
-                    企业名称: e.name,
+                    责任主体名称: e.name,
                     风险等级: e.risk_level,
                     专家: expert?.name || '-',
                     行业: e.industry,
@@ -252,7 +252,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                   }
                 })
                 exportToCSV(exportData, [
-                  { key: '企业名称', label: '企业名称' },
+                  { key: '责任主体名称', label: '责任主体名称' },
                   { key: '风险等级', label: '风险等级' },
                   { key: '专家', label: '专家' },
                   { key: '行业', label: '行业' },
@@ -272,7 +272,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                   { key: '监管隐患', label: '监管隐患' },
                   { key: '重大隐患', label: '重大隐患' },
                   { key: '已整改数总数', label: '已整改数/总数' },
-                ], '企业列表')
+                ], '责任主体列表')
               }}
               style={{
                 padding: '4px 12px',
@@ -313,7 +313,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
             <thead>
               <tr>
                 <th style={thStyle}>#</th>
-                <th style={{ ...thStyle, minWidth: 180 }}>企业名称</th>
+                <th style={{ ...thStyle, minWidth: 180 }}>责任主体名称</th>
                 <th style={thStyle}>风险等级</th>
                 <th style={thStyle}>专家</th>
                 <th style={thStyle}>信息<br/>采集</th>
@@ -501,7 +501,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
           />
           <input
             type="text"
-            placeholder="搜索企业名称"
+            placeholder="搜索责任主体名称"
             value={riskPointEnterpriseFilter}
             onChange={e => { setRiskPointEnterpriseFilter(e.target.value); setRiskPointPage(1) }}
             style={{ ...inputStyle, width: 200 }}
@@ -514,7 +514,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
               <thead>
                 <tr style={{ background: '#F9FAFB' }}>
-                  {['风险点名称', '企业', '类型', '风险等级', '检查计划', '最近检查', '频次', '管控状态'].map(h => (
+                  {['风险点名称', '责任主体', '类型', '风险等级', '检查计划', '最近检查'].map(h => (
                     <th key={h} style={{ ...thStyle, fontWeight: 600 }}>{h}</th>
                   ))}
                 </tr>
@@ -544,7 +544,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                   const totalPages = Math.ceil(filteredPoints.length / RISK_POINT_PAGE_SIZE) || 1
                   const pagedPoints = filteredPoints.slice((riskPointPage - 1) * RISK_POINT_PAGE_SIZE, riskPointPage * RISK_POINT_PAGE_SIZE)
                   return pagedPoints.length === 0 ? (
-                    <tr><td colSpan={8} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: 20 }}>暂无数据</td></tr>
+                    <tr><td colSpan={6} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: 20 }}>暂无数据</td></tr>
                   ) : pagedPoints.map((rp, i) => {
                     const ent = enterprises.find(e => e.id === rp.enterprise_id)
                     const planLabels: Record<string, string> = { weekly: '按周', monthly: '按月', quarterly: '按季' }
@@ -563,18 +563,6 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                         </td>
                         <td style={tdStyle}>{planLabels[rp.plan_type] || rp.plan_type}</td>
                         <td style={tdStyle}>{rp.last_check_at || '-'}</td>
-                        <td style={tdStyle}>{rp.check_frequency}</td>
-                        <td style={tdStyle}>
-                          <span style={{
-                            padding: '2px 6px',
-                            borderRadius: 3,
-                            fontSize: 10,
-                            background: rp.status === '管控中' ? '#FEF3C7' : rp.status === '已消除' ? '#D1FAE5' : '#F3F4F6',
-                            color: rp.status === '管控中' ? '#92400E' : rp.status === '已消除' ? '#065F46' : '#6B7280',
-                          }}>
-                            {rp.status}
-                          </span>
-                        </td>
                       </tr>
                     )
                   })
