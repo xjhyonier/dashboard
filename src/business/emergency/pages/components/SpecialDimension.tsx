@@ -543,7 +543,7 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: '#FAFAFA' }}>
-                {['排名', '问题类型', '出现次数', '关联企业数', '隐患等级'].map(h => (
+                {['排名', '问题类型', '出现次数', '关联户数', '隐患等级'].map(h => (
                   <th key={h} style={{ ...thStyle, fontWeight: 600, fontSize: 11 }}>{h}</th>
                 ))}
               </tr>
