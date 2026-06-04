@@ -119,10 +119,37 @@ export function StationChiefV2Dashboard() {
     const inProgressCount = inRange.filter(h => h.status === 'rectifying').length
     const seriousClosed = seriousAll.filter(h => ['verified', 'closed', 'rectified'].includes(h.status)).length
     const seriousInProgress = seriousAll.filter(h => h.status === 'rectifying').length
+
+    // 月环比：上月同期
+    const pmStart = fmtDate(new Date(TODAY.getFullYear(), TODAY.getMonth() - 1, 1))
+    const pmEnd = fmtDate(new Date(TODAY.getFullYear(), TODAY.getMonth(), 0))
+    const prevMonth = hazardRecords.filter(h => {
+      const discoveredAt = h.discovered_at || h.created_at
+      return discoveredAt >= pmStart && discoveredAt <= pmEnd
+    })
+    // 月同比：去年同月
+    const lyStart = fmtDate(new Date(TODAY.getFullYear() - 1, TODAY.getMonth(), 1))
+    const lyEnd = fmtDate(new Date(TODAY.getFullYear() - 1, TODAY.getMonth() + 1, 0))
+    const lastYear = hazardRecords.filter(h => {
+      const discoveredAt = h.discovered_at || h.created_at
+      return discoveredAt >= lyStart && discoveredAt <= lyEnd
+    })
+
+    const currentHazard = closedCount + inProgressCount
+    const currentSerious = seriousClosed + seriousInProgress
+
+    const prevMonthHazard = prevMonth.length
+    const prevMonthSerious = prevMonth.filter(h => h.level === '重大隐患').length
+    const lastYearHazard = lastYear.length
+    const lastYearSerious = lastYear.filter(h => h.level === '重大隐患').length
+
+    const calcChange = (current: number, base: number): number | null =>
+      base > 0 ? ((current - base) / base * 100) : null
+
     return {
       enterprise: enterpriseCount || workGroups.reduce((s, g) => s + g.enterprise_count, 0),
-      hazard: closedCount + inProgressCount,
-      serious: seriousClosed + seriousInProgress,
+      hazard: currentHazard,
+      serious: currentSerious,
       seriousClosed,
       seriousInProgress,
       closed: closedCount,
@@ -130,6 +157,11 @@ export function StationChiefV2Dashboard() {
       deadline: inRange.filter(h => h.status === 'pending' || h.status === 'rectifying').length,
       extended: inRange.filter(h => h.status === 'overdue').length,
       overdue: inRange.filter(h => h.status === 'overdue').length,
+      // 月环比 / 月同比
+      hazardMoM: calcChange(currentHazard, prevMonthHazard),
+      hazardYoY: calcChange(currentHazard, lastYearHazard),
+      seriousMoM: calcChange(currentSerious, prevMonthSerious),
+      seriousYoY: calcChange(currentSerious, lastYearSerious),
     }
   }, [dateRange, workGroups, hazardRecords, enterpriseCount])
 
@@ -158,14 +190,32 @@ export function StationChiefV2Dashboard() {
   }
 
   // KPI 卡片渲染组件
-  const KpiCard = ({ selectedKpi, setSelectedKpi, item, accentBar, compact }: {
+  const KpiCard = ({ selectedKpi, setSelectedKpi, item, accentBar, compact, mom, yoy }: {
     selectedKpi: string | null
     setSelectedKpi: (k: string | null) => void
     item: { key: string; label: string; value: number; unit: string; color: string; tip?: string }
     accentBar?: string
     compact?: boolean
+    mom?: number | null
+    yoy?: number | null
   }) => {
     const isActive = selectedKpi === item.key
+
+    const formatChange = (val: number | null | undefined): string => {
+      if (val == null) return ''
+      const sign = val > 0 ? '+' : ''
+      return `${sign}${val.toFixed(1)}%`
+    }
+    const changeColor = (val: number | null | undefined): string => {
+      if (val == null) return '#9CA3AF'
+      return val > 0 ? '#DC2626' : val < 0 ? '#059669' : '#9CA3AF'
+    }
+    const changeArrow = (val: number | null | undefined): string => {
+      if (val == null) return ''
+      return val > 0 ? '↑' : val < 0 ? '↓' : '→'
+    }
+    const hasComparison = mom != null || yoy != null
+
     return (
       <div
         key={item.key}
@@ -194,7 +244,26 @@ export function StationChiefV2Dashboard() {
           {item.label}
           {item.tip && <span style={{ marginLeft: 3, color: '#9CA3AF', fontSize: 10 }}>ⓘ</span>}
         </div>
-        <div style={{ fontSize: compact ? 18 : 24, fontWeight: 700, color: item.color, lineHeight: 1.1 }}>{item.value}</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: compact ? 18 : 24, fontWeight: 700, color: item.color, lineHeight: 1.1 }}>{item.value}</span>
+          {hasComparison && (
+            <span style={{ fontSize: compact ? 9 : 10, fontWeight: 500, lineHeight: 1, whiteSpace: 'nowrap' }}>
+              {mom != null && (
+                <span style={{ color: changeColor(mom) }}>
+                  {changeArrow(mom)}{formatChange(mom)}
+                  <span style={{ fontSize: compact ? 8 : 9, color: '#9CA3AF' }}> 环比</span>
+                </span>
+              )}
+              {mom != null && yoy != null && <span style={{ margin: '0 3px', color: '#D1D5DB' }}>|</span>}
+              {yoy != null && (
+                <span style={{ color: changeColor(yoy) }}>
+                  {changeArrow(yoy)}{formatChange(yoy)}
+                  <span style={{ fontSize: compact ? 8 : 9, color: '#9CA3AF' }}> 同比</span>
+                </span>
+              )}
+            </span>
+          )}
+        </div>
         <div style={{ fontSize: compact ? 10 : 11, color: '#9CA3AF', marginTop: 2 }}>{item.unit}</div>
       </div>
     )
@@ -506,6 +575,8 @@ export function StationChiefV2Dashboard() {
               setSelectedKpi={setSelectedKpi}
               item={{ key: 'hazard', label: '隐患总数', value: kpiTotals.hazard, unit: '处', color: '#374151', tip: '镇街监督检查发现的隐患总数' }}
               compact
+              mom={kpiTotals.hazardMoM}
+              yoy={kpiTotals.hazardYoY}
             />
             <KpiCard
               selectedKpi={selectedKpi}
@@ -543,6 +614,8 @@ export function StationChiefV2Dashboard() {
               setSelectedKpi={setSelectedKpi}
               item={{ key: 'serious', label: '重大隐患总数', value: kpiTotals.serious, unit: '处', color: '#DC2626' }}
               compact
+              mom={kpiTotals.seriousMoM}
+              yoy={kpiTotals.seriousYoY}
             />
             <KpiCard
               selectedKpi={selectedKpi}
