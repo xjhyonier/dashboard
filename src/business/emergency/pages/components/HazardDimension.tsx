@@ -422,40 +422,12 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
           </select>
         </div>
 
-        {/* 行业筛选 */}
-        <div>
-          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>所属行业</div>
-          <select
-            value={industryFilter}
-            onChange={e => setIndustryFilter(e.target.value)}
-            style={{ padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4, fontSize: 12, color: '#374151', outline: 'none' }}
-          >
-            {industries.map(ind => (
-              <option key={ind} value={ind}>{ind === 'all' ? '全部行业' : ind}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* 工作组筛选 */}
-        <div>
-          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>负责工作组</div>
-          <select
-            value={teamFilter}
-            onChange={e => setTeamFilter(e.target.value)}
-            style={{ padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4, fontSize: 12, color: '#374151', outline: 'none' }}
-          >
-            {teams.map(t => (
-              <option key={t} value={t}>{t === 'all' ? '全部工作组' : t}</option>
-            ))}
-          </select>
-        </div>
-
         {/* 关键词搜索 */}
         <div>
           <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, fontWeight: 500 }}>关键词搜索</div>
           <input
             type="text"
-            placeholder="责任主体名称 / 隐患描述 / 检查人员"
+            placeholder="隐患描述"
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
             style={inputStyle}
