@@ -202,7 +202,7 @@ export function HazardTrendChart({ filterTeam, filterExpert, filterEnterprise, f
 
   if (loading) return <div style={{ padding: 20, color: '#6B7280' }}>加载中...</div>
 
-  return <BarChart title="隐患数量趋势" data={data} color="#4F46E5" unit="处" />
+  return <BarChart title="近一年隐患数量趋势" data={data} color="#4F46E5" unit="处" />
 }
 
 // ==================== 单位每月自查自纠统计 ====================
@@ -289,7 +289,7 @@ export function SelfCheckTrendChart({ filterTeam, filterExpert, filterEnterprise
 
   if (loading) return <div style={{ padding: 20, color: '#6B7280' }}>加载中...</div>
 
-  return <GroupedBarChart title="单位每月自查自纠统计" series={series} unit="处" />
+  return <GroupedBarChart title="近一年单位每月自查自纠统计" series={series} unit="处" />
 }
 
 // ==================== 检查人员数据统计 ====================
@@ -356,7 +356,7 @@ export function ExpertTodoTrendChart({ filterTeam, filterExpert, filterEnterpris
 
   if (loading) return <div style={{ padding: 20, color: '#6B7280' }}>加载中...</div>
 
-  return <GroupedBarChart title="检查人员数据统计" series={series} unit="" />
+  return <GroupedBarChart title="近一年检查人员数据统计" series={series} unit="" />
 }
 
 // ==================== 汇总展示 ====================
