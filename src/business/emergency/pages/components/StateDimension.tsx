@@ -214,7 +214,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
               type="text"
-              placeholder="搜索责任主体名称 / 工作组 / 行业"
+              placeholder="搜索责任主体名称"
               value={entKeyword}
               onChange={e => { setEntKeyword(e.target.value); setCurrentPage(1) }}
               style={inputStyle}
