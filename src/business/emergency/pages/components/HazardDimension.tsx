@@ -204,7 +204,6 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
   const enterpriseDimensionStats = useMemo(() => {
     const stats: Record<string, { 
       enterpriseName: string
-      expertName: string
       机构职责: number
       安全投入: number
       教育培训: number
@@ -220,7 +219,6 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
       if (!stats[h.enterprise_name]) {
         stats[h.enterprise_name] = { 
           enterpriseName: h.enterprise_name,
-          expertName: h.expert_name,
           机构职责: 0,
           安全投入: 0,
           教育培训: 0,
@@ -697,7 +695,6 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
             <button onClick={() => exportToCSV(
               sortedEnterpriseStats.map(row => ({
                 责任主体名称: row.enterpriseName,
-                检查人员: row.expertName,
                 机构职责: row['机构职责'],
                 安全投入: row['安全投入'],
                 教育培训: row['教育培训'],
@@ -709,7 +706,6 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
               })),
               [
                 { key: '责任主体名称', label: '责任主体名称' },
-                { key: '检查人员', label: '检查人员' },
                 { key: '机构职责', label: '机构职责' },
                 { key: '安全投入', label: '安全投入' },
                 { key: '教育培训', label: '教育培训' },
@@ -728,7 +724,6 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                 <tr style={{ background: '#F9FAFB' }}>
                   {[
                     { key: 'enterpriseName', label: '责任主体名称', sortable: true },
-                    { key: 'expertName', label: '检查人员', sortable: true },
                     { key: '机构职责', label: '机构职责', sortable: true },
                     { key: '安全投入', label: '安全投入', sortable: true },
                     { key: '教育培训', label: '教育培训', sortable: true },
@@ -758,11 +753,10 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
               </thead>
               <tbody>
                 {sortedEnterpriseStats.length === 0 ? (
-                  <tr><td colSpan={10} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: 20 }}>暂无数据</td></tr>
+                  <tr><td colSpan={9} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: 20 }}>暂无数据</td></tr>
                 ) : sortedEnterpriseStats.map((row, i) => (
                   <tr key={row.enterpriseName} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                     <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 500, color: '#1F2937', maxWidth: 180 }}>{row.enterpriseName}</td>
-                    <td style={{ ...tdStyle, color: '#4F46E5' }}>{row.expertName}</td>
                     <td style={{ ...tdStyle, color: row['机构职责'] > 0 ? '#D97706' : '#9CA3AF', fontWeight: enterpriseSortKey === '机构职责' ? 600 : 400 }}>{row['机构职责'] || '-'}</td>
                     <td style={{ ...tdStyle, color: row['安全投入'] > 0 ? '#D97706' : '#9CA3AF', fontWeight: enterpriseSortKey === '安全投入' ? 600 : 400 }}>{row['安全投入'] || '-'}</td>
                     <td style={{ ...tdStyle, color: row['教育培训'] > 0 ? '#D97706' : '#9CA3AF', fontWeight: enterpriseSortKey === '教育培训' ? 600 : 400 }}>{row['教育培训'] || '-'}</td>
