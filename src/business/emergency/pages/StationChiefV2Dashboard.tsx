@@ -244,19 +244,18 @@ export function StationChiefV2Dashboard() {
           {item.label}
           {item.tip && <span style={{ marginLeft: 3, color: '#9CA3AF', fontSize: 10 }}>ⓘ</span>}
         </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: compact ? 18 : 24, fontWeight: 700, color: item.color, lineHeight: 1.1 }}>{item.value}</span>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
+          <span style={{ fontSize: compact ? 18 : 24, fontWeight: 700, color: item.color, lineHeight: 1.1, whiteSpace: 'nowrap' }}>{item.value}</span>
           {hasComparison && (
-            <span style={{ fontSize: compact ? 9 : 10, fontWeight: 500, lineHeight: 1, whiteSpace: 'nowrap' }}>
+            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1, fontSize: compact ? 9 : 10, fontWeight: 500, lineHeight: 1.2 }}>
               {mom != null && (
-                <span style={{ color: changeColor(mom) }}>
+                <span style={{ color: changeColor(mom), whiteSpace: 'nowrap' }}>
                   {changeArrow(mom)}{formatChange(mom)}
                   <span style={{ fontSize: compact ? 8 : 9, color: '#9CA3AF' }}> 环比</span>
                 </span>
               )}
-              {mom != null && yoy != null && <span style={{ margin: '0 3px', color: '#D1D5DB' }}>|</span>}
               {yoy != null && (
-                <span style={{ color: changeColor(yoy) }}>
+                <span style={{ color: changeColor(yoy), whiteSpace: 'nowrap' }}>
                   {changeArrow(yoy)}{formatChange(yoy)}
                   <span style={{ fontSize: compact ? 8 : 9, color: '#9CA3AF' }}> 同比</span>
                 </span>
@@ -541,12 +540,42 @@ export function StationChiefV2Dashboard() {
           item={{ key: 'safetySubject', label: '安全责任主体总数', value: enterprises.length, unit: '家', color: '#1D4ED8', tip: '纳入安全监管的企业（安全责任主体）总数' }}
           accentBar="#3B82F6"
         />
-        {/* 检查次数 */}
-        <KpiCard
-          selectedKpi={selectedKpi}
-          setSelectedKpi={setSelectedKpi}
-          item={{ key: 'checkCount', label: '检查次数', value: 8240, unit: '次', color: '#B45309' }}
-        />
+        {/* 检查次数组 */}
+        <div style={{
+          flex: 1,
+          border: '1px solid #FED7AA',
+          borderRadius: 8,
+          background: '#FFF7ED',
+          padding: '8px 10px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          minWidth: 0,
+        }}>
+          <div style={{ fontSize: 11, color: '#B45309', textAlign: 'center', fontWeight: 600, paddingBottom: 4, borderBottom: '1px dashed #FED7AA', whiteSpace: 'nowrap' }}>
+            检查次数 = 日常监管次数 + 监督检查次数
+          </div>
+          <div style={{ display: 'flex', gap: 8, flex: 1 }}>
+            <KpiCard
+              selectedKpi={selectedKpi}
+              setSelectedKpi={setSelectedKpi}
+              item={{ key: 'checkCount', label: '检查次数', value: 8240, unit: '次', color: '#B45309' }}
+              compact
+            />
+            <KpiCard
+              selectedKpi={selectedKpi}
+              setSelectedKpi={setSelectedKpi}
+              item={{ key: 'dailyCheckCount', label: '日常监管次数', value: 5120, unit: '次', color: '#D97706' }}
+              compact
+            />
+            <KpiCard
+              selectedKpi={selectedKpi}
+              setSelectedKpi={setSelectedKpi}
+              item={{ key: 'inspectCheckCount', label: '监督检查次数', value: 3120, unit: '次', color: '#92400E' }}
+              compact
+            />
+          </div>
+        </div>
         {/* 覆盖户数 */}
         <KpiCard
           selectedKpi={selectedKpi}
