@@ -609,7 +609,7 @@ export function StationChiefV2Dashboard() {
           minWidth: 0,
         }}>
           <div style={{ fontSize: 11, color: '#065F46', textAlign: 'center', fontWeight: 600, paddingBottom: 4, borderBottom: '1px dashed #A7F3D0', whiteSpace: 'nowrap' }}>
-            检查单统计
+            日常监管隐患推送数据统计
           </div>
           <div style={{ display: 'flex', gap: 8, flex: 1 }}>
             <KpiCard
