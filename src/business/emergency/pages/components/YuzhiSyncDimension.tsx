@@ -446,7 +446,7 @@ export function YuzhiSyncDimension() {
     </th>
   )
 
-  const subCols = ['任务数', '已完成', '完成率', '隐患数', '已整改', '整改中'] as const
+  const subCols = ['任务数', '已完成', '完成率', '确认隐患数', '已整改', '整改中', '整改完成率'] as const
   const subKeys = ['total', 'done', 'hazard', 'rectified', 'rectifying'] as const
 
   // 渲染某个 TaskSub 的子列，isLast 表示是否最后一类（不需要右侧粗分隔线）
@@ -466,14 +466,17 @@ export function YuzhiSyncDimension() {
         <td style={td({ textAlign: 'center', color: sub.rectified > 0 ? '#059669' : '#9CA3AF', fontWeight: sub.rectified > 0 ? 600 : 400, background: subBg })}>
           {sub.rectified.toLocaleString()}
         </td>
-        <td style={td({ textAlign: 'center', color: sub.rectifying > 0 ? '#F59E0B' : '#9CA3AF', fontWeight: sub.rectifying > 0 ? 600 : 400, background: subBg, ...lastStyle })}>
+        <td style={td({ textAlign: 'center', color: sub.rectifying > 0 ? '#F59E0B' : '#9CA3AF', fontWeight: sub.rectifying > 0 ? 600 : 400, background: subBg })}>
           {sub.rectifying.toLocaleString()}
+        </td>
+        <td style={td({ textAlign: 'center', background: subBg, ...lastStyle })}>
+          <RateText rate={rateStr(sub.rectified, sub.hazard)} />
         </td>
       </>
     )
   }
 
-  const totalColSpan = 1 + 1 + 3 * 6 // # + 村社 + 3类 × 6子列 = 20
+  const totalColSpan = 1 + 1 + 3 * 7 // # + 村社 + 3类 × 7子列 = 23
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -796,9 +799,9 @@ export function YuzhiSyncDimension() {
               <tr>
                 <th rowSpan={2} style={{ ...th, width: 42, borderRight: '1px solid #E5E7EB' }}>#</th>
                 <th rowSpan={2} style={{ ...th, textAlign: 'left', minWidth: 110 }}>村社</th>
-                <GroupTh label="防灾减灾任务" colSpan={6} bg="#EFF6FF" />
-                <GroupTh label="日常检查任务" colSpan={6} bg="#F0FDF4" />
-                <GroupTh label="141同步任务" colSpan={6} bg="#FAF5FF" />
+                <GroupTh label="防灾减灾任务" colSpan={7} bg="#EFF6FF" />
+                <GroupTh label="日常检查任务" colSpan={7} bg="#F0FDF4" />
+                <GroupTh label="141同步任务" colSpan={7} bg="#FAF5FF" />
               </tr>
               {/* 第二级表头：子列 */}
               <tr>
@@ -806,23 +809,26 @@ export function YuzhiSyncDimension() {
                 <SortTh col="fzjz_total" label="任务数" extraStyle={{ background: '#EFF6FF' }} />
                 <SortTh col="fzjz_done" label="已完成" extraStyle={{ background: '#EFF6FF' }} />
                 <th style={{ ...th, background: '#EFF6FF', width: 64 }}>完成率</th>
-                <SortTh col="fzjz_hazard" label="隐患" extraStyle={{ background: '#EFF6FF' }} />
+                <SortTh col="fzjz_hazard" label="确认隐患数" extraStyle={{ background: '#EFF6FF' }} />
                 <SortTh col="fzjz_rectified" label="已整改" extraStyle={{ background: '#EFF6FF' }} />
-                <SortTh col="fzjz_rectifying" label="整改中" extraStyle={{ background: '#EFF6FF', borderRight: '2px solid #D1D5DB' }} />
+                <SortTh col="fzjz_rectifying" label="整改中" extraStyle={{ background: '#EFF6FF' }} />
+                <th style={{ ...th, background: '#EFF6FF', width: 76, borderRight: '2px solid #D1D5DB' }}>整改完成率</th>
                 {/* 日常检查 */}
                 <SortTh col="rcjc_total" label="任务数" extraStyle={{ background: '#F0FDF4' }} />
                 <SortTh col="rcjc_done" label="已完成" extraStyle={{ background: '#F0FDF4' }} />
                 <th style={{ ...th, background: '#F0FDF4', width: 64 }}>完成率</th>
-                <SortTh col="rcjc_hazard" label="隐患" extraStyle={{ background: '#F0FDF4' }} />
+                <SortTh col="rcjc_hazard" label="确认隐患数" extraStyle={{ background: '#F0FDF4' }} />
                 <SortTh col="rcjc_rectified" label="已整改" extraStyle={{ background: '#F0FDF4' }} />
-                <SortTh col="rcjc_rectifying" label="整改中" extraStyle={{ background: '#F0FDF4', borderRight: '2px solid #D1D5DB' }} />
+                <SortTh col="rcjc_rectifying" label="整改中" extraStyle={{ background: '#F0FDF4' }} />
+                <th style={{ ...th, background: '#F0FDF4', width: 76, borderRight: '2px solid #D1D5DB' }}>整改完成率</th>
                 {/* 141同步 */}
                 <SortTh col="sync141_total" label="任务数" extraStyle={{ background: '#FAF5FF' }} />
                 <SortTh col="sync141_done" label="已完成" extraStyle={{ background: '#FAF5FF' }} />
                 <th style={{ ...th, background: '#FAF5FF', width: 64 }}>完成率</th>
-                <SortTh col="sync141_hazard" label="隐患" extraStyle={{ background: '#FAF5FF' }} />
+                <SortTh col="sync141_hazard" label="确认隐患数" extraStyle={{ background: '#FAF5FF' }} />
                 <SortTh col="sync141_rectified" label="已整改" extraStyle={{ background: '#FAF5FF' }} />
-                <SortTh col="sync141_rectifying" label="整改中" extraStyle={{ background: '#FAF5FF', borderRight: 'none' }} />
+                <SortTh col="sync141_rectifying" label="整改中" extraStyle={{ background: '#FAF5FF' }} />
+                <th style={{ ...th, background: '#FAF5FF', width: 76, borderRight: 'none' }}>整改完成率</th>
               </tr>
             </thead>
             <tbody>
