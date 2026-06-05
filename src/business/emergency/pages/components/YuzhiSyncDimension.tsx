@@ -999,8 +999,8 @@ export function YuzhiSyncDimension() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={{ ...th, textAlign: 'left', width: 110 }}>状态</th>
                 <th style={{ ...th, textAlign: 'left', width: 130 }}>任务去向</th>
+                <th style={{ ...th, textAlign: 'left', width: 110 }}>状态</th>
                 <th style={{ ...th, textAlign: 'left' }}>异常信息</th>
                 <th style={{ ...th, width: 80 }}>任务数</th>
                 <th style={{ ...th, width: 80, borderRight: 'none' }}>占比</th>
@@ -1039,6 +1039,17 @@ export function YuzhiSyncDimension() {
 
                 return (
                   <tr key={i} style={{ background: rowBg }}>
+                    <td style={td({ whiteSpace: 'nowrap', color: '#374151' })}>
+                      {row.destination && (
+                        <span style={{
+                          display: 'inline-block', padding: '1px 6px', borderRadius: 3, fontSize: 12,
+                          background: row.destination === '镇街任务' ? '#EFF6FF' : row.destination === '未知分配去向' ? '#F3F4F6' : '#F0FDF4',
+                          color: row.destination === '镇街任务' ? '#1E40AF' : row.destination === '未知分配去向' ? '#6B7280' : '#166534',
+                        }}>
+                          {row.destination}
+                        </span>
+                      )}
+                    </td>
                     <td style={{ ...td({ verticalAlign: 'top', whiteSpace: 'nowrap' }) }}>
                       {statusIsNew && (
                         <span style={{
@@ -1048,17 +1059,6 @@ export function YuzhiSyncDimension() {
                           color: isAbnormal ? '#991B1B' : '#065F46',
                         }}>
                           {row.status}
-                        </span>
-                      )}
-                    </td>
-                    <td style={td({ whiteSpace: 'nowrap', color: '#374151' })}>
-                      {row.destination && (
-                        <span style={{
-                          display: 'inline-block', padding: '1px 6px', borderRadius: 3, fontSize: 12,
-                          background: row.destination === '镇街任务' ? '#EFF6FF' : row.destination === '未知分配去向' ? '#F3F4F6' : '#F0FDF4',
-                          color: row.destination === '镇街任务' ? '#1E40AF' : row.destination === '未知分配去向' ? '#6B7280' : '#166534',
-                        }}>
-                          {row.destination}
                         </span>
                       )}
                     </td>
