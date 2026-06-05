@@ -457,6 +457,11 @@ export function generateAllData(): GeneratedData {
     const dataAuthorized = infoCollected && Math.random() < 0.80
     const riskIdentified = dataAuthorized && Math.random() < 0.75
     
+    // 待办统计：严格保证 总数 > 已读数 > 完成数
+    const todoTotal = randomInt(6, 30)
+    const todoRead = randomInt(2, todoTotal - 1)
+    const todoCompleted = randomInt(1, todoRead - 1)
+    
     return {
       enterprise_id: ent.id,
       info_collected: infoCollected,
@@ -482,9 +487,9 @@ export function generateAllData(): GeneratedData {
       hazard_major: Math.random() < 0.12 ? randomInt(0, 3) : 0,
       rectify_status: pickEnum(RECTIFY_STATUSES),
       patrol_done: Math.random() < 0.65,
-      todo_total: randomInt(5, 30),
-      todo_read: randomInt(3, 25),
-      todo_completed: randomInt(2, 20),
+      todo_total: todoTotal,
+      todo_read: todoRead,
+      todo_completed: todoCompleted,
       updated_at: today,
     }
   })

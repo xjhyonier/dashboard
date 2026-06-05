@@ -231,6 +231,8 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                     待办总数: dims?.todo_total ?? 0,
                     已读待办数: dims?.todo_read ?? 0,
                     待办完成数: dims?.todo_completed ?? 0,
+                    待办完成率: (dims?.todo_total ?? 0) > 0 ? `${Math.round(((dims?.todo_completed ?? 0) / (dims?.todo_total ?? 1)) * 100)}%` : '-',
+                    已读待办完成率: (dims?.todo_read ?? 0) > 0 ? `${Math.round(((dims?.todo_completed ?? 0) / (dims?.todo_read ?? 1)) * 100)}%` : '-',
                     行业: e.industry,
                     工作组: e.work_group,
                     信息采集: dims?.info_collected ? '是' : '否',
@@ -261,6 +263,8 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                   { key: '待办总数', label: '待办总数' },
                   { key: '已读待办数', label: '已读待办数' },
                   { key: '待办完成数', label: '待办完成数' },
+                  { key: '待办完成率', label: '待办完成率' },
+                  { key: '已读待办完成率', label: '已读待办完成率' },
                   { key: '行业', label: '行业' },
                   { key: '工作组', label: '工作组' },
                   { key: '信息采集', label: '信息采集' },
@@ -315,7 +319,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
         </div>
 
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1400 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1550 }}>
             <thead>
               <tr>
                 <th style={thStyle}>#</th>
@@ -325,6 +329,8 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                 <th style={thStyle}>待办<br/>总数</th>
                 <th style={thStyle}>已读<br/>待办数</th>
                 <th style={thStyle}>待办<br/>完成数</th>
+                <th style={thStyle}>待办<br/>完成率</th>
+                <th style={thStyle}>已读待办<br/>完成率</th>
                 <th style={thStyle}>信息<br/>采集</th>
                 <th style={thStyle}>数据<br/>授权</th>
                 <th style={thStyle}>风险点</th>
@@ -344,7 +350,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
             </thead>
             <tbody>
               {pagedEnterprises.length === 0 ? (
-                <tr><td colSpan={22} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>暂无数据</td></tr>
+                <tr><td colSpan={24} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>暂无数据</td></tr>
               ) : pagedEnterprises.map((e, i) => {
                 const dims = dimensionsMap[e.id]
                 const riskColors: Record<string, string> = {
@@ -369,6 +375,8 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                     <td style={{ ...tdStyle, fontWeight: 500 }}>{dims?.todo_total ?? 0}</td>
                     <td style={{ ...tdStyle, color: '#059669' }}>{dims?.todo_read ?? 0}</td>
                     <td style={{ ...tdStyle, color: '#2563EB', fontWeight: 500 }}>{dims?.todo_completed ?? 0}</td>
+                    <td style={{ ...tdStyle, color: '#059669', fontWeight: 500 }}>{(dims?.todo_total ?? 0) > 0 ? `${Math.round(((dims?.todo_completed ?? 0) / (dims?.todo_total ?? 1)) * 100)}%` : '-'}</td>
+                    <td style={{ ...tdStyle, color: '#7C3AED', fontWeight: 500 }}>{(dims?.todo_read ?? 0) > 0 ? `${Math.round(((dims?.todo_completed ?? 0) / (dims?.todo_read ?? 1)) * 100)}%` : '-'}</td>
                     <td style={{ ...tdStyle, color: dims?.info_collected ? '#059669' : '#DC2626' }}>{dims?.info_collected ? '✓' : '✗'}</td>
                     <td style={{ ...tdStyle, color: dims?.data_authorized ? '#059669' : '#D97706' }}>{dims?.data_authorized ? '✓' : '✗'}</td>
                     <td style={{ ...tdStyle, color: riskPoints.filter(rp => rp.enterprise_id === e.id).length > 0 ? '#059669' : '#9CA3AF', fontWeight: riskPoints.filter(rp => rp.enterprise_id === e.id).length > 0 ? 600 : 400 }}>{riskPoints.filter(rp => rp.enterprise_id === e.id).length}</td>
