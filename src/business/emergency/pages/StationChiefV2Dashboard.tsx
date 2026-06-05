@@ -258,18 +258,19 @@ export function StationChiefV2Dashboard() {
           {item.label}
           {item.tip && <span style={{ marginLeft: 3, color: '#9CA3AF', fontSize: 10 }}>ⓘ</span>}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
           <span style={{ fontSize: compact ? 18 : 24, fontWeight: 700, color: item.color, lineHeight: 1.1, whiteSpace: 'nowrap' }}>{item.value}</span>
           {hasComparison && (
-            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, fontSize: compact ? 9 : 10, fontWeight: 500, lineHeight: 1.2 }}>
+            <span style={{ fontSize: compact ? 9 : 10, fontWeight: 500, lineHeight: 1, whiteSpace: 'nowrap' }}>
               {mom != null && (
-                <span style={{ color: changeColor(mom), whiteSpace: 'nowrap' }}>
+                <span style={{ color: changeColor(mom) }}>
                   {changeArrow(mom)}{formatChange(mom)}
                   <span style={{ fontSize: compact ? 8 : 9, color: '#9CA3AF' }}> 环比</span>
                 </span>
               )}
+              {mom != null && yoy != null && <span style={{ margin: '0 3px', color: '#D1D5DB' }}>|</span>}
               {yoy != null && (
-                <span style={{ color: changeColor(yoy), whiteSpace: 'nowrap' }}>
+                <span style={{ color: changeColor(yoy) }}>
                   {changeArrow(yoy)}{formatChange(yoy)}
                   <span style={{ fontSize: compact ? 8 : 9, color: '#9CA3AF' }}> 同比</span>
                 </span>
@@ -540,11 +541,11 @@ export function StationChiefV2Dashboard() {
         )}
       </div>
 
-      {/* KPI 指标卡片（在筛选区下方、tab 切换上方） */}
+      {/* KPI 指标卡片 - 第一行：安全责任主体 / 检查次数 / 覆盖户数 / 检查单 */}
       <div style={{
         display: 'flex',
         gap: 12,
-        marginBottom: 12,
+        marginBottom: 8,
         alignItems: 'stretch',
       }}>
         {/* 安全责任主体总数 */}
@@ -639,7 +640,15 @@ export function StationChiefV2Dashboard() {
             />
           </div>
         </div>
+      </div>
 
+      {/* KPI 指标卡片 - 第二行：隐患统计 / 重大隐患统计 */}
+      <div style={{
+        display: 'flex',
+        gap: 12,
+        marginBottom: 12,
+        alignItems: 'stretch',
+      }}>
         {/* 隐患统计组 */}
         <div style={{
           flex: 1,
