@@ -667,7 +667,7 @@ export function StationChiefV2Dashboard() {
             <KpiCard
               selectedKpi={selectedKpi}
               setSelectedKpi={setSelectedKpi}
-              item={{ key: 'hazard', label: '隐患总数', value: kpiTotals.hazard, unit: '处', color: '#374151', tip: '镇街监督检查发现的隐患总数' }}
+              item={{ key: 'hazard', label: '隐患总数', value: kpiTotals.hazard, unit: '条', color: '#374151', tip: '镇街监督检查发现的隐患总数' }}
               compact
               mom={kpiTotals.hazardMoM}
             />
@@ -706,7 +706,7 @@ export function StationChiefV2Dashboard() {
             <KpiCard
               selectedKpi={selectedKpi}
               setSelectedKpi={setSelectedKpi}
-              item={{ key: 'serious', label: '重大隐患总数', value: kpiTotals.serious, unit: '处', color: '#DC2626' }}
+              item={{ key: 'serious', label: '重大隐患总数', value: kpiTotals.serious, unit: '条', color: '#DC2626' }}
               compact
               mom={kpiTotals.seriousMoM}
             />
