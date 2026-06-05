@@ -357,7 +357,6 @@ export function StationChiefV2Dashboard() {
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#9CA3AF' }}>时间:</span>
           {([
-            { key: 'week' as TimeRange, label: '本周' },
             { key: 'month' as TimeRange, label: '本月' },
             { key: 'quarter' as TimeRange, label: '本季' },
             { key: 'year' as TimeRange, label: '本年' },
