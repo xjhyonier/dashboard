@@ -924,7 +924,7 @@ export function YuzhiSyncDimension() {
       <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
         <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>表2：余智护杭 14 项已同步任务分析</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>表2：余智护杭 14 项任务同步情况分析</span>
             {/* 备注感叹号 */}
             <span
               style={{ position: 'relative', display: 'inline-flex', marginLeft: 6, cursor: 'pointer', userSelect: 'none' }}
