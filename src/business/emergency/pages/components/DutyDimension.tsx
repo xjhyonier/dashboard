@@ -754,10 +754,10 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 发现隐患: e.hazard_found,
                 重大隐患: e.hazard_serious,
                 已整改: e.hazard_closed,
-                检查单推送户数: e.todo_push_enterprise_count,
-                检查单推送次数: e.todo_push_count,
-                检查单办结数量: e.todo_closed_count,
-                检查单办结率: e.todo_closure_rate + '%',
+                日常监管隐患推送户数: e.todo_push_enterprise_count,
+                日常监管隐患推送次数: e.todo_push_count,
+                日常监管隐患办结数量: e.todo_closed_count,
+                日常监管隐患办结率: e.todo_closure_rate + '%',
               })),
               [
                 { key: '姓名', label: '姓名' },
@@ -767,10 +767,10 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 { key: '发现隐患', label: '发现隐患' },
                 { key: '重大隐患', label: '重大隐患' },
                 { key: '已整改', label: '已整改' },
-                { key: '检查单推送户数', label: '检查单推送户数' },
-                { key: '检查单推送次数', label: '检查单推送次数' },
-                { key: '检查单办结数量', label: '检查单办结数量' },
-                { key: '检查单办结率', label: '检查单办结率' },
+                { key: '日常监管隐患推送户数', label: '日常监管隐患推送户数' },
+                { key: '日常监管隐患推送次数', label: '日常监管隐患推送次数' },
+                { key: '日常监管隐患办结数量', label: '日常监管隐患办结数量' },
+                { key: '日常监管隐患办结率', label: '日常监管隐患办结率' },
               ],
               '专家履职情况表'
             )} style={{ padding: '4px 12px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer' }}>⬇ 导出</button>
@@ -782,7 +782,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
               <tr>
                 <th colSpan={17} style={{ ...thStyle, borderBottom: 'none', padding: '4px 0' }}></th>
                 <th colSpan={4} style={{ ...thStyle, borderBottom: '1px solid #E5E7EB', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#7C3AED', background: '#F5F3FF', padding: '4px 0' }}>隐患来源</th>
-                <th colSpan={4} style={{ ...thStyle, borderBottom: '1px solid #FED7AA', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#B45309', background: '#FFFBEB', padding: '4px 0' }}>检查单</th>
+                <th colSpan={4} style={{ ...thStyle, borderBottom: '1px solid #FED7AA', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#B45309', background: '#FFFBEB', padding: '4px 0' }}>日常监管隐患推送数据</th>
               </tr>
               <tr>
                 <SortableTh label="姓名" sortKey="name" sort={sortExperts} onSort={handleSortExperts} />
@@ -806,10 +806,10 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 <SortableTh label="视频看" sortKey="video_watch" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="AI看" sortKey="ai_watch" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="一企一档" sortKey="enterprise_file" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="检查单推送户数" sortKey="todo_push_enterprise_count" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="检查单推送次数" sortKey="todo_push_count" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="检查单办结数量" sortKey="todo_closed_count" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="检查单办结率" sortKey="todo_closure_rate" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="日常监管隐患推送户数" sortKey="todo_push_enterprise_count" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="日常监管隐患推送次数" sortKey="todo_push_count" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="日常监管隐患办结数量" sortKey="todo_closed_count" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="日常监管隐患办结率" sortKey="todo_closure_rate" sort={sortExperts} onSort={handleSortExperts} />
               </tr>
             </thead>
             <tbody>
