@@ -482,6 +482,9 @@ export function generateAllData(): GeneratedData {
       hazard_major: Math.random() < 0.12 ? randomInt(0, 3) : 0,
       rectify_status: pickEnum(RECTIFY_STATUSES),
       patrol_done: Math.random() < 0.65,
+      todo_total: randomInt(5, 30),
+      todo_read: randomInt(3, 25),
+      todo_completed: randomInt(2, 20),
       updated_at: today,
     }
   })

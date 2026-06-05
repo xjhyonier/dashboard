@@ -214,6 +214,11 @@ export interface EnterpriseDimensions {
   // 九、巡查
   patrol_done: boolean
   
+  // 十、待办统计
+  todo_total: number       // 待办总数
+  todo_read: number        // 已读待办数
+  todo_completed: number   // 待办完成数
+  
   updated_at: string
 }
 

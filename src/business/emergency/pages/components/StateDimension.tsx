@@ -228,6 +228,9 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                     责任主体名称: e.name,
                     风险等级: e.risk_level,
                     专家: expert?.name || '-',
+                    待办总数: dims?.todo_total ?? 0,
+                    已读待办数: dims?.todo_read ?? 0,
+                    待办完成数: dims?.todo_completed ?? 0,
                     行业: e.industry,
                     工作组: e.work_group,
                     信息采集: dims?.info_collected ? '是' : '否',
@@ -255,6 +258,9 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                   { key: '责任主体名称', label: '责任主体名称' },
                   { key: '风险等级', label: '风险等级' },
                   { key: '专家', label: '专家' },
+                  { key: '待办总数', label: '待办总数' },
+                  { key: '已读待办数', label: '已读待办数' },
+                  { key: '待办完成数', label: '待办完成数' },
                   { key: '行业', label: '行业' },
                   { key: '工作组', label: '工作组' },
                   { key: '信息采集', label: '信息采集' },
@@ -316,6 +322,9 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                 <th style={{ ...thStyle, minWidth: 180 }}>责任主体名称</th>
                 <th style={thStyle}>风险等级</th>
                 <th style={thStyle}>专家</th>
+                <th style={thStyle}>待办<br/>总数</th>
+                <th style={thStyle}>已读<br/>待办数</th>
+                <th style={thStyle}>待办<br/>完成数</th>
                 <th style={thStyle}>信息<br/>采集</th>
                 <th style={thStyle}>数据<br/>授权</th>
                 <th style={thStyle}>风险点</th>
@@ -335,7 +344,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
             </thead>
             <tbody>
               {pagedEnterprises.length === 0 ? (
-                <tr><td colSpan={19} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>暂无数据</td></tr>
+                <tr><td colSpan={22} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>暂无数据</td></tr>
               ) : pagedEnterprises.map((e, i) => {
                 const dims = dimensionsMap[e.id]
                 const riskColors: Record<string, string> = {
@@ -357,6 +366,9 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                     <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 500, color: '#1F2937', minWidth: 180 }}>{e.name}</td>
                     <td style={{ ...tdStyle, fontWeight: 600, color: riskColors[e.risk_level] || '#374151' }}>{e.risk_level}</td>
                     <td style={{ ...tdStyle, color: '#4F46E5' }}>{expert?.name || '-'}</td>
+                    <td style={{ ...tdStyle, fontWeight: 500 }}>{dims?.todo_total ?? 0}</td>
+                    <td style={{ ...tdStyle, color: '#059669' }}>{dims?.todo_read ?? 0}</td>
+                    <td style={{ ...tdStyle, color: '#2563EB', fontWeight: 500 }}>{dims?.todo_completed ?? 0}</td>
                     <td style={{ ...tdStyle, color: dims?.info_collected ? '#059669' : '#DC2626' }}>{dims?.info_collected ? '✓' : '✗'}</td>
                     <td style={{ ...tdStyle, color: dims?.data_authorized ? '#059669' : '#D97706' }}>{dims?.data_authorized ? '✓' : '✗'}</td>
                     <td style={{ ...tdStyle, color: riskPoints.filter(rp => rp.enterprise_id === e.id).length > 0 ? '#059669' : '#9CA3AF', fontWeight: riskPoints.filter(rp => rp.enterprise_id === e.id).length > 0 ? 600 : 400 }}>{riskPoints.filter(rp => rp.enterprise_id === e.id).length}</td>
