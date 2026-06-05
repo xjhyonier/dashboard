@@ -16,7 +16,11 @@ const SYNC_ROWS: SyncRow[] = [
   { status: '已创建', destination: '村社任务', exception: '无异常，余智护杭任务已同步至村社/镇街', count: 2664, percent: '19.21%' },
   { status: '检查完成', destination: '村社任务', exception: '无异常，余智护杭任务已同步至村社/镇街，并在一起安完成了检查', count: 2379, percent: '17.16%' },
   { status: '数据校验异常', destination: '村社任务', exception: '企业已开通一起安平台，但不在村社底数内，请在村社底数中录入', count: 1506, percent: '10.86%' },
-  { status: '', destination: '', exception: '小计', count: 6549, percent: '', isSubtotal: true },
+  { status: '数据校验异常', destination: '村社任务', exception: '该企业所在部门没有检查人员', count: 314, percent: '2.26%' },
+  { status: '数据校验异常', destination: '村社任务', exception: '任务明细未匹配到村社', count: 110, percent: '0.79%' },
+  { status: '数据校验异常', destination: '村社任务', exception: '该企业所在部门有检查人员,但是不在浙政钉内,部门名称：亿丰时代网格', count: 24, percent: '0.17%' },
+  { status: '数据校验异常', destination: '村社任务', exception: '该企业所在部门有检查人员,但是不在浙政钉内,部门名称：严村里网格', count: 8, percent: '0.06%' },
+  { status: '', destination: '', exception: '小计', count: 7005, percent: '', isSubtotal: true },
   // ========== 镇街任务 ==========
   { status: '已创建', destination: '镇街任务', exception: '无异常，余智护杭任务已同步至村社/镇街', count: 195, percent: '1.41%' },
   { status: '数据校验异常', destination: '镇街任务', exception: '企业没在镇街组织：良渚应急消防管理站', count: 3, percent: '0.02%' },
@@ -25,12 +29,6 @@ const SYNC_ROWS: SyncRow[] = [
   // ========== 未知分配去向 ==========
   { status: '数据校验异常', destination: '未知分配去向', exception: '企业尚未开通一起安平台，请在村社底数中录入', count: 6661, percent: '48.04%' },
   { status: '', destination: '', exception: '小计', count: 6661, percent: '', isSubtotal: true },
-  // ========== 无明确去向 ==========
-  { status: '数据校验异常', destination: '', exception: '该企业所在部门没有检查人员', count: 314, percent: '2.26%' },
-  { status: '数据校验异常', destination: '', exception: '任务明细未匹配到村社', count: 110, percent: '0.79%' },
-  { status: '数据校验异常', destination: '', exception: '该企业所在部门有检查人员,但是不在浙政钉内,部门名称：亿丰时代网格', count: 24, percent: '0.17%' },
-  { status: '数据校验异常', destination: '', exception: '该企业所在部门有检查人员,但是不在浙政钉内,部门名称：严村里网格', count: 8, percent: '0.06%' },
-  { status: '', destination: '', exception: '小计', count: 456, percent: '', isSubtotal: true },
   // ========== 总计 ==========
   { status: '', destination: '', exception: '总计', count: 13865, percent: '', isTotal: true },
 ]
