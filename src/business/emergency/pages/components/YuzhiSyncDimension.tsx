@@ -51,6 +51,9 @@ interface VillageRow {
   rcjc: TaskSub    // 日常检查
   sync141: TaskSub // 141同步
   isTotal?: boolean
+  enterpriseCount: number
+  venueCount: number
+  rentalCount: number
 }
 
 // 生成模拟数据：根据原 total/done 拆分到三类任务
@@ -130,10 +133,19 @@ const VILLAGE_RAW: { village: string; date: string; total: number; done: number 
   { village: '小洋坝村', date: '2026-05-22', total: 2, done: 2 },
 ]
 
+// 按任务数比例分配企业/场所/出租房总数（保持原硬编码总量大致不变）
+const TOTAL_TASKS = VILLAGE_RAW.reduce((sum, r) => sum + r.total, 0)
+const R_ENT = 1286 / TOTAL_TASKS
+const R_VENUE = 3452 / TOTAL_TASKS
+const R_RENTAL = 876 / TOTAL_TASKS
+
 const VILLAGE_ROWS: VillageRow[] = VILLAGE_RAW.map(r => ({
   village: r.village,
   date: r.date,
   ...genMock(r.total, r.done),
+  enterpriseCount: Math.max(0, Math.round(r.total * R_ENT)),
+  venueCount: Math.max(0, Math.round(r.total * R_VENUE)),
+  rentalCount: Math.max(0, Math.round(r.total * R_RENTAL)),
 }))
 
 // ─── 通用样式 ─────────────────────────────────────────────────────────────
@@ -410,7 +422,7 @@ export function YuzhiSyncDimension() {
         rectifying: acc.sync141.rectifying + r.sync141.rectifying,
       },
     }), { fzjz: zero, rcjc: zero, sync141: zero })
-    return { village: '合计', date: '', ...sum, isTotal: true } as VillageRow
+    return { village: '合计', date: '', ...sum, isTotal: true, enterpriseCount: 0, venueCount: 0, rentalCount: 0 } as VillageRow
   }, [filteredVillages, allVillages, selectedVillages])
 
   const handleSort = (col: SortCol) => {
@@ -561,42 +573,58 @@ export function YuzhiSyncDimension() {
       </div>
 
       {/* ─── 指标统计看板 ─────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 12 }}>
-        {[
+      {(() => {
+        const data = selectedVillages.length > 0 ? filteredVillages : allVillages
+        let ent = 0, ven = 0, rent = 0
+        for (const r of data) {
+          ent += r.enterpriseCount
+          ven += r.venueCount
+          rent += r.rentalCount
+        }
+        const entReg = Math.round(ent * 0.82)
+        const venReg = Math.round(ven * 0.84)
+        const rentReg = Math.round(rent * 0.82)
+        const rate = (v: number, base: number) => base > 0 ? `${((v / base) * 100).toFixed(2)}%` : '-'
+
+        const cards = [
           {
             label: '企业数',
-            value: 1286,
+            value: ent,
             unit: '家',
             color: '#1D4ED8',
             bg: '#EFF6FF',
             border: '#BFDBFE',
             icon: '🏢',
-            registered: 1056,
-            registeredRate: '82.12%',
+            registered: entReg,
+            registeredRate: rate(entReg, ent),
           },
           {
             label: '场所数',
-            value: 3452,
+            value: ven,
             unit: '处',
             color: '#059669',
             bg: '#F0FDF4',
             border: '#A7F3D0',
             icon: '🏪',
-            registered: 2890,
-            registeredRate: '83.72%',
+            registered: venReg,
+            registeredRate: rate(venReg, ven),
           },
           {
             label: '出租房数',
-            value: 876,
+            value: rent,
             unit: '套',
             color: '#7C3AED',
             bg: '#FAF5FF',
             border: '#DDD6FE',
             icon: '🏠',
-            registered: 720,
-            registeredRate: '82.19%',
+            registered: rentReg,
+            registeredRate: rate(rentReg, rent),
           },
-        ].map(item => (
+        ]
+
+        return (
+      <div style={{ display: 'flex', gap: 12 }}>
+        {cards.map(item => (
           <div
             key={item.label}
             style={{
@@ -635,6 +663,8 @@ export function YuzhiSyncDimension() {
           </div>
         ))}
       </div>
+      )
+    })()}
 
       {/* ─── 表1：村社检查任务统计 ─────────────────────────────── */}
       <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
