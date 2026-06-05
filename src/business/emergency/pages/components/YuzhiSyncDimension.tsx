@@ -9,29 +9,29 @@ interface SyncRow {
   percent: string
   isSubtotal?: boolean
   isTotal?: boolean
-  subtotalCount?: number
 }
 
 const SYNC_ROWS: SyncRow[] = [
-  // 已创建
-  { status: '已创建', destination: '村社任务', exception: '无异常，余智护杭任务已同步至村社/镇街', count: 2664, percent: '50.86%' },
-  { status: '', destination: '镇街任务', exception: '无异常，余智护杭任务已同步至村社/镇街', count: 195, percent: '3.72%' },
-  // 检查完成
-  { status: '检查完成', destination: '村社任务', exception: '无异常，余智护杭任务已同步至村社/镇街，并在一起安完成了检查', count: 2379, percent: '45.42%' },
-  // 小计1
-  { status: '', destination: '', exception: '小计', count: 5238, percent: '', isSubtotal: true, subtotalCount: 5238 },
-  // 数据校验异常
-  { status: '数据校验异常', destination: '未知分配去向', exception: '企业尚未开通一起安平台，请在村社底数中录入', count: 6661, percent: '77.21%' },
-  { status: '', destination: '村社任务', exception: '企业已开通一起安平台，但不在村社底数内，请在村社底数中录入', count: 1506, percent: '17.46%' },
-  { status: '', destination: '', exception: '该企业所在部门没有检查人员', count: 314, percent: '3.64%' },
-  { status: '', destination: '', exception: '任务明细未匹配到村社', count: 110, percent: '1.28%' },
-  { status: '', destination: '', exception: '该企业所在部门有检查人员,但是不在浙政钉内,部门名称：亿丰时代网格', count: 24, percent: '0.28%' },
-  { status: '', destination: '', exception: '该企业所在部门有检查人员,但是不在浙政钉内,部门名称：严村里网格', count: 8, percent: '0.09%' },
-  { status: '', destination: '镇街任务', exception: '企业没在镇街组织：良渚应急消防管理站', count: 3, percent: '0.03%' },
-  { status: '', destination: '', exception: '镇街企业没有检查人员', count: 1, percent: '0.01%' },
-  // 小计2
-  { status: '', destination: '', exception: '小计', count: 8627, percent: '', isSubtotal: true, subtotalCount: 8627 },
-  // 总计
+  // ========== 村社任务 ==========
+  { status: '已创建', destination: '村社任务', exception: '无异常，余智护杭任务已同步至村社/镇街', count: 2664, percent: '19.21%' },
+  { status: '检查完成', destination: '村社任务', exception: '无异常，余智护杭任务已同步至村社/镇街，并在一起安完成了检查', count: 2379, percent: '17.16%' },
+  { status: '数据校验异常', destination: '村社任务', exception: '企业已开通一起安平台，但不在村社底数内，请在村社底数中录入', count: 1506, percent: '10.86%' },
+  { status: '', destination: '', exception: '小计', count: 6549, percent: '', isSubtotal: true },
+  // ========== 镇街任务 ==========
+  { status: '已创建', destination: '镇街任务', exception: '无异常，余智护杭任务已同步至村社/镇街', count: 195, percent: '1.41%' },
+  { status: '数据校验异常', destination: '镇街任务', exception: '企业没在镇街组织：良渚应急消防管理站', count: 3, percent: '0.02%' },
+  { status: '数据校验异常', destination: '镇街任务', exception: '镇街企业没有检查人员', count: 1, percent: '0.01%' },
+  { status: '', destination: '', exception: '小计', count: 199, percent: '', isSubtotal: true },
+  // ========== 未知分配去向 ==========
+  { status: '数据校验异常', destination: '未知分配去向', exception: '企业尚未开通一起安平台，请在村社底数中录入', count: 6661, percent: '48.04%' },
+  { status: '', destination: '', exception: '小计', count: 6661, percent: '', isSubtotal: true },
+  // ========== 无明确去向 ==========
+  { status: '数据校验异常', destination: '', exception: '该企业所在部门没有检查人员', count: 314, percent: '2.26%' },
+  { status: '数据校验异常', destination: '', exception: '任务明细未匹配到村社', count: 110, percent: '0.79%' },
+  { status: '数据校验异常', destination: '', exception: '该企业所在部门有检查人员,但是不在浙政钉内,部门名称：亿丰时代网格', count: 24, percent: '0.17%' },
+  { status: '数据校验异常', destination: '', exception: '该企业所在部门有检查人员,但是不在浙政钉内,部门名称：严村里网格', count: 8, percent: '0.06%' },
+  { status: '', destination: '', exception: '小计', count: 456, percent: '', isSubtotal: true },
+  // ========== 总计 ==========
   { status: '', destination: '', exception: '总计', count: 13865, percent: '', isTotal: true },
 ]
 
@@ -1018,13 +1018,12 @@ export function YuzhiSyncDimension() {
                   )
                 }
                 if (row.isSubtotal) {
-                  const isNormal = row.subtotalCount === 5238
                   return (
-                    <tr key={i} style={{ background: isNormal ? '#D1FAE5' : '#FEE2E2' }}>
-                      <td colSpan={3} style={{ ...td({ fontWeight: 600, color: isNormal ? '#065F46' : '#991B1B', fontSize: 13 }) }}>
-                        {isNormal ? '✅ ' : '⚠️ '}小计
+                    <tr key={i} style={{ background: '#F3F4F6' }}>
+                      <td colSpan={3} style={{ ...td({ fontWeight: 600, color: '#374151', fontSize: 13 }) }}>
+                        小计
                       </td>
-                      <td style={{ ...td({ textAlign: 'center', fontWeight: 700, color: isNormal ? '#065F46' : '#991B1B', fontSize: 14 }) }}>
+                      <td style={{ ...td({ textAlign: 'center', fontWeight: 700, color: '#374151', fontSize: 14 }) }}>
                         {row.count.toLocaleString()}
                       </td>
                       <td style={{ ...td({ borderRight: 'none' }) }}></td>
@@ -1033,9 +1032,8 @@ export function YuzhiSyncDimension() {
                 }
 
                 // 普通行
-                const isAbnormal = row.status === '数据校验异常' || (row.status === '' && i > 3 && i < 12)
+                const isAbnormal = row.status === '数据校验异常'
                 const rowBg = isAbnormal ? '#FFFBFB' : '#FAFFFE'
-                const statusIsNew = row.status !== ''
 
                 return (
                   <tr key={i} style={{ background: rowBg }}>
@@ -1051,7 +1049,6 @@ export function YuzhiSyncDimension() {
                       )}
                     </td>
                     <td style={{ ...td({ verticalAlign: 'top', whiteSpace: 'nowrap' }) }}>
-                      {statusIsNew && (
                         <span style={{
                           display: 'inline-block', padding: '2px 8px', borderRadius: 4,
                           fontSize: 12, fontWeight: 600,
@@ -1060,7 +1057,6 @@ export function YuzhiSyncDimension() {
                         }}>
                           {row.status}
                         </span>
-                      )}
                     </td>
                     <td style={td({ color: isAbnormal ? '#DC2626' : '#374151' })}>{row.exception}</td>
                     <td style={td({ textAlign: 'center', fontWeight: 600, color: isAbnormal ? '#DC2626' : '#059669' })}>
