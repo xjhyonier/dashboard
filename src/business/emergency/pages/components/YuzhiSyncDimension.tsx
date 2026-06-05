@@ -771,7 +771,12 @@ export function YuzhiSyncDimension() {
                   gap: 6,
                 }}
               >
-                <div style={{ fontSize: 13, fontWeight: 700, color: card.color }}>{card.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: card.color, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  {card.label}
+                  {'note' in card && card.note && (
+                    <span title={card.note} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14, borderRadius: '50%', border: '1px solid #9CA3AF', fontSize: 9, color: '#9CA3AF', cursor: 'help', fontWeight: 600, lineHeight: 1 }}>!</span>
+                  )}
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: 11, color: '#374151' }}>
                   <span style={{ color: '#6B7280' }}>任务总数</span>
                   <span style={{ fontWeight: 700, textAlign: 'right' }}>{card.total.toLocaleString()}</span>
@@ -782,9 +787,6 @@ export function YuzhiSyncDimension() {
                   <span style={{ color: '#6B7280' }}>隐患整改完成率</span>
                   <span style={{ fontWeight: 700, textAlign: 'right', color: rateColor(card.rectRate) }}>{card.rectRate}</span>
                 </div>
-                {'note' in card && card.note && (
-                  <div style={{ fontSize: 10, color: '#9CA3AF', borderTop: '1px dashed #E5E7EB', paddingTop: 4, marginTop: 2 }}>{card.note}</div>
-                )}
               </div>
             ))}
           </div>
