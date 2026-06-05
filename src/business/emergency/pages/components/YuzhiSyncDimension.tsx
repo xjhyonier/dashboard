@@ -241,12 +241,12 @@ export function YuzhiSyncDimension() {
 
   const filteredVillages = useMemo(() => {
     let matched = allVillages
-    // 时间筛选
+    // 时间筛选（按年月匹配）
     if (dateFrom) {
-      matched = matched.filter(r => r.date >= dateFrom)
+      matched = matched.filter(r => r.date.substring(0, 7) >= dateFrom)
     }
     if (dateTo) {
-      matched = matched.filter(r => r.date <= dateTo)
+      matched = matched.filter(r => r.date.substring(0, 7) <= dateTo)
     }
     // 村社筛选
     if (selectedVillages.length > 0) {
@@ -284,31 +284,27 @@ export function YuzhiSyncDimension() {
     const pad = (n: number) => String(n).padStart(2, '0')
     switch (range) {
       case 'month': {
-        // 本月 1号 到最后一天
-        const lastDay = new Date(y, m + 1, 0).getDate()
-        from = `${y}-${pad(m + 1)}-01`
-        to = `${y}-${pad(m + 1)}-${pad(lastDay)}`
+        from = `${y}-${pad(m + 1)}`
+        to = `${y}-${pad(m + 1)}`
         break
       }
       case 'lastMonth': {
         const lastMonth = m === 0 ? 11 : m - 1
         const lastYear = m === 0 ? y - 1 : y
-        const lastDay = new Date(lastYear, lastMonth + 1, 0).getDate()
-        from = `${lastYear}-${pad(lastMonth + 1)}-01`
-        to = `${lastYear}-${pad(lastMonth + 1)}-${pad(lastDay)}`
+        from = `${lastYear}-${pad(lastMonth + 1)}`
+        to = `${lastYear}-${pad(lastMonth + 1)}`
         break
       }
       case 'quarter': {
         const qStartMonth = Math.floor(m / 3) * 3 // 0, 3, 6, 9
         const qEndMonth = qStartMonth + 2
-        const lastDay = new Date(y, qEndMonth + 1, 0).getDate()
-        from = `${y}-${pad(qStartMonth + 1)}-01`
-        to = `${y}-${pad(qEndMonth + 1)}-${pad(lastDay)}`
+        from = `${y}-${pad(qStartMonth + 1)}`
+        to = `${y}-${pad(qEndMonth + 1)}`
         break
       }
       case 'year': {
-        from = `${y}-01-01`
-        to = `${y}-12-31`
+        from = `${y}-01`
+        to = `${y}-12`
         break
       }
     }
@@ -492,64 +488,6 @@ export function YuzhiSyncDimension() {
         gap: 12,
         flexWrap: 'wrap',
       }}>
-        {/* 时间筛选 */}
-        <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>任务创建时间：</span>
-        {/* 快速筛选 */}
-        {(['month', 'lastMonth', 'quarter', 'year'] as const).map(range => {
-          const labels: Record<string, string> = { month: '本月', lastMonth: '上月', quarter: '本季', year: '本年' }
-          const active = quickRange === range
-          return (
-            <button
-              key={range}
-              onClick={() => applyQuickRange(range)}
-              style={{
-                padding: '2px 10px',
-                border: active ? '1px solid #4F46E5' : '1px solid #D1D5DB',
-                borderRadius: 4,
-                background: active ? '#EEF2FF' : 'white',
-                color: active ? '#4F46E5' : '#6B7280',
-                fontSize: 11,
-                cursor: 'pointer',
-                fontWeight: active ? 600 : 400,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {labels[range]}
-            </button>
-          )
-        })}
-        <input
-          type="date"
-          value={dateFrom}
-          onChange={e => { setDateFrom(e.target.value); setQuickRange('') }}
-          style={{
-            padding: '3px 8px', border: '1px solid #D1D5DB', borderRadius: 4,
-            fontSize: 12, color: '#374151', width: 130,
-          }}
-        />
-        <span style={{ fontSize: 12, color: '#9CA3AF' }}>至</span>
-        <input
-          type="date"
-          value={dateTo}
-          onChange={e => { setDateTo(e.target.value); setQuickRange('') }}
-          style={{
-            padding: '3px 8px', border: '1px solid #D1D5DB', borderRadius: 4,
-            fontSize: 12, color: '#374151', width: 130,
-          }}
-        />
-        {(dateFrom || dateTo) && (
-          <button
-            onClick={clearDate}
-            style={{
-              padding: '3px 8px', border: '1px solid #FCA5A5', borderRadius: 4,
-              background: '#FEF2F2', color: '#DC2626', fontSize: 11, cursor: 'pointer',
-            }}
-          >
-            清除时间
-          </button>
-        )}
-        {/* 分隔 */}
-        <div style={{ width: 1, height: 20, background: '#E5E7EB', margin: '0 4px' }} />
         {/* 村社筛选 */}
         <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>村社：</span>
         {selectedVillages.length > 0 && (
@@ -707,6 +645,63 @@ export function YuzhiSyncDimension() {
             <span style={{ marginLeft: 12, fontSize: 12, color: '#6B7280' }}>
               共 {filteredVillages.length} 条
             </span>
+          </div>
+          {/* 任务创建时间筛选 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 500 }}>任务创建时间：</span>
+            {(['month', 'lastMonth', 'quarter', 'year'] as const).map(range => {
+              const labels: Record<string, string> = { month: '本月', lastMonth: '上月', quarter: '本季', year: '本年' }
+              const active = quickRange === range
+              return (
+                <button
+                  key={range}
+                  onClick={() => applyQuickRange(range)}
+                  style={{
+                    padding: '1px 8px',
+                    border: active ? '1px solid #4F46E5' : '1px solid #D1D5DB',
+                    borderRadius: 3,
+                    background: active ? '#EEF2FF' : 'white',
+                    color: active ? '#4F46E5' : '#6B7280',
+                    fontSize: 10,
+                    cursor: 'pointer',
+                    fontWeight: active ? 600 : 400,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {labels[range]}
+                </button>
+              )
+            })}
+            <input
+              type="month"
+              value={dateFrom}
+              onChange={e => { setDateFrom(e.target.value); setQuickRange('') }}
+              style={{
+                padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 3,
+                fontSize: 11, color: '#374151', width: 120,
+              }}
+            />
+            <span style={{ fontSize: 11, color: '#9CA3AF' }}>至</span>
+            <input
+              type="month"
+              value={dateTo}
+              onChange={e => { setDateTo(e.target.value); setQuickRange('') }}
+              style={{
+                padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 3,
+                fontSize: 11, color: '#374151', width: 120,
+              }}
+            />
+            {(dateFrom || dateTo) && (
+              <button
+                onClick={clearDate}
+                style={{
+                  padding: '2px 6px', border: '1px solid #FCA5A5', borderRadius: 3,
+                  background: '#FEF2F2', color: '#DC2626', fontSize: 10, cursor: 'pointer',
+                }}
+              >
+                清除
+              </button>
+            )}
           </div>
         </div>
         {/* 统计分析 - 卡片式 */}
