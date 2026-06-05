@@ -673,14 +673,14 @@ export function StationChiefV2Dashboard() {
             <KpiCard
               selectedKpi={selectedKpi}
               setSelectedKpi={setSelectedKpi}
-              item={{ key: 'closed', label: '已整改', value: kpiTotals.closed, unit: '处', color: '#059669' }}
+              item={{ key: 'closed', label: '已整改', value: kpiTotals.closed, unit: '条', color: '#059669' }}
               compact
               mom={kpiTotals.closedMoM}
             />
             <KpiCard
               selectedKpi={selectedKpi}
               setSelectedKpi={setSelectedKpi}
-              item={{ key: 'inProgress', label: '整改中', value: kpiTotals.inProgress, unit: '处', color: '#D97706' }}
+              item={{ key: 'inProgress', label: '整改中', value: kpiTotals.inProgress, unit: '条', color: '#D97706' }}
               compact
             />
           </div>
@@ -712,14 +712,14 @@ export function StationChiefV2Dashboard() {
             <KpiCard
               selectedKpi={selectedKpi}
               setSelectedKpi={setSelectedKpi}
-              item={{ key: 'seriousClosed', label: '重大隐患已整改', value: kpiTotals.seriousClosed, unit: '处', color: '#059669' }}
+              item={{ key: 'seriousClosed', label: '重大隐患已整改', value: kpiTotals.seriousClosed, unit: '条', color: '#059669' }}
               compact
               mom={kpiTotals.seriousClosedMoM}
             />
             <KpiCard
               selectedKpi={selectedKpi}
               setSelectedKpi={setSelectedKpi}
-              item={{ key: 'seriousInProgress', label: '重大隐患整改中', value: kpiTotals.seriousInProgress, unit: '处', color: '#D97706' }}
+              item={{ key: 'seriousInProgress', label: '重大隐患整改中', value: kpiTotals.seriousInProgress, unit: '条', color: '#D97706' }}
               compact
             />
           </div>
