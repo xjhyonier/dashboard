@@ -135,21 +135,13 @@ export function StationChiefV2Dashboard() {
       const discoveredAt = h.discovered_at || h.created_at
       return discoveredAt >= pmStart && discoveredAt <= pmEnd
     })
-    // 月同比：去年同月
-    const lyStart = fmtDate(new Date(TODAY.getFullYear() - 1, TODAY.getMonth(), 1))
-    const lyEnd = fmtDate(new Date(TODAY.getFullYear() - 1, TODAY.getMonth() + 1, 0))
-    const lastYear = hazardRecords.filter(h => {
-      const discoveredAt = h.discovered_at || h.created_at
-      return discoveredAt >= lyStart && discoveredAt <= lyEnd
-    })
-
     const currentHazard = closedCount + inProgressCount
     const currentSerious = seriousClosed + seriousInProgress
 
     const prevMonthHazard = prevMonth.length
     const prevMonthSerious = prevMonth.filter(h => h.level === '重大隐患').length
-    const lastYearHazard = lastYear.length
-    const lastYearSerious = lastYear.filter(h => h.level === '重大隐患').length
+    const prevMonthClosed = prevMonth.filter(h => ['verified', 'closed', 'rectified'].includes(h.status)).length
+    const prevMonthSeriousClosed = prevMonth.filter(h => h.level === '重大隐患' && ['verified', 'closed', 'rectified'].includes(h.status)).length
 
     const calcChange = (current: number, base: number): number | null =>
       base > 0 ? ((current - base) / base * 100) : null
@@ -179,11 +171,11 @@ export function StationChiefV2Dashboard() {
       todoPushCount,
       todoClosedCount,
       todoClosureRate,
-      // 月环比 / 月同比
+      // 月环比
       hazardMoM: calcChange(currentHazard, prevMonthHazard),
-      hazardYoY: calcChange(currentHazard, lastYearHazard),
       seriousMoM: calcChange(currentSerious, prevMonthSerious),
-      seriousYoY: calcChange(currentSerious, lastYearSerious),
+      closedMoM: calcChange(closedCount, prevMonthClosed),
+      seriousClosedMoM: calcChange(seriousClosed, prevMonthSeriousClosed),
     }
   }, [dateRange, workGroups, hazardRecords, enterpriseCount, experts])
 
@@ -273,7 +265,7 @@ export function StationChiefV2Dashboard() {
               {mom != null && (
                 <span style={{ color: changeColor(mom), whiteSpace: 'nowrap' }}>
                   {changeArrow(mom)}{formatChange(mom)}
-                  <span style={{ fontSize: compact ? 8 : 9, color: '#9CA3AF' }}> 环比</span>
+                  <span style={{ fontSize: compact ? 8 : 9, color: '#9CA3AF' }}> 月环比</span>
                 </span>
               )}
               {yoy != null && (
@@ -678,13 +670,13 @@ export function StationChiefV2Dashboard() {
               item={{ key: 'hazard', label: '隐患总数', value: kpiTotals.hazard, unit: '处', color: '#374151', tip: '镇街监督检查发现的隐患总数' }}
               compact
               mom={kpiTotals.hazardMoM}
-              yoy={kpiTotals.hazardYoY}
             />
             <KpiCard
               selectedKpi={selectedKpi}
               setSelectedKpi={setSelectedKpi}
               item={{ key: 'closed', label: '已整改', value: kpiTotals.closed, unit: '处', color: '#059669' }}
               compact
+              mom={kpiTotals.closedMoM}
             />
             <KpiCard
               selectedKpi={selectedKpi}
@@ -717,13 +709,13 @@ export function StationChiefV2Dashboard() {
               item={{ key: 'serious', label: '重大隐患总数', value: kpiTotals.serious, unit: '处', color: '#DC2626' }}
               compact
               mom={kpiTotals.seriousMoM}
-              yoy={kpiTotals.seriousYoY}
             />
             <KpiCard
               selectedKpi={selectedKpi}
               setSelectedKpi={setSelectedKpi}
               item={{ key: 'seriousClosed', label: '重大隐患已整改', value: kpiTotals.seriousClosed, unit: '处', color: '#059669' }}
               compact
+              mom={kpiTotals.seriousClosedMoM}
             />
             <KpiCard
               selectedKpi={selectedKpi}
