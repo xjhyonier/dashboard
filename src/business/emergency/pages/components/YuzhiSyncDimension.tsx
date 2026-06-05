@@ -721,20 +721,10 @@ export function YuzhiSyncDimension() {
                 color: '#111827',
                 bg: '#F9FAFB',
                 border: '#D1D5DB',
-                total: overallStats.fzjz.total + overallStats.rcjc.total + overallStats.sync141.total,
-                doneRate: rateStr(overallStats.fzjz.done + overallStats.rcjc.done + overallStats.sync141.done, overallStats.fzjz.total + overallStats.rcjc.total + overallStats.sync141.total),
-                hazard: overallStats.fzjz.hazard + overallStats.rcjc.hazard + overallStats.sync141.hazard,
-                rectRate: rateStr(overallStats.fzjz.rectified + overallStats.rcjc.rectified + overallStats.sync141.rectified, overallStats.fzjz.hazard + overallStats.rcjc.hazard + overallStats.sync141.hazard),
-              },
-              {
-                label: '防灾减灾',
-                color: '#1E40AF',
-                bg: '#EFF6FF',
-                border: '#BFDBFE',
-                total: overallStats.fzjz.total,
-                doneRate: rateStr(overallStats.fzjz.done, overallStats.fzjz.total),
-                hazard: overallStats.fzjz.hazard,
-                rectRate: rateStr(overallStats.fzjz.rectified, overallStats.fzjz.hazard),
+                total: overallStats.rcjc.total + overallStats.sync141.total,
+                doneRate: rateStr(overallStats.rcjc.done + overallStats.sync141.done, overallStats.rcjc.total + overallStats.sync141.total),
+                hazard: overallStats.rcjc.hazard + overallStats.sync141.hazard,
+                rectRate: rateStr(overallStats.rcjc.rectified + overallStats.sync141.rectified, overallStats.rcjc.hazard + overallStats.sync141.hazard),
               },
               {
                 label: '日常检查',
@@ -755,6 +745,16 @@ export function YuzhiSyncDimension() {
                 doneRate: rateStr(overallStats.sync141.done, overallStats.sync141.total),
                 hazard: overallStats.sync141.hazard,
                 rectRate: rateStr(overallStats.sync141.rectified, overallStats.sync141.hazard),
+              },
+              {
+                label: '防灾减灾',
+                color: '#1E40AF',
+                bg: '#EFF6FF',
+                border: '#BFDBFE',
+                total: overallStats.fzjz.total,
+                doneRate: rateStr(overallStats.fzjz.done, overallStats.fzjz.total),
+                hazard: overallStats.fzjz.hazard,
+                rectRate: rateStr(overallStats.fzjz.rectified, overallStats.fzjz.hazard),
               },
             ] as const).map(card => (
               <div
@@ -787,9 +787,9 @@ export function YuzhiSyncDimension() {
 
         {/* 图例 */}
         <div style={{ padding: '8px 16px', display: 'flex', gap: 16, fontSize: 11, color: '#6B7280', borderBottom: '1px solid #F3F4F6' }}>
-          <span>📊 <b>防灾减灾</b>（蓝色列）</span>
           <span>📋 <b>日常检查</b>（绿色列）</span>
           <span>🔄 <b>141同步</b>（紫色列）</span>
+          <span>📊 <b>防灾减灾</b>（蓝色列）</span>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
@@ -799,20 +799,12 @@ export function YuzhiSyncDimension() {
               <tr>
                 <th rowSpan={2} style={{ ...th, width: 42, borderRight: '1px solid #E5E7EB' }}>#</th>
                 <th rowSpan={2} style={{ ...th, textAlign: 'left', minWidth: 110 }}>村社</th>
-                <GroupTh label="防灾减灾任务" colSpan={7} bg="#EFF6FF" />
                 <GroupTh label="日常检查任务" colSpan={7} bg="#F0FDF4" />
                 <GroupTh label="141同步任务" colSpan={7} bg="#FAF5FF" />
+                <GroupTh label="防灾减灾任务" colSpan={7} bg="#EFF6FF" />
               </tr>
               {/* 第二级表头：子列 */}
               <tr>
-                {/* 防灾减灾 */}
-                <SortTh col="fzjz_total" label="任务数" extraStyle={{ background: '#EFF6FF' }} />
-                <SortTh col="fzjz_done" label="已完成" extraStyle={{ background: '#EFF6FF' }} />
-                <th style={{ ...th, background: '#EFF6FF', width: 64 }}>完成率</th>
-                <SortTh col="fzjz_hazard" label="确认隐患数" extraStyle={{ background: '#EFF6FF' }} />
-                <SortTh col="fzjz_rectified" label="已整改" extraStyle={{ background: '#EFF6FF' }} />
-                <SortTh col="fzjz_rectifying" label="整改中" extraStyle={{ background: '#EFF6FF' }} />
-                <th style={{ ...th, background: '#EFF6FF', width: 76, borderRight: '2px solid #D1D5DB' }}>整改完成率</th>
                 {/* 日常检查 */}
                 <SortTh col="rcjc_total" label="任务数" extraStyle={{ background: '#F0FDF4' }} />
                 <SortTh col="rcjc_done" label="已完成" extraStyle={{ background: '#F0FDF4' }} />
@@ -828,7 +820,15 @@ export function YuzhiSyncDimension() {
                 <SortTh col="sync141_hazard" label="确认隐患数" extraStyle={{ background: '#FAF5FF' }} />
                 <SortTh col="sync141_rectified" label="已整改" extraStyle={{ background: '#FAF5FF' }} />
                 <SortTh col="sync141_rectifying" label="整改中" extraStyle={{ background: '#FAF5FF' }} />
-                <th style={{ ...th, background: '#FAF5FF', width: 76, borderRight: 'none' }}>整改完成率</th>
+                <th style={{ ...th, background: '#FAF5FF', width: 76, borderRight: '2px solid #D1D5DB' }}>整改完成率</th>
+                {/* 防灾减灾 */}
+                <SortTh col="fzjz_total" label="任务数" extraStyle={{ background: '#EFF6FF' }} />
+                <SortTh col="fzjz_done" label="已完成" extraStyle={{ background: '#EFF6FF' }} />
+                <th style={{ ...th, background: '#EFF6FF', width: 64 }}>完成率</th>
+                <SortTh col="fzjz_hazard" label="确认隐患数" extraStyle={{ background: '#EFF6FF' }} />
+                <SortTh col="fzjz_rectified" label="已整改" extraStyle={{ background: '#EFF6FF' }} />
+                <SortTh col="fzjz_rectifying" label="整改中" extraStyle={{ background: '#EFF6FF' }} />
+                <th style={{ ...th, background: '#EFF6FF', width: 76, borderRight: 'none' }}>整改完成率</th>
               </tr>
             </thead>
             <tbody>
@@ -836,20 +836,20 @@ export function YuzhiSyncDimension() {
               <tr style={{ background: '#F3F4F6', fontWeight: 700, position: 'sticky', top: 0, zIndex: 5 }}>
                 <td style={td({ textAlign: 'center', color: '#9CA3AF', fontSize: 11, background: '#F3F4F6' })}></td>
                 <td style={td({ fontWeight: 700, color: '#111827', background: '#F3F4F6' })}>合计</td>
-                {renderSubCols(totalRow.fzjz, '#EEF2FF')}
                 {renderSubCols(totalRow.rcjc, '#EEFFEE')}
-                {renderSubCols(totalRow.sync141, '#F5EEFF', true)}
+                {renderSubCols(totalRow.sync141, '#F5EEFF')}
+                {renderSubCols(totalRow.fzjz, '#EEF2FF', true)}
               </tr>
               {pagedVillages.map((row, i) => (
                 <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#FAFAFA' }}>
                   <td style={td({ textAlign: 'center', color: '#9CA3AF', fontSize: 11, fontWeight: 500 })}>{(page - 1) * pageSize + i + 1}</td>
                   <td style={td({ fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' })}>{row.village}</td>
-                  {/* 防灾减灾 */}
-                  {renderSubCols(row.fzjz, '#FAFCFF')}
                   {/* 日常检查 */}
                   {renderSubCols(row.rcjc, '#FAFFFC')}
                   {/* 141同步 */}
-                  {renderSubCols(row.sync141, '#FDFAFF', true)}
+                  {renderSubCols(row.sync141, '#FDFAFF')}
+                  {/* 防灾减灾 */}
+                  {renderSubCols(row.fzjz, '#FAFCFF', true)}
                 </tr>
               ))}
               {pagedVillages.length === 0 && (
