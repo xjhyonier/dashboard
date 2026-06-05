@@ -146,6 +146,15 @@ export function StationChiefV2Dashboard() {
     const calcChange = (current: number, base: number): number | null =>
       base > 0 ? ((current - base) / base * 100) : null
 
+    // 检查单统计（从专家平台行为数据汇总）
+    const allBehavior = experts.map(e => e.expert_platform_behavior).filter(Boolean)
+    const todoPushEnterpriseCount = allBehavior.reduce((s, b) => s + (b.todo_push_enterprise_count || 0), 0)
+    const todoPushCount = allBehavior.reduce((s, b) => s + (b.todo_push_count || 0), 0)
+    const todoClosedCount = allBehavior.reduce((s, b) => s + (b.todo_closed_count || 0), 0)
+    const todoClosureRate = allBehavior.length > 0
+      ? Math.round(allBehavior.reduce((s, b) => s + (b.todo_closure_rate || 0), 0) / allBehavior.length)
+      : 0
+
     return {
       enterprise: enterpriseCount || workGroups.reduce((s, g) => s + g.enterprise_count, 0),
       hazard: currentHazard,
@@ -157,13 +166,18 @@ export function StationChiefV2Dashboard() {
       deadline: inRange.filter(h => h.status === 'pending' || h.status === 'rectifying').length,
       extended: inRange.filter(h => h.status === 'overdue').length,
       overdue: inRange.filter(h => h.status === 'overdue').length,
+      // 检查单统计
+      todoPushEnterpriseCount,
+      todoPushCount,
+      todoClosedCount,
+      todoClosureRate,
       // 月环比 / 月同比
       hazardMoM: calcChange(currentHazard, prevMonthHazard),
       hazardYoY: calcChange(currentHazard, lastYearHazard),
       seriousMoM: calcChange(currentSerious, prevMonthSerious),
       seriousYoY: calcChange(currentSerious, lastYearSerious),
     }
-  }, [dateRange, workGroups, hazardRecords, enterpriseCount])
+  }, [dateRange, workGroups, hazardRecords, enterpriseCount, experts])
 
   const handleDimensionChange = (key: Dimension) => {
     setSearchParams({ tab: key })
@@ -582,6 +596,49 @@ export function StationChiefV2Dashboard() {
           setSelectedKpi={setSelectedKpi}
           item={{ key: 'enterprise', label: '覆盖户数', value: kpiTotals.enterprise, unit: '户', color: '#374151', tip: '远程监管户数（去除停业、虚拟注册等，共8900多）' }}
         />
+
+        {/* 检查单统计组 */}
+        <div style={{
+          flex: 1,
+          border: '1px solid #A7F3D0',
+          borderRadius: 8,
+          background: '#F0FDF4',
+          padding: '8px 10px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          minWidth: 0,
+        }}>
+          <div style={{ fontSize: 11, color: '#065F46', textAlign: 'center', fontWeight: 600, paddingBottom: 4, borderBottom: '1px dashed #A7F3D0', whiteSpace: 'nowrap' }}>
+            检查单统计
+          </div>
+          <div style={{ display: 'flex', gap: 8, flex: 1 }}>
+            <KpiCard
+              selectedKpi={selectedKpi}
+              setSelectedKpi={setSelectedKpi}
+              item={{ key: 'todoPushEnterprise', label: '检查单推送户数', value: kpiTotals.todoPushEnterpriseCount, unit: '户', color: '#059669' }}
+              compact
+            />
+            <KpiCard
+              selectedKpi={selectedKpi}
+              setSelectedKpi={setSelectedKpi}
+              item={{ key: 'todoPushCount', label: '检查单推送次数', value: kpiTotals.todoPushCount, unit: '次', color: '#047857' }}
+              compact
+            />
+            <KpiCard
+              selectedKpi={selectedKpi}
+              setSelectedKpi={setSelectedKpi}
+              item={{ key: 'todoClosedCount', label: '检查单办结数量', value: kpiTotals.todoClosedCount, unit: '件', color: '#065F46' }}
+              compact
+            />
+            <KpiCard
+              selectedKpi={selectedKpi}
+              setSelectedKpi={setSelectedKpi}
+              item={{ key: 'todoClosureRate', label: '检查单办结率', value: kpiTotals.todoClosureRate, unit: '%', color: '#064E3B' }}
+              compact
+            />
+          </div>
+        </div>
 
         {/* 隐患统计组 */}
         <div style={{

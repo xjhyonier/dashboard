@@ -96,6 +96,7 @@ export interface Expert {
   enterprise_count: number
   phone: string
   created_at: string
+  expert_platform_behavior?: ExpertPlatformBehavior
 }
 
 /** 专家7维度绩效得分 */
