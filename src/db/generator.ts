@@ -747,6 +747,10 @@ export function generateAllData(): GeneratedData {
       video_watch: randomInt(10, 40),
       ai_watch: randomInt(5, 30),
       enterprise_file: randomInt(10, exp.enterprise_count),
+      todo_push_enterprise_count: randomInt(5, 30),
+      todo_push_count: randomInt(10, 60),
+      todo_closed_count: randomInt(5, 50),
+      todo_closure_rate: randomInt(50, 100),
     }
   })
 

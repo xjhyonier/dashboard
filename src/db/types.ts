@@ -131,6 +131,10 @@ export interface ExpertPlatformBehavior {
   video_watch: number           // 视频查看数
   ai_watch: number              // AI巡查数
   enterprise_file: number        // 一企一档完成数
+  todo_push_enterprise_count: number // 待办推送户数
+  todo_push_count: number         // 待办推送次数
+  todo_closed_count: number       // 待办办结数量
+  todo_closure_rate: number       // 待办办结率 %
 }
 
 /** 专家工作量类型 */

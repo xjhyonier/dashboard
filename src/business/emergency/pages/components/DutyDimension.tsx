@@ -84,6 +84,10 @@ interface ExpertView {
     dim_6: number
     dim_7: number
   }
+  todo_push_enterprise_count: number
+  todo_push_count: number
+  todo_closed_count: number
+  todo_closure_rate: number
 }
 
 export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, setSelectedKpi, onNavigateToHazard, onNavigateToState }: DutyDimensionProps) {
@@ -292,6 +296,10 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
         enterprise_file: behavior?.enterprise_file || 0,
         ai_total_score,
         dimensions: avgDims,
+        todo_push_enterprise_count: behavior?.todo_push_enterprise_count || 0,
+        todo_push_count: behavior?.todo_push_count || 0,
+        todo_closed_count: behavior?.todo_closed_count || 0,
+        todo_closure_rate: behavior?.todo_closure_rate || 0,
       }
     })
   }, [experts, expertDimensions, expertPlatformBehaviors])
@@ -746,6 +754,10 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 发现隐患: e.hazard_found,
                 重大隐患: e.hazard_serious,
                 已整改: e.hazard_closed,
+                待办推送户数: e.todo_push_enterprise_count,
+                待办推送次数: e.todo_push_count,
+                待办办结数量: e.todo_closed_count,
+                待办办结率: e.todo_closure_rate + '%',
               })),
               [
                 { key: '姓名', label: '姓名' },
@@ -755,6 +767,10 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 { key: '发现隐患', label: '发现隐患' },
                 { key: '重大隐患', label: '重大隐患' },
                 { key: '已整改', label: '已整改' },
+                { key: '待办推送户数', label: '待办推送户数' },
+                { key: '待办推送次数', label: '待办推送次数' },
+                { key: '待办办结数量', label: '待办办结数量' },
+                { key: '待办办结率', label: '待办办结率' },
               ],
               '专家履职情况表'
             )} style={{ padding: '4px 12px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer' }}>⬇ 导出</button>
@@ -764,7 +780,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1200 }}>
             <thead>
               <tr>
-                <th colSpan={17} style={{ ...thStyle, borderBottom: 'none', padding: '4px 0' }}></th>
+                <th colSpan={21} style={{ ...thStyle, borderBottom: 'none', padding: '4px 0' }}></th>
                 <th colSpan={4} style={{ ...thStyle, borderBottom: '1px solid #E5E7EB', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#7C3AED', background: '#F5F3FF', padding: '4px 0' }}>隐患来源</th>
               </tr>
               <tr>
@@ -789,11 +805,15 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 <SortableTh label="视频看" sortKey="video_watch" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="AI看" sortKey="ai_watch" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="一企一档" sortKey="enterprise_file" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="待办推送户数" sortKey="todo_push_enterprise_count" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="待办推送次数" sortKey="todo_push_count" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="待办办结数量" sortKey="todo_closed_count" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="待办办结率" sortKey="todo_closure_rate" sort={sortExperts} onSort={handleSortExperts} />
               </tr>
             </thead>
             <tbody>
               {sortedExperts.length === 0 ? (
-                <tr><td colSpan={21} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的专家</td></tr>
+                <tr><td colSpan={25} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的专家</td></tr>
               ) : sortedExperts.map((e, i) => (
                 <tr key={e.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                   <td
@@ -828,6 +848,10 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                   <td style={tdStyle}>{e.video_watch}</td>
                   <td style={tdStyle}>{e.ai_watch}</td>
                   <td style={tdStyle}>{e.enterprise_file}</td>
+                  <td style={tdStyle}>{e.todo_push_enterprise_count}</td>
+                  <td style={tdStyle}>{e.todo_push_count}</td>
+                  <td style={tdStyle}>{e.todo_closed_count}</td>
+                  <td style={tdStyle}>{e.todo_closure_rate}%</td>
                 </tr>
               ))}
             </tbody>
