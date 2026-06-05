@@ -395,36 +395,6 @@ export function YuzhiSyncDimension() {
     return sum
   }, [filteredVillages])
 
-  // 动态合计行
-  const totalRow = useMemo(() => {
-    const data = selectedVillages.length > 0 ? filteredVillages : allVillages
-    const zero: TaskSub = { total: 0, done: 0, hazard: 0, rectified: 0, rectifying: 0 }
-    const sum = data.reduce((acc, r) => ({
-      fzjz: {
-        total: acc.fzjz.total + r.fzjz.total,
-        done: acc.fzjz.done + r.fzjz.done,
-        hazard: acc.fzjz.hazard + r.fzjz.hazard,
-        rectified: acc.fzjz.rectified + r.fzjz.rectified,
-        rectifying: acc.fzjz.rectifying + r.fzjz.rectifying,
-      },
-      rcjc: {
-        total: acc.rcjc.total + r.rcjc.total,
-        done: acc.rcjc.done + r.rcjc.done,
-        hazard: acc.rcjc.hazard + r.rcjc.hazard,
-        rectified: acc.rcjc.rectified + r.rcjc.rectified,
-        rectifying: acc.rcjc.rectifying + r.rcjc.rectifying,
-      },
-      sync141: {
-        total: acc.sync141.total + r.sync141.total,
-        done: acc.sync141.done + r.sync141.done,
-        hazard: acc.sync141.hazard + r.sync141.hazard,
-        rectified: acc.sync141.rectified + r.sync141.rectified,
-        rectifying: acc.sync141.rectifying + r.sync141.rectifying,
-      },
-    }), { fzjz: zero, rcjc: zero, sync141: zero })
-    return { village: '合计', date: '', ...sum, isTotal: true, enterpriseCount: 0, venueCount: 0, rentalCount: 0 } as VillageRow
-  }, [filteredVillages, allVillages, selectedVillages])
-
   const handleSort = (col: SortCol) => {
     if (sortBy === col) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -864,14 +834,6 @@ export function YuzhiSyncDimension() {
               </tr>
             </thead>
             <tbody>
-              {/* 合计行 - 固定在表格顶部 */}
-              <tr style={{ background: '#F3F4F6', fontWeight: 700, position: 'sticky', top: 0, zIndex: 5 }}>
-                <td style={td({ textAlign: 'center', color: '#9CA3AF', fontSize: 11, background: '#F3F4F6' })}></td>
-                <td style={td({ fontWeight: 700, color: '#111827', background: '#F3F4F6' })}>合计</td>
-                {renderSubCols(totalRow.rcjc, '#EEFFEE')}
-                {renderSubCols(totalRow.sync141, '#F5EEFF')}
-                {renderSubCols(totalRow.fzjz, '#EEF2FF', true)}
-              </tr>
               {pagedVillages.map((row, i) => (
                 <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#FAFAFA' }}>
                   <td style={td({ textAlign: 'center', color: '#9CA3AF', fontSize: 11, fontWeight: 500 })}>{(page - 1) * pageSize + i + 1}</td>
