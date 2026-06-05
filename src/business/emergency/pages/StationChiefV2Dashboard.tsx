@@ -22,6 +22,7 @@ type TopLevelPage = 'station' | 'yuzhi'
 // 日期工具
 const TODAY = new Date()
 const fmtDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+const fmtMonth = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 
 const weekDay = TODAY.getDay() === 0 ? 6 : TODAY.getDay() - 1  // 周一为起始（0=周一）
 const weekStart = new Date(TODAY); weekStart.setDate(TODAY.getDate() - weekDay)
@@ -88,8 +89,8 @@ export function StationChiefV2Dashboard() {
 
   // 日期筛选状态
   const [timeRange, setTimeRange] = useState<TimeRange>('month')
-  const [customStart, setCustomStart] = useState<string>(fmtDate(monthStart))
-  const [customEnd, setCustomEnd] = useState<string>(fmtDate(monthEnd))
+  const [customStart, setCustomStart] = useState<string>(fmtMonth(monthStart))
+  const [customEnd, setCustomEnd] = useState<string>(fmtMonth(monthEnd))
 
   // 根据 timeRange 计算实际起止日期
   const dateRange = useMemo((): { start: string; end: string } => {
@@ -98,7 +99,14 @@ export function StationChiefV2Dashboard() {
       case 'month':   return { start: fmtDate(monthStart),   end: fmtDate(monthEnd) }
       case 'quarter': return { start: fmtDate(quarterStart), end: fmtDate(quarterEnd) }
       case 'year':    return { start: fmtDate(yearStart),    end: fmtDate(yearEnd) }
-      case 'custom':  return { start: customStart, end: customEnd }
+      case 'custom':  {
+        // customStart/customEnd 为 "YYYY-MM" 格式，转为当月首日和末日
+        const [sy, sm] = customStart.split('-').map(Number)
+        const [ey, em] = customEnd.split('-').map(Number)
+        const s = fmtDate(new Date(sy, sm - 1, 1))
+        const e = fmtDate(new Date(ey, em, 0))
+        return { start: s, end: e }
+      }
     }
   }, [timeRange, customStart, customEnd])
 
@@ -385,14 +393,14 @@ export function StationChiefV2Dashboard() {
           {timeRange === 'custom' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}>
               <input
-                type="date"
+                type="month"
                 value={customStart}
                 onChange={e => setCustomStart(e.target.value)}
                 style={{ padding: '1px 6px', border: '1px solid #D1D5DB', borderRadius: 3, fontSize: 12, color: '#374151', outline: 'none' }}
               />
               <span style={{ fontSize: 12, color: '#9CA3AF' }}>至</span>
               <input
-                type="date"
+                type="month"
                 value={customEnd}
                 onChange={e => setCustomEnd(e.target.value)}
                 style={{ padding: '1px 6px', border: '1px solid #D1D5DB', borderRadius: 3, fontSize: 12, color: '#374151', outline: 'none' }}
