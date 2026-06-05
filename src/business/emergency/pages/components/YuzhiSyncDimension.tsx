@@ -721,6 +721,7 @@ export function YuzhiSyncDimension() {
                 color: '#111827',
                 bg: '#F9FAFB',
                 border: '#D1D5DB',
+                note: '总计=日常检查+141同步',
                 total: overallStats.rcjc.total + overallStats.sync141.total,
                 doneRate: rateStr(overallStats.rcjc.done + overallStats.sync141.done, overallStats.rcjc.total + overallStats.sync141.total),
                 hazard: overallStats.rcjc.hazard + overallStats.sync141.hazard,
@@ -731,6 +732,7 @@ export function YuzhiSyncDimension() {
                 color: '#059669',
                 bg: '#F0FDF4',
                 border: '#A7F3D0',
+                note: '已包含防灾减灾检查数据',
                 total: overallStats.rcjc.total,
                 doneRate: rateStr(overallStats.rcjc.done, overallStats.rcjc.total),
                 hazard: overallStats.rcjc.hazard,
@@ -780,6 +782,9 @@ export function YuzhiSyncDimension() {
                   <span style={{ color: '#6B7280' }}>隐患整改完成率</span>
                   <span style={{ fontWeight: 700, textAlign: 'right', color: rateColor(card.rectRate) }}>{card.rectRate}</span>
                 </div>
+                {'note' in card && card.note && (
+                  <div style={{ fontSize: 10, color: '#9CA3AF', borderTop: '1px dashed #E5E7EB', paddingTop: 4, marginTop: 2 }}>{card.note}</div>
+                )}
               </div>
             ))}
           </div>
