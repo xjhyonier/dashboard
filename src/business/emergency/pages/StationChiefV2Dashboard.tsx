@@ -258,10 +258,10 @@ export function StationChiefV2Dashboard() {
           {item.label}
           {item.tip && <span style={{ marginLeft: 3, color: '#9CA3AF', fontSize: 10 }}>ⓘ</span>}
         </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
           <span style={{ fontSize: compact ? 18 : 24, fontWeight: 700, color: item.color, lineHeight: 1.1, whiteSpace: 'nowrap' }}>{item.value}</span>
           {hasComparison && (
-            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1, fontSize: compact ? 9 : 10, fontWeight: 500, lineHeight: 1.2 }}>
+            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, fontSize: compact ? 9 : 10, fontWeight: 500, lineHeight: 1.2 }}>
               {mom != null && (
                 <span style={{ color: changeColor(mom), whiteSpace: 'nowrap' }}>
                   {changeArrow(mom)}{formatChange(mom)}
