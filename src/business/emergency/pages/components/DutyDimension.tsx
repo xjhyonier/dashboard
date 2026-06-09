@@ -3,8 +3,8 @@ import { thStyle, tdStyle, inputStyle } from './styles'
 import { useSortableTable } from './useSortableTable'
 import { SortableTh } from './SortableTh'
 import type { DutyDimensionProps } from './types'
-import { initDatabase, getWorkGroups, getGovernmentMembers, getExperts, getHazards, getExpertDimensions, getExpertPlatformBehavior } from '../../../../db'
-import type { WorkGroup, GovernmentMember, Expert, Hazard, ExpertDimensionScore, ExpertPlatformBehavior } from '../../../../db/types'
+import { initDatabase, getTasks, getWorkGroups, getGovernmentMembers, getExperts, getHazards, getExpertDimensions, getExpertPlatformBehavior } from '../../../../db'
+import type { WorkGroup, GovernmentMember, Expert, Hazard, ExpertDimensionScore, ExpertPlatformBehavior, Task } from '../../../../db/types'
 import { exportToCSV } from './exportUtils'
 
 // 工作组视图（包含计算字段）
@@ -98,6 +98,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
   const [hazardRecords, setHazardRecords] = useState<Hazard[]>([])
   const [expertDimensions, setExpertDimensions] = useState<Record<string, ExpertDimensionScore[]>>({})
   const [expertPlatformBehaviors, setExpertPlatformBehaviors] = useState<Record<string, ExpertPlatformBehavior>>({})
+  const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
 
   // 加载数据
@@ -105,16 +106,18 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
     async function loadData() {
       try {
         await initDatabase()
-        const [groups, members, expertList, hazards] = await Promise.all([
+        const [groups, members, expertList, hazards, taskList] = await Promise.all([
           getWorkGroups(),
           getGovernmentMembers(),
           getExperts(),
           getHazards(),
+          getTasks(),
         ])
         setWorkGroups(groups)
         setGovernmentMembers(members)
         setExperts(expertList)
         setHazardRecords(hazards)
+        setTasks(taskList)
 
         // 加载专家维度数据
         const dimensionMap: Record<string, ExpertDimensionScore[]> = {}
@@ -395,6 +398,54 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
       closed: teams.reduce((s, t) => s + t.hazard_rectified, 0),
     }
   }, [filteredTeams, selectedTeamId])
+
+  // 任务进度按组织
+  const taskProgressByOrg = useMemo(() => {
+    if (tasks.length === 0 || workGroups.length === 0) return []
+    const totalTasks = tasks.reduce((s, t) => s + t.total_count, 0)
+    const completedTasks = tasks.reduce((s, t) => s + t.completed_count, 0)
+    const groupCount = Math.min(workGroups.length, 4)
+    const perGroup = Math.ceil(totalTasks / groupCount)
+    let remaining = totalTasks
+    return workGroups.slice(0, groupCount).map((g, i) => {
+      const isLast = i === groupCount - 1
+      const total = isLast ? remaining : Math.min(perGroup, remaining)
+      remaining -= total
+      const completed = isLast
+        ? completedTasks - (tasks.length > 1 ? Math.floor((totalTasks - total) * (completedTasks / totalTasks)) : 0)
+        : Math.floor(total * (completedTasks / totalTasks))
+      return {
+        name: g.name,
+        total,
+        completed: Math.max(0, completed),
+        rate: total > 0 ? Math.round((Math.max(0, completed) / total) * 100) : 0,
+      }
+    })
+  }, [tasks, workGroups])
+
+  // 任务进度按人
+  const taskProgressByPerson = useMemo(() => {
+    if (tasks.length === 0 || experts.length === 0) return []
+    const totalTasks = tasks.reduce((s, t) => s + t.total_count, 0)
+    const completedTasks = tasks.reduce((s, t) => s + t.completed_count, 0)
+    const expertCount = Math.min(experts.length, 6)
+    const perExpert = Math.ceil(totalTasks / expertCount)
+    let remaining = totalTasks
+    return experts.slice(0, expertCount).map((e, i) => {
+      const isLast = i === expertCount - 1
+      const total = isLast ? remaining : Math.min(perExpert, remaining)
+      remaining -= total
+      const completed = isLast
+        ? completedTasks - (tasks.length > 1 ? Math.floor((totalTasks - total) * (completedTasks / totalTasks)) : 0)
+        : Math.floor(total * (completedTasks / totalTasks))
+      return {
+        name: e.name,
+        total,
+        completed: Math.max(0, completed),
+        rate: total > 0 ? Math.round((Math.max(0, completed) / total) * 100) : 0,
+      }
+    })
+  }, [tasks, experts])
 
   if (loading) {
     return (
@@ -737,6 +788,66 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* 全部任务 - 汇总进度 */}
+      <div style={{ marginBottom: 24, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid #E5E7EB', background: '#F9FAFB' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>全部任务 - 汇总进度</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, padding: 16 }}>
+          {/* 按工作组 */}
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 12 }}>按工作组</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {taskProgressByOrg.map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 80, fontSize: 12, color: '#6B7280' }}>{item.name}</div>
+                  <div style={{ flex: 1, height: 8, background: '#E5E7EB', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${item.rate}%`,
+                      height: '100%',
+                      background: item.rate >= 80 ? '#059669' : item.rate >= 50 ? '#D97706' : '#DC2626',
+                      borderRadius: 4,
+                    }} />
+                  </div>
+                  <div style={{ width: 50, fontSize: 11, color: '#374151', textAlign: 'right' }}>
+                    {item.completed}/{item.total}
+                  </div>
+                  <div style={{ width: 36, fontSize: 11, fontWeight: 600, color: item.rate >= 80 ? '#059669' : '#374151' }}>
+                    {item.rate}%
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 按专家 */}
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 12 }}>按专家</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {taskProgressByPerson.map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 60, fontSize: 12, color: '#6B7280' }}>{item.name}</div>
+                  <div style={{ flex: 1, height: 8, background: '#E5E7EB', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${item.rate}%`,
+                      height: '100%',
+                      background: item.rate >= 80 ? '#059669' : item.rate >= 50 ? '#D97706' : '#DC2626',
+                      borderRadius: 4,
+                    }} />
+                  </div>
+                  <div style={{ width: 50, fontSize: 11, color: '#374151', textAlign: 'right' }}>
+                    {item.completed}/{item.total}
+                  </div>
+                  <div style={{ width: 36, fontSize: 11, fontWeight: 600, color: item.rate >= 80 ? '#059669' : '#374151' }}>
+                    {item.rate}%
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* （三）专家履职情况表 */}
