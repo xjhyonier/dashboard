@@ -36,21 +36,78 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
     loadData()
   }, [])
 
-  // 标签库（从 hazards 按 enterprise_industry 聚合）
-  const tagLibrary = useMemo(() => {
-    const tags = new Set<string>()
-    hazards.forEach(h => {
-      if (h.enterprise_industry) tags.add(h.enterprise_industry)
-    })
-    return Array.from(tags).sort()
-  }, [hazards])
+  // 标签库（固定数据，格式：一级：二级标签）
+  const tagGroups = useMemo(() => {
+    return [
+      {
+        category: '风险等级',
+        tags: ['重大风险', '较大风险', '一般风险', '低风险'],
+      },
+      {
+        category: '消防类型',
+        tags: ['消防重点单位', '九小场所', '一般单位'],
+      },
+      {
+        category: '责任主体类型',
+        tags: ['生产企业', '消防场所'],
+      },
+      {
+        category: '企业行业类别',
+        tags: ['矿山企业', '冶金行业', '有色行业', '建材行业', '机械行业', '轻工行业', '纺织行业', '烟草行业', '商贸行业', '加油站', '医药化工', '其他'],
+      },
+      {
+        category: '涉危属性',
+        tags: [
+          '重点监管危险化工工艺', '重点监管危险化学品', '重大危险源', '剧毒危险化学品',
+          '易制爆危险化学品', '特种设备', '有限空间作业场所', '涉爆粉尘作业场所',
+          '喷涂作业场所', '涉氨制冷企业', '船舶修造企业', '金属冶炼企业',
+          '一厂多租(房东)', '锂电池', '电镀', '危险化学品使用',
+          '特别管控危险化学品', '高毒危险化学品', '易制毒危险化学品',
+          '各类监控化学品', '其他危险化学品', '金属加工', '涉自动化',
+          '燃气燃烧', '危化带储存',
+        ],
+      },
+      {
+        category: '消防对象类别',
+        tags: [
+          '商场(市场)，宾馆(饭店)，体育场(馆)、会堂，儿童游乐场所、青少年活动中心',
+          '公共娱乐场所',
+          '医疗机构、养老院、福利院',
+          '中小学校、托儿所、幼儿园',
+          '国家机关',
+          '广播、电视和邮政、通信枢纽',
+          '客运车站、码头、民用机场',
+          '公共图书馆、展览馆、公共博物馆、档案馆、宗教活动场所以及具有火灾危险性的文物保护单位',
+          '发电厂(站)、储能电站、电网',
+          '经营企业',
+          '生产、储存、使用易燃易爆危险物品的工厂、仓库，易燃易爆气体和液体的充装站、供应站、调压站',
+          '重要的科研单位、高等院校',
+          '公共建筑',
+          '城市轨道交通、城市隧道、地下观光隧道',
+          '住宅小区',
+          '九小场所',
+          '其他发生火灾可能性较大以及一旦发生火灾可能造成人身重大伤亡或者财产重大损失的单位、场所',
+          '其他一般单位',
+        ],
+      },
+    ]
+  }, [])
 
-  // 过滤后的标签库
-  const filteredTagLibrary = useMemo(() => {
-    if (!tagSearch.trim()) return tagLibrary
+  // 扁平标签库（用于搜索过滤）
+  const allTags = useMemo(() =>
+    tagGroups.flatMap(g => g.tags.map(t => `${g.category}：${t}`))
+  , [tagGroups])
+
+  // 过滤后的标签库（按分组结构过滤）
+  const filteredTagGroups = useMemo(() => {
     const kw = tagSearch.trim().toLowerCase()
-    return tagLibrary.filter(t => t.toLowerCase().includes(kw))
-  }, [tagSearch, tagLibrary])
+    return tagGroups.map(g => ({
+      category: g.category,
+      tags: kw
+        ? g.tags.filter(t => `${g.category}：${t}`.toLowerCase().includes(kw))
+        : g.tags,
+    })).filter(g => g.tags.length > 0)
+  }, [tagSearch, tagGroups])
 
   // 切换标签选中状态
   const toggleTag = (tag: string) => {
@@ -86,7 +143,13 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
       result = result.filter(d => d.industry.toLowerCase().includes(kw))
     }
     if (selectedTags.length > 0) {
-      result = result.filter(d => selectedTags.includes(d.industry))
+      result = result.filter(d => 
+        selectedTags.some(tag => {
+          const parts = tag.split('：')
+          const secondLevel = parts[1] || parts[0]
+          return d.industry === secondLevel
+        })
+      )
     }
     return result
   }, [keyword, selectedTags, hazardAnalysis])
@@ -593,33 +656,41 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
                 />
               </div>
               <div style={{ flex: 1, overflowY: 'auto', marginBottom: 16 }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {filteredTagLibrary.map(tag => {
-                    const isSelected = selectedTags.includes(tag)
-                    return (
-                      <span
-                        key={tag}
-                        onClick={() => toggleTag(tag)}
-                        style={{
-                          padding: '4px 12px',
-                          borderRadius: 16,
-                          border: '1px solid',
-                          borderColor: isSelected ? '#4F46E5' : '#D1D5DB',
-                          background: isSelected ? '#EEF2FF' : 'white',
-                          color: isSelected ? '#4F46E5' : '#6B7280',
-                          fontSize: 13,
-                          cursor: 'pointer',
-                          userSelect: 'none',
-                        }}
-                      >
-                        {tag}
-                      </span>
-                    )
-                  })}
-                  {filteredTagLibrary.length === 0 && (
-                    <div style={{ color: '#9CA3AF', fontSize: 13, padding: '20px 0', textAlign: 'center', width: '100%' }}>未找到匹配的标签</div>
-                  )}
-                </div>
+                {filteredTagGroups.map(group => (
+                  <div key={group.category} style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid #F3F4F6' }}>
+                      {group.category}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {group.tags.map(tag => {
+                        const fullTag = `${group.category}：${tag}`
+                        const isSelected = selectedTags.includes(fullTag)
+                        return (
+                          <span
+                            key={fullTag}
+                            onClick={() => toggleTag(fullTag)}
+                            style={{
+                              padding: '4px 12px',
+                              borderRadius: 16,
+                              border: '1px solid',
+                              borderColor: isSelected ? '#4F46E5' : '#D1D5DB',
+                              background: isSelected ? '#EEF2FF' : 'white',
+                              color: isSelected ? '#4F46E5' : '#6B7280',
+                              fontSize: 13,
+                              cursor: 'pointer',
+                              userSelect: 'none',
+                            }}
+                          >
+                            {fullTag}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+                {filteredTagGroups.length === 0 && (
+                  <div style={{ color: '#9CA3AF', fontSize: 13, padding: '20px 0', textAlign: 'center', width: '100%' }}>未找到匹配的标签</div>
+                )}
               </div>
               {selectedTags.length > 0 && (
                 <div style={{ marginBottom: 12, padding: '8px 12px', background: '#F9FAFB', borderRadius: 4 }}>
