@@ -131,60 +131,6 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
     '抽检任务': 'sample',
   }
 
-  // 按组织/人的进度
-  const taskProgressByOrg = useMemo(() => {
-    const taskList = selectedTask ? [selectedTask] : currentTasks
-    if (taskList.length === 0) return []
-    
-    const groupCount = Math.min(workGroups.length, 4)
-    const totalTasks = taskList.reduce((s, t) => s + t.total_count, 0)
-    const completedTasks = taskList.reduce((s, t) => s + t.completed_count, 0)
-    const perGroup = Math.ceil(totalTasks / groupCount)
-    let remaining = totalTasks
-    
-    return workGroups.slice(0, groupCount).map((g, i) => {
-      const isLast = i === groupCount - 1
-      const total = isLast ? remaining : Math.min(perGroup, remaining)
-      remaining -= total
-      // 按比例分配已完成数
-      const completed = isLast 
-        ? completedTasks - (taskList.length > 1 ? Math.floor((totalTasks - total) * (completedTasks / totalTasks)) : 0)
-        : Math.floor(total * (completedTasks / totalTasks))
-      return {
-        name: g.name,
-        total,
-        completed: Math.max(0, completed),
-        rate: total > 0 ? Math.round((Math.max(0, completed) / total) * 100) : 0,
-      }
-    })
-  }, [selectedTask, currentTasks, workGroups])
-
-  const taskProgressByPerson = useMemo(() => {
-    const taskList = selectedTask ? [selectedTask] : currentTasks
-    if (taskList.length === 0) return []
-    
-    const expertCount = Math.min(experts.length, 6)
-    const totalTasks = taskList.reduce((s, t) => s + t.total_count, 0)
-    const completedTasks = taskList.reduce((s, t) => s + t.completed_count, 0)
-    const perExpert = Math.ceil(totalTasks / expertCount)
-    let remaining = totalTasks
-    
-    return experts.slice(0, expertCount).map((e, i) => {
-      const isLast = i === expertCount - 1
-      const total = isLast ? remaining : Math.min(perExpert, remaining)
-      remaining -= total
-      const completed = isLast 
-        ? completedTasks - (taskList.length > 1 ? Math.floor((totalTasks - total) * (completedTasks / totalTasks)) : 0)
-        : Math.floor(total * (completedTasks / totalTasks))
-      return {
-        name: e.name,
-        total,
-        completed: Math.max(0, completed),
-        rate: total > 0 ? Math.round((Math.max(0, completed) / total) * 100) : 0,
-      }
-    })
-  }, [selectedTask, currentTasks, experts])
-
   // 状态样式
   const statusLabels: Record<string, { bg: string; color: string }> = {
     '进行中': { bg: '#DBEAFE', color: '#1D4ED8' },
@@ -418,7 +364,6 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
           )}
         </div>
       </div>
-
 
       {/* 高频问题汇总（默认展示，点击任务后筛选） */}
       <div style={{ marginTop: 24, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
