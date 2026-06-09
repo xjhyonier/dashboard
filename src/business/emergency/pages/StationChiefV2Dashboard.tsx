@@ -34,8 +34,17 @@ const quarterStart = new Date(TODAY.getFullYear(), quarterMonth, 1)
 const quarterEnd = new Date(TODAY.getFullYear(), quarterMonth + 3, 0)
 const yearStart = new Date(TODAY.getFullYear(), 0, 1)
 const yearEnd = new Date(TODAY.getFullYear(), 11, 31)
+// 上月
+const prevMonthStart = new Date(TODAY.getFullYear(), TODAY.getMonth() - 1, 1)
+const prevMonthEnd = new Date(TODAY.getFullYear(), TODAY.getMonth(), 0)
+// 上季
+const prevQuarterMonth = Math.floor(TODAY.getMonth() / 3) * 3 - 3
+const prevQuarterYear = prevQuarterMonth < 0 ? TODAY.getFullYear() - 1 : TODAY.getFullYear()
+const prevQuarterStartMonth = ((prevQuarterMonth % 12) + 12) % 12
+const prevQuarterStart = new Date(prevQuarterYear, prevQuarterStartMonth, 1)
+const prevQuarterEnd = new Date(prevQuarterYear, prevQuarterStartMonth + 3, 0)
 
-type TimeRange = 'week' | 'month' | 'quarter' | 'year' | 'custom'
+type TimeRange = 'week' | 'month' | 'quarter' | 'year' | 'prevMonth' | 'prevQuarter'
 
 export function StationChiefV2Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -89,26 +98,18 @@ export function StationChiefV2Dashboard() {
 
   // 日期筛选状态
   const [timeRange, setTimeRange] = useState<TimeRange>('month')
-  const [customStart, setCustomStart] = useState<string>(fmtMonth(monthStart))
-  const [customEnd, setCustomEnd] = useState<string>(fmtMonth(monthEnd))
 
   // 根据 timeRange 计算实际起止日期
   const dateRange = useMemo((): { start: string; end: string } => {
     switch (timeRange) {
-      case 'week':    return { start: fmtDate(weekStart),    end: fmtDate(weekEnd) }
-      case 'month':   return { start: fmtDate(monthStart),   end: fmtDate(monthEnd) }
-      case 'quarter': return { start: fmtDate(quarterStart), end: fmtDate(quarterEnd) }
-      case 'year':    return { start: fmtDate(yearStart),    end: fmtDate(yearEnd) }
-      case 'custom':  {
-        // customStart/customEnd 为 "YYYY-MM" 格式，转为当月首日和末日
-        const [sy, sm] = customStart.split('-').map(Number)
-        const [ey, em] = customEnd.split('-').map(Number)
-        const s = fmtDate(new Date(sy, sm - 1, 1))
-        const e = fmtDate(new Date(ey, em, 0))
-        return { start: s, end: e }
-      }
+      case 'week':        return { start: fmtDate(weekStart),       end: fmtDate(weekEnd) }
+      case 'month':       return { start: fmtDate(monthStart),      end: fmtDate(monthEnd) }
+      case 'quarter':     return { start: fmtDate(quarterStart),    end: fmtDate(quarterEnd) }
+      case 'year':        return { start: fmtDate(yearStart),       end: fmtDate(yearEnd) }
+      case 'prevMonth':   return { start: fmtDate(prevMonthStart),  end: fmtDate(prevMonthEnd) }
+      case 'prevQuarter': return { start: fmtDate(prevQuarterStart), end: fmtDate(prevQuarterEnd) }
     }
-  }, [timeRange, customStart, customEnd])
+  }, [timeRange])
 
   // 全局 KPI 筛选状态
   const [selectedKpi, setSelectedKpi] = useState<string | null>(null)
@@ -358,9 +359,10 @@ export function StationChiefV2Dashboard() {
           <span style={{ fontSize: 12, color: '#9CA3AF' }}>时间:</span>
           {([
             { key: 'month' as TimeRange, label: '本月' },
+            { key: 'prevMonth' as TimeRange, label: '上月' },
             { key: 'quarter' as TimeRange, label: '本季' },
+            { key: 'prevQuarter' as TimeRange, label: '上季' },
             { key: 'year' as TimeRange, label: '本年' },
-            { key: 'custom' as TimeRange, label: '自定义' },
           ] as const).map(opt => (
             <button
               key={opt.key}
@@ -380,24 +382,6 @@ export function StationChiefV2Dashboard() {
               {opt.label}
             </button>
           ))}
-          {/* 自定义日期输入 */}
-          {timeRange === 'custom' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}>
-              <input
-                type="month"
-                value={customStart}
-                onChange={e => setCustomStart(e.target.value)}
-                style={{ padding: '1px 6px', border: '1px solid #D1D5DB', borderRadius: 3, fontSize: 12, color: '#374151', outline: 'none' }}
-              />
-              <span style={{ fontSize: 12, color: '#9CA3AF' }}>至</span>
-              <input
-                type="month"
-                value={customEnd}
-                onChange={e => setCustomEnd(e.target.value)}
-                style={{ padding: '1px 6px', border: '1px solid #D1D5DB', borderRadius: 3, fontSize: 12, color: '#374151', outline: 'none' }}
-              />
-            </div>
-          )}
         </div>
 
         <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />

@@ -5,7 +5,7 @@ import type { Enterprise10D } from '../mock/station-chief-v2'
 
 export type SortDirection = 'asc' | 'desc' | null
 export type RiskLevel = 'all' | 'major' | 'high' | 'medium' | 'low'
-export type TimeRange = 'week' | 'month' | 'quarter' | 'year' | 'custom'
+export type TimeRange = 'week' | 'month' | 'quarter' | 'year' | 'custom' | 'prevMonth' | 'prevQuarter'
 
 export interface SortState<T> {
   key: keyof T | null
