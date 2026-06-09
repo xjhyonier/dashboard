@@ -47,7 +47,6 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
   const [loading, setLoading] = useState(true)
 
   // 筛选状态
-  const [industryFilter, setIndustryFilter] = useState<string>('all')
   const [teamFilter, setTeamFilter] = useState<string>(navigateParams?.teamName || 'all')
   const [expertFilter, setExpertFilter] = useState<string>(navigateParams?.expertName || 'all')
   const [keyword, setKeyword] = useState('')
@@ -106,12 +105,6 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
     return counts
   }, [hazardRecords])
 
-  // 行业列表
-  const industries = useMemo(() => {
-    const set = new Set(hazardRecords.map(r => r.enterprise_industry).filter(Boolean) as string[])
-    return ['all', ...Array.from(set).sort()]
-  }, [hazardRecords])
-
   // 工作组列表
   const teams = useMemo(() => {
     const set = new Set(hazardRecords.map(r => r.team_name).filter(Boolean) as string[])
@@ -163,8 +156,6 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
       if (statusFilter !== 'all' && r.status !== statusFilter) return false
       // 来源筛选
       if (sourceFilter !== 'all' && r.source_detail !== sourceFilter) return false
-      // 行业筛选
-      if (industryFilter !== 'all' && r.enterprise_industry !== industryFilter) return false
       // 工作组筛选
       if (teamFilter !== 'all' && r.team_name !== teamFilter) return false
       // 专家筛选
@@ -184,7 +175,7 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
       }
       return true
     })
-  }, [hazardRecords, hazardLevelFilter, statusFilter, sourceFilter, industryFilter, teamFilter, expertFilter, dimensionFilter, enterpriseIdsFilter, keyword])
+  }, [hazardRecords, hazardLevelFilter, statusFilter, sourceFilter, teamFilter, expertFilter, dimensionFilter, enterpriseIdsFilter, keyword])
 
   // 复用排序 hook - 使用 discovered_at 作为排序字段
   const { sortedData, sort, handleSort } = useSortableTable(filtered, 'discovered_at', 'desc')
@@ -198,7 +189,7 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
   // 筛选变化时重置页码
   useEffect(() => {
     setCurrentPage(1)
-  }, [hazardRecords, hazardLevelFilter, statusFilter, sourceFilter, industryFilter, teamFilter, enterpriseIdsFilter, dimensionFilter, keyword])
+  }, [hazardRecords, hazardLevelFilter, statusFilter, sourceFilter, teamFilter, enterpriseIdsFilter, dimensionFilter, keyword])
 
   // 企业维度隐患统计
   const enterpriseDimensionStats = useMemo(() => {
@@ -439,7 +430,6 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
               setLocalStatusFilter('all')
               setDimensionFilter('all')
               setSourceFilter('all')
-              setIndustryFilter('all')
               setTeamFilter('all')
               setKeyword('')
               setSelectedKpi(null)
@@ -477,7 +467,6 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                 隐患等级: h.level,
                 来源: h.source_detail,
                 责任主体名称: h.enterprise_name,
-                行业: h.enterprise_industry,
                 工作组: h.team_name,
                 检查人员: h.expert_name,
                 状态: STATUS_CONFIG[h.status]?.label || h.status,
@@ -490,7 +479,6 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                 { key: '隐患等级', label: '隐患等级' },
                 { key: '来源', label: '来源' },
                 { key: '责任主体名称', label: '责任主体名称' },
-                { key: '行业', label: '行业' },
                 { key: '工作组', label: '工作组' },
                 { key: '检查人员', label: '检查人员' },
                 { key: '状态', label: '状态' },
@@ -521,7 +509,6 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                 <SortableTh label="主体责任" sortKey="dimension" sort={sort} onSort={handleSort} />
                 <SortableTh label="等级" sortKey="level" sort={sort} onSort={handleSort} />
                 <SortableTh label="来源" sortKey="source_detail" sort={sort} onSort={handleSort} />
-                <SortableTh label="行业" sortKey="enterprise_industry" sort={sort} onSort={handleSort} />
                 <SortableTh label="状态" sortKey="status" sort={sort} onSort={handleSort} />
                 <SortableTh label="发现时间" sortKey="discovered_at" sort={sort} onSort={handleSort} />
                 <th style={thStyle}>整改期限</th>
@@ -530,7 +517,7 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
             </thead>
             <tbody>
               {paginatedData.length === 0 ? (
-                <tr><td colSpan={11} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>未找到匹配结果</td></tr>
+                <tr><td colSpan={10} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>未找到匹配结果</td></tr>
               ) : paginatedData.map((r, i) => {
                 const statusCfg = STATUS_CONFIG[r.status] || { label: '未知', color: '#6B7280', bg: '#F3F4F6', textColor: '#374151' }
                 const levelCfg = LEVEL_CONFIG[r.level] || { label: '未知', color: '#6B7280' }
@@ -555,9 +542,6 @@ export function HazardDimension({ dateRange, riskLevel, timeRange, selectedKpi, 
                     </td>
                     <td style={{ ...tdStyle, fontWeight: 500, color: sourceCfg.color }}>
                       {sourceCfg.label}
-                    </td>
-                    <td style={tdStyle}>
-                      {r.enterprise_industry || '-'}
                     </td>
                     <td style={tdStyle}>
                       <span style={{
