@@ -421,7 +421,7 @@ export function StationChiefV2Dashboard() {
         {/* 工作组筛选 */}
         <select
           value={filterTeam}
-          onChange={e => { setFilterTeam(e.target.value); setFilterEnterprise('all') }}
+          onChange={e => setFilterTeam(e.target.value)}
           style={{
             padding: '2px 8px',
             border: '1px solid #D1D5DB',
@@ -460,54 +460,10 @@ export function StationChiefV2Dashboard() {
           ))}
         </select>
 
-        {/* 企业筛选 */}
-        <select
-          value={filterEnterprise}
-          onChange={e => setFilterEnterprise(e.target.value)}
-          style={{
-            padding: '2px 8px',
-            border: '1px solid #D1D5DB',
-            borderRadius: 4,
-            fontSize: 12,
-            color: filterEnterprise !== 'all' ? '#4F46E5' : '#6B7280',
-            background: 'white',
-            outline: 'none',
-            minWidth: 160,
-          }}
-        >
-          <option value="all">全部企业</option>
-          {enterprises
-            .filter(e => filterTeam === 'all' || e.work_group === filterTeam)
-            .map(ent => (
-              <option key={ent.id} value={ent.id}>{ent.name}</option>
-            ))}
-        </select>
-
-        {/* 行业筛选 */}
-        <select
-          value={filterIndustry}
-          onChange={e => setFilterIndustry(e.target.value)}
-          style={{
-            padding: '2px 8px',
-            border: '1px solid #D1D5DB',
-            borderRadius: 4,
-            fontSize: 12,
-            color: filterIndustry !== 'all' ? '#4F46E5' : '#6B7280',
-            background: 'white',
-            outline: 'none',
-            minWidth: 100,
-          }}
-        >
-          <option value="all">全部行业</option>
-          {[...new Set(enterprises.map(e => e.industry).filter(Boolean))].map(ind => (
-            <option key={ind} value={ind}>{ind}</option>
-          ))}
-        </select>
-
         {/* 重置筛选 */}
-        {(filterTeam !== 'all' || filterExpert !== 'all' || filterEnterprise !== 'all' || filterIndustry !== 'all') && (
+        {(filterTeam !== 'all' || filterExpert !== 'all') && (
           <button
-            onClick={() => { setFilterTeam('all'); setFilterExpert('all'); setFilterEnterprise('all'); setFilterIndustry('all') }}
+            onClick={() => { setFilterTeam('all'); setFilterExpert('all') }}
             style={{
               padding: '2px 8px',
               border: '1px solid #D1D5DB',
