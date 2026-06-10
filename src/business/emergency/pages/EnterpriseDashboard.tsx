@@ -1732,7 +1732,7 @@ export function EnterpriseDashboard() {
       {/* Tab 内容 */}
       {activeTab === 'overview' && <PlaceholderTab title="总览" />}
       {activeTab === 'todo' && <TodoTabContent />}
-      {activeTab === 'system' && <PlaceholderTab title="制度台账" />}
+      {activeTab === 'system' && <SystemTabContent />}
       {activeTab === 'education' && <PlaceholderTab title="教育培训" />}
       {activeTab === 'site' && <PlaceholderTab title="现场管理" />}
       {activeTab === 'dualPrevention' && <PlaceholderTab title="双重预防" />}
