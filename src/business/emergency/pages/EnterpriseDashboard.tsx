@@ -916,7 +916,7 @@ function SystemTabContent() {
   
   // 表格列配置
   const systemColumns = [
-    { key: 'allComplete', label: '是否全部完善' },
+    { key: 'allComplete', label: '全部完善户数' },
     { key: 'organization', label: '机构与职责' },
     { key: 'investment', label: '安全投入' },
     { key: 'institutional', label: '制度化管理' },
@@ -1059,6 +1059,17 @@ function SystemTabContent() {
                 }}>
                   风险等级
                 </th>
+                <th style={{
+                  padding: '10px 12px',
+                  textAlign: 'center',
+                  fontWeight: 600,
+                  color: '#6B7280',
+                  borderBottom: '2px solid #E5E7EB',
+                  borderLeft: '1px solid #E5E7EB',
+                  minWidth: 80,
+                }}>
+                  总户数
+                </th>
                 {systemColumns.map(col => (
                   <th key={col.key} style={{
                     padding: '10px 12px',
@@ -1099,13 +1110,24 @@ function SystemTabContent() {
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
+                    fontWeight: 600,
+                    color: '#374151',
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 14,
+                  }}>
+                    {row.total}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
                     color: row.allComplete ? '#059669' : '#DC2626',
                     fontWeight: row.allComplete ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.allComplete}/{row.total}
+                    {row.allComplete}
                   </td>
                   <td style={{
                     padding: '10px 12px',
@@ -1116,7 +1138,7 @@ function SystemTabContent() {
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.organization}/{row.total}
+                    {row.organization}
                   </td>
                   <td style={{
                     padding: '10px 12px',
@@ -1127,7 +1149,7 @@ function SystemTabContent() {
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.investment}/{row.total}
+                    {row.investment}
                   </td>
                   <td style={{
                     padding: '10px 12px',
@@ -1138,7 +1160,7 @@ function SystemTabContent() {
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.institutional}/{row.total}
+                    {row.institutional}
                   </td>
                   <td style={{
                     padding: '10px 12px',
@@ -1149,7 +1171,7 @@ function SystemTabContent() {
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.education}/{row.total}
+                    {row.education}
                   </td>
                   <td style={{
                     padding: '10px 12px',
@@ -1160,7 +1182,7 @@ function SystemTabContent() {
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.dualPrevention}/{row.total}
+                    {row.dualPrevention}
                   </td>
                   <td style={{
                     padding: '10px 12px',
@@ -1171,7 +1193,7 @@ function SystemTabContent() {
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.emergency}/{row.total}
+                    {row.emergency}
                   </td>
                   <td style={{
                     padding: '10px 12px',
@@ -1182,7 +1204,7 @@ function SystemTabContent() {
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.accident}/{row.total}
+                    {row.accident}
                   </td>
                 </tr>
               ))}
@@ -1229,6 +1251,17 @@ function SystemTabContent() {
                 }}>
                   消防类型
                 </th>
+                <th style={{
+                  padding: '10px 12px',
+                  textAlign: 'center',
+                  fontWeight: 600,
+                  color: '#6B7280',
+                  borderBottom: '2px solid #E5E7EB',
+                  borderLeft: '1px solid #E5E7EB',
+                  minWidth: 80,
+                }}>
+                  总户数
+                </th>
                 {systemColumns.map(col => (
                   <th key={col.key} style={{
                     padding: '10px 12px',
@@ -1269,13 +1302,24 @@ function SystemTabContent() {
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
+                    fontWeight: 600,
+                    color: '#374151',
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 14,
+                  }}>
+                    {row.total}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
                     color: row.allComplete ? '#059669' : '#DC2626',
                     fontWeight: row.allComplete ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.allComplete}/{row.total}
+                    {row.allComplete}
                   </td>
                   <td style={{
                     padding: '10px 12px',
@@ -1286,7 +1330,7 @@ function SystemTabContent() {
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.organization}/{row.total}
+                    {row.organization}
                   </td>
                   <td style={{
                     padding: '10px 12px',
@@ -1297,7 +1341,7 @@ function SystemTabContent() {
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.investment}/{row.total}
+                    {row.investment}
                   </td>
                   <td style={{
                     padding: '10px 12px',
@@ -1308,7 +1352,7 @@ function SystemTabContent() {
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.institutional}/{row.total}
+                    {row.institutional}
                   </td>
                   <td style={{
                     padding: '10px 12px',
@@ -1319,7 +1363,7 @@ function SystemTabContent() {
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.education}/{row.total}
+                    {row.education}
                   </td>
                   <td style={{
                     padding: '10px 12px',
@@ -1330,7 +1374,7 @@ function SystemTabContent() {
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.dualPrevention}/{row.total}
+                    {row.dualPrevention}
                   </td>
                   <td style={{
                     padding: '10px 12px',
@@ -1341,7 +1385,7 @@ function SystemTabContent() {
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.emergency}/{row.total}
+                    {row.emergency}
                   </td>
                   <td style={{
                     padding: '10px 12px',
@@ -1352,7 +1396,7 @@ function SystemTabContent() {
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {row.accident}/{row.total}
+                    {row.accident}
                   </td>
                 </tr>
               ))}
