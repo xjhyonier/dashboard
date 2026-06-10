@@ -720,27 +720,22 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
                 <div style={{ marginBottom: 12, padding: '8px 12px', background: '#F9FAFB', borderRadius: 4 }}>
                   <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }}>已选标签：</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {selectedTags.map(tag => {
-                      // 只显示二级标签名（去掉"一级：")
-                      const parts = tag.split('：')
-                      const displayTag = parts.length > 1 ? parts[1] : tag
-                      return (
-                        <span
-                          key={tag}
-                          onClick={() => toggleTag(tag)}
-                          style={{
-                            padding: '2px 8px',
-                            borderRadius: 12,
-                            background: '#EEF2FF',
-                            color: '#4F46E5',
-                            fontSize: 12,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {displayTag} ×
-                        </span>
-                      )
-                    })}
+                    {selectedTags.map(tag => (
+                      <span
+                        key={tag}
+                        onClick={() => toggleTag(tag)}
+                        style={{
+                          padding: '2px 8px',
+                          borderRadius: 12,
+                          background: '#EEF2FF',
+                          color: '#4F46E5',
+                          fontSize: 12,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {tag} ×
+                      </span>
+                    ))}
                   </div>
                 </div>
               )}
