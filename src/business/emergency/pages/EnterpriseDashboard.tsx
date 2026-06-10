@@ -875,8 +875,6 @@ const generateEnterpriseSystemDetails = (): EnterpriseSystemDetail[] => {
 
 // 制度台账Tab内容组件
 function SystemTabContent() {
-  const productionStats = useMemo(() => generateProductionSystemStats(), [])
-  const fireStats = useMemo(() => generateFireSystemStats(), [])
   const enterpriseDetails = useMemo(() => generateEnterpriseSystemDetails(), [])
   
   // 计算指标卡数据
@@ -928,6 +926,52 @@ function SystemTabContent() {
     { key: 'accident', label: '事故管理' },
   ]
   
+  // 生产企业制度台账交叉表（按风险等级统计已完善户数）
+  const productionCrossTable = useMemo(() => {
+    const riskLevels = ['重大风险', '较大风险', '一般风险', '低风险']
+    const productionEnterprises = enterpriseDetails.filter(e => e.entityType === '生产企业')
+    
+    return riskLevels.map(riskLevel => {
+      const enterprises = productionEnterprises.filter(e => e.riskLevel === riskLevel)
+      const total = enterprises.length
+      return {
+        riskLevel,
+        total,
+        allComplete: enterprises.filter(e => e.completion.allComplete).length,
+        organization: enterprises.filter(e => e.completion.organization).length,
+        investment: enterprises.filter(e => e.completion.investment).length,
+        institutional: enterprises.filter(e => e.completion.institutional).length,
+        education: enterprises.filter(e => e.completion.education).length,
+        dualPrevention: enterprises.filter(e => e.completion.dualPrevention).length,
+        emergency: enterprises.filter(e => e.completion.emergency).length,
+        accident: enterprises.filter(e => e.completion.accident).length,
+      }
+    })
+  }, [enterpriseDetails])
+
+  // 消防场所制度台账交叉表（按消防类型统计已完善户数）
+  const fireCrossTable = useMemo(() => {
+    const fireTypes = ['消防重点单位', '九小场所', '一般单位']
+    const fireEnterprisesList = enterpriseDetails.filter(e => e.entityType === '消防场所')
+    
+    return fireTypes.map(fireType => {
+      const enterprises = fireEnterprisesList.filter(e => e.fireType === fireType)
+      const total = enterprises.length
+      return {
+        fireType,
+        total,
+        allComplete: enterprises.filter(e => e.completion.allComplete).length,
+        organization: enterprises.filter(e => e.completion.organization).length,
+        investment: enterprises.filter(e => e.completion.investment).length,
+        institutional: enterprises.filter(e => e.completion.institutional).length,
+        education: enterprises.filter(e => e.completion.education).length,
+        dualPrevention: enterprises.filter(e => e.completion.dualPrevention).length,
+        emergency: enterprises.filter(e => e.completion.emergency).length,
+        accident: enterprises.filter(e => e.completion.accident).length,
+      }
+    })
+  }, [enterpriseDetails])
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* 指标卡区域 */}
@@ -1031,9 +1075,9 @@ function SystemTabContent() {
               </tr>
             </thead>
             <tbody>
-              {productionStats.map((stat, idx) => (
+              {productionCrossTable.map((row, idx) => (
                 <tr 
-                  key={stat.riskLevel}
+                  key={row.riskLevel}
                   style={{
                     background: idx % 2 === 0 ? 'white' : '#F9FAFB',
                     transition: 'background 0.15s',
@@ -1050,95 +1094,95 @@ function SystemTabContent() {
                     left: 0,
                     background: idx % 2 === 0 ? 'white' : '#F9FAFB',
                   }}>
-                    {stat.riskLevel}
+                    {row.riskLevel}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.allComplete ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.allComplete ? 600 : 400,
+                    color: row.allComplete ? '#059669' : '#DC2626',
+                    fontWeight: row.allComplete ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.allComplete)}
+                    {row.allComplete}/{row.total}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.organization ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.organization ? 600 : 400,
+                    color: row.organization ? '#059669' : '#DC2626',
+                    fontWeight: row.organization ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.organization)}
+                    {row.organization}/{row.total}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.investment ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.investment ? 600 : 400,
+                    color: row.investment ? '#059669' : '#DC2626',
+                    fontWeight: row.investment ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.investment)}
+                    {row.investment}/{row.total}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.institutional ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.institutional ? 600 : 400,
+                    color: row.institutional ? '#059669' : '#DC2626',
+                    fontWeight: row.institutional ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.institutional)}
+                    {row.institutional}/{row.total}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.education ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.education ? 600 : 400,
+                    color: row.education ? '#059669' : '#DC2626',
+                    fontWeight: row.education ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.education)}
+                    {row.education}/{row.total}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.dualPrevention ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.dualPrevention ? 600 : 400,
+                    color: row.dualPrevention ? '#059669' : '#DC2626',
+                    fontWeight: row.dualPrevention ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.dualPrevention)}
+                    {row.dualPrevention}/{row.total}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.emergency ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.emergency ? 600 : 400,
+                    color: row.emergency ? '#059669' : '#DC2626',
+                    fontWeight: row.emergency ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.emergency)}
+                    {row.emergency}/{row.total}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.accident ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.accident ? 600 : 400,
+                    color: row.accident ? '#059669' : '#DC2626',
+                    fontWeight: row.accident ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.accident)}
+                    {row.accident}/{row.total}
                   </td>
                 </tr>
               ))}
@@ -1201,9 +1245,9 @@ function SystemTabContent() {
               </tr>
             </thead>
             <tbody>
-              {fireStats.map((stat, idx) => (
+              {fireCrossTable.map((row, idx) => (
                 <tr 
-                  key={stat.fireType}
+                  key={row.fireType}
                   style={{
                     background: idx % 2 === 0 ? 'white' : '#F9FAFB',
                     transition: 'background 0.15s',
@@ -1220,95 +1264,95 @@ function SystemTabContent() {
                     left: 0,
                     background: idx % 2 === 0 ? 'white' : '#F9FAFB',
                   }}>
-                    {stat.fireType}
+                    {row.fireType}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.allComplete ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.allComplete ? 600 : 400,
+                    color: row.allComplete ? '#059669' : '#DC2626',
+                    fontWeight: row.allComplete ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.allComplete)}
+                    {row.allComplete}/{row.total}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.organization ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.organization ? 600 : 400,
+                    color: row.organization ? '#059669' : '#DC2626',
+                    fontWeight: row.organization ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.organization)}
+                    {row.organization}/{row.total}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.investment ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.investment ? 600 : 400,
+                    color: row.investment ? '#059669' : '#DC2626',
+                    fontWeight: row.investment ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.investment)}
+                    {row.investment}/{row.total}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.institutional ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.institutional ? 600 : 400,
+                    color: row.institutional ? '#059669' : '#DC2626',
+                    fontWeight: row.institutional ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.institutional)}
+                    {row.institutional}/{row.total}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.education ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.education ? 600 : 400,
+                    color: row.education ? '#059669' : '#DC2626',
+                    fontWeight: row.education ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.education)}
+                    {row.education}/{row.total}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.dualPrevention ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.dualPrevention ? 600 : 400,
+                    color: row.dualPrevention ? '#059669' : '#DC2626',
+                    fontWeight: row.dualPrevention ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.dualPrevention)}
+                    {row.dualPrevention}/{row.total}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.emergency ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.emergency ? 600 : 400,
+                    color: row.emergency ? '#059669' : '#DC2626',
+                    fontWeight: row.emergency ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.emergency)}
+                    {row.emergency}/{row.total}
                   </td>
                   <td style={{
                     padding: '10px 12px',
                     textAlign: 'center',
-                    color: stat.completion.accident ? '#059669' : '#DC2626',
-                    fontWeight: stat.completion.accident ? 600 : 400,
+                    color: row.accident ? '#059669' : '#DC2626',
+                    fontWeight: row.accident ? 600 : 400,
                     borderBottom: '1px solid #F3F4F6',
                     borderLeft: '1px solid #F3F4F6',
                     fontSize: 16,
                   }}>
-                    {formatBool(stat.completion.accident)}
+                    {row.accident}/{row.total}
                   </td>
                 </tr>
               ))}
