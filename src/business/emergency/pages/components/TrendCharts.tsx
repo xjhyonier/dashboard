@@ -356,7 +356,7 @@ export function ExpertTodoTrendChart({ filterTeam, filterExpert, filterEnterpris
 
   if (loading) return <div style={{ padding: 20, color: '#6B7280' }}>加载中...</div>
 
-  return <GroupedBarChart title="近一年检查人员数据统计" series={series} unit="" />
+  return <GroupedBarChart title="近一年日常监管数据统计" series={series} unit="" />
 }
 
 // ==================== 汇总展示 ====================
