@@ -5,13 +5,11 @@ import { SortableTh } from './SortableTh'
 import type { IndustryDimensionProps } from './types'
 import { initDatabase, getEnterprises, getHazards } from '../../../../db'
 import type { Enterprise, Hazard } from '../../../../db/types'
-import { exportToCSV } from './exportUtils'
 
 export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi }: IndustryDimensionProps) {
   const [enterprises, setEnterprises] = useState<Enterprise[]>([])
   const [hazards, setHazards] = useState<Hazard[]>([])
   const [loading, setLoading] = useState(true)
-  const [keyword, setKeyword] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [tagModalOpen, setTagModalOpen] = useState(false)
   const [tagSearch, setTagSearch] = useState('')
@@ -139,10 +137,6 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
 
   const filtered = useMemo(() => {
     let result = Array.from(hazardAnalysis.entries()).map(([industry, data]) => ({ industry, ...data }))
-    if (keyword.trim()) {
-      const kw = keyword.trim().toLowerCase()
-      result = result.filter(d => d.industry.toLowerCase().includes(kw))
-    }
     if (selectedTags.length > 0) {
       result = result.filter(d => 
         selectedTags.some(tag => {
@@ -153,7 +147,7 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
       )
     }
     return result
-  }, [keyword, selectedTags, hazardAnalysis])
+  }, [selectedTags, hazardAnalysis])
 
   const total = {
     hazardCount: hazards.length,
@@ -559,31 +553,7 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
 
       {/* 标签隐患分析统计表 */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>标签隐患分析统计表</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input type="text" placeholder="搜索行业名称" value={keyword} onChange={e => setKeyword(e.target.value)} style={inputStyle} />
-            <button onClick={() => exportToCSV(
-              filtered.map(d => ({
-                标签: d.industry,
-                隐患数: d.hazardCount,
-                重大隐患: d.majorHazardCount,
-                已整改: d.rectifiedCount,
-                整改中: d.deadlineCount,
-                高频问题: d.topIssues.join('、'),
-              })),
-              [
-                { key: '标签', label: '标签' },
-                { key: '隐患数', label: '隐患数' },
-                { key: '重大隐患', label: '重大隐患' },
-                { key: '已整改', label: '已整改' },
-                { key: '整改中', label: '整改中' },
-                { key: '高频问题', label: '高频问题' },
-              ],
-              '标签隐患分析统计表'
-            )} style={{ padding: '4px 12px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer' }}>⬇ 导出</button>
-          </div>
-        </div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>标签隐患分析统计表</div>
         {/* 标签选择器入口 */}
         <div style={{ marginBottom: 8 }}>
           <button
