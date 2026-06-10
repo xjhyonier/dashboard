@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import {
@@ -47,12 +47,12 @@ function MonthMultiSelect({ selectedMonths, onChange }: {
   onChange: (months: string[]) => void
 }) {
   const [isOpen, setIsOpen] = useState(false)
-  const dropdownRef = useMemo(() => ({ current: null }), [])
+  const dropdownRef = useRef(null)
   
   // 点击外部关闭下拉
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !(dropdownRef.current as any).contains(e.target)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsOpen(false)
       }
     }
