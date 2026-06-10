@@ -34,6 +34,176 @@ const ENTITY_TYPE_OPTIONS = ['生产企业', '消防场所']
 // 消防类型选项
 const FIRE_TYPE_OPTIONS = ['消防重点单位', '九小场所', '一般单位']
 
+// 月份选项（2025-07 至 2026-12）
+const MONTH_OPTIONS = [
+  '2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12',
+  '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06',
+  '2026-07', '2026-08', '2026-09', '2026-10', '2026-11', '2026-12',
+]
+
+// 月份多选组件
+function MonthMultiSelect({ selectedMonths, onChange }: {
+  selectedMonths: string[]
+  onChange: (months: string[]) => void
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useMemo(() => ({ current: null }), [])
+  
+  // 点击外部关闭下拉
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !(dropdownRef.current as any).contains(e.target)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [dropdownRef])
+  
+  const toggleMonth = (month: string) => {
+    if (selectedMonths.includes(month)) {
+      onChange(selectedMonths.filter(m => m !== month))
+    } else {
+      onChange([...selectedMonths, month])
+    }
+  }
+  
+  const selectAll = () => {
+    onChange([...MONTH_OPTIONS])
+  }
+  
+  const deselectAll = () => {
+    onChange([])
+  }
+  
+  const getDisplayText = () => {
+    if (selectedMonths.length === 0) return '选择月份'
+    if (selectedMonths.length === MONTH_OPTIONS.length) return '全部月份'
+    if (selectedMonths.length <= 2) return selectedMonths.join(', ')
+    return `已选${selectedMonths.length}个月`
+  }
+  
+  return (
+    <div style={{ position: 'relative' }} ref={dropdownRef as any}>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          padding: '6px 12px',
+          border: '1px solid #D1D5DB',
+          borderRadius: 4,
+          fontSize: 13,
+          color: selectedMonths.length > 0 ? '#4F46E5' : '#6B7280',
+          background: 'white',
+          cursor: 'pointer',
+          minWidth: 160,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+        }}
+      >
+        <span>{getDisplayText()}</span>
+        <span style={{ fontSize: 10, color: '#9CA3AF' }}>▼</span>
+      </div>
+      
+      {isOpen && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          marginTop: 4,
+          background: 'white',
+          border: '1px solid #E5E7EB',
+          borderRadius: 6,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          zIndex: 1000,
+          minWidth: 280,
+          maxHeight: 360,
+          overflowY: 'auto',
+          padding: 8,
+        }}>
+          {/* 操作按钮 */}
+          <div style={{
+            display: 'flex',
+            gap: 8,
+            marginBottom: 8,
+            paddingBottom: 8,
+            borderBottom: '1px solid #E5E7EB',
+          }}>
+            <button
+              onClick={selectAll}
+              style={{
+                flex: 1,
+                padding: '4px 8px',
+                border: '1px solid #4F46E5',
+                borderRadius: 4,
+                background: selectedMonths.length === MONTH_OPTIONS.length ? '#4F46E5' : 'white',
+                color: selectedMonths.length === MONTH_OPTIONS.length ? 'white' : '#4F46E5',
+                cursor: 'pointer',
+                fontSize: 12,
+              }}
+            >
+              全选
+            </button>
+            <button
+              onClick={deselectAll}
+              style={{
+                flex: 1,
+                padding: '4px 8px',
+                border: '1px solid #D1D5DB',
+                borderRadius: 4,
+                background: selectedMonths.length === 0 ? '#F3F4F6' : 'white',
+                color: '#6B7280',
+                cursor: 'pointer',
+                fontSize: 12,
+              }}
+            >
+              清空
+            </button>
+          </div>
+          
+          {/* 月份网格 */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 4,
+          }}>
+            {MONTH_OPTIONS.map(month => {
+              const isSelected = selectedMonths.includes(month)
+              const [year, mon] = month.split('-')
+              return (
+                <div
+                  key={month}
+                  onClick={() => toggleMonth(month)}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    textAlign: 'center',
+                    background: isSelected ? '#EEF2FF' : 'transparent',
+                    color: isSelected ? '#4F46E5' : '#374151',
+                    border: isSelected ? '1px solid #4F46E5' : '1px solid transparent',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => {
+                    if (!isSelected) e.currentTarget.style.background = '#F9FAFB'
+                  }}
+                  onMouseLeave={e => {
+                    if (!isSelected) e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  {`${year}年${parseInt(mon)}月`}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PlaceholderTab({ title }: { title: string }) {
   return (
     <div style={{ padding: '48px 24px', textAlign: 'center', color: '#9CA3AF' }}>
@@ -594,6 +764,772 @@ function TodoTabContent() {
   )
 }
 
+// ==================== 制度台账Tab Mock数据 ====================
+
+// 制度台账各维度完成状态
+interface SystemCompletion {
+  allComplete: boolean  // 是否全部完善
+  organization: boolean  // 机构与职责
+  investment: boolean    // 安全投入
+  institutional: boolean // 制度化管理
+  education: boolean     // 教育培训
+  dualPrevention: boolean // 双重预防
+  emergency: boolean    // 应急管理
+  accident: boolean     // 事故管理
+}
+
+// 生产企业制度台账统计
+interface ProductionSystemStat {
+  riskLevel: string
+  completion: SystemCompletion
+}
+
+// 消防场所制度台账统计
+interface FireSystemStat {
+  fireType: string
+  completion: SystemCompletion
+}
+
+// 企业制度台账明细
+interface EnterpriseSystemDetail {
+  enterpriseName: string
+  entityType: '生产企业' | '消防场所'
+  riskLevel: string
+  fireType: string
+  completion: SystemCompletion
+}
+
+// 生成随机完成状态
+const generateRandomCompletion = (): SystemCompletion => {
+  const allComplete = Math.random() > 0.5
+  const generateBool = () => allComplete || Math.random() > 0.5
+  
+  return {
+    allComplete,
+    organization: generateBool(),
+    investment: generateBool(),
+    institutional: generateBool(),
+    education: generateBool(),
+    dualPrevention: generateBool(),
+    emergency: generateBool(),
+    accident: generateBool(),
+  }
+}
+
+// 计算完成率
+const calcCompletionRate = (items: SystemCompletion[], key: keyof SystemCompletion): string => {
+  if (key === 'allComplete') {
+    const count = items.filter(item => item.allComplete).length
+    return items.length > 0 ? `${count}/${items.length}` : '0/0'
+  }
+  const count = items.filter(item => item[key]).length
+  return items.length > 0 ? `${count}/${items.length}` : '0/0'
+}
+
+// 格式化布尔值为图标
+const formatBool = (val: boolean): string => val ? '✓' : '✗'
+
+// 生成生产企业制度台账统计数据
+const generateProductionSystemStats = (): ProductionSystemStat[] => {
+  const riskLevels = ['重大风险', '较大风险', '一般风险', '低风险']
+  return riskLevels.map(riskLevel => ({
+    riskLevel,
+    completion: generateRandomCompletion(),
+  }))
+}
+
+// 生成消防场所制度台账统计数据
+const generateFireSystemStats = (): FireSystemStat[] => {
+  const fireTypes = ['消防重点单位', '九小场所', '一般单位']
+  return fireTypes.map(fireType => ({
+    fireType,
+    completion: generateRandomCompletion(),
+  }))
+}
+
+// 生成企业制度台账明细数据
+const generateEnterpriseSystemDetails = (): EnterpriseSystemDetail[] => {
+  const enterprises = [
+    { name: '杭州华兴消防设备有限公司', type: '生产企业' as const, risk: '重大风险', fire: '-' },
+    { name: '浙江久安安全科技有限公司', type: '生产企业' as const, risk: '较大风险', fire: '-' },
+    { name: '杭州五常消防工程有限公司', type: '生产企业' as const, risk: '一般风险', fire: '-' },
+    { name: '仁和街道工业园区管理委员会', type: '生产企业' as const, risk: '低风险', fire: '-' },
+    { name: '西虹桥经济开发区', type: '消防场所' as const, risk: '-', fire: '消防重点单位' },
+    { name: '良渚文化村社区服务中心', type: '消防场所' as const, risk: '-', fire: '九小场所' },
+    { name: '杭州消防器材厂', type: '生产企业' as const, risk: '重大风险', fire: '-' },
+    { name: '浙江安防科技有限公司', type: '生产企业' as const, risk: '较大风险', fire: '-' },
+    { name: '杭州应急装备有限公司', type: '消防场所' as const, risk: '-', fire: '一般单位' },
+    { name: '五常街道社区卫生服务中心', type: '消防场所' as const, risk: '-', fire: '九小场所' },
+    { name: '仁和街道中心小学', type: '消防场所' as const, risk: '-', fire: '消防重点单位' },
+    { name: '西虹街道便民服务中心', type: '消防场所' as const, risk: '-', fire: '一般单位' },
+  ]
+  
+  return enterprises.map(({ name, type, risk, fire }) => ({
+    enterpriseName: name,
+    entityType: type,
+    riskLevel: risk,
+    fireType: fire,
+    completion: generateRandomCompletion(),
+  }))
+}
+
+// 制度台账Tab内容组件
+function SystemTabContent() {
+  const productionStats = useMemo(() => generateProductionSystemStats(), [])
+  const fireStats = useMemo(() => generateFireSystemStats(), [])
+  const enterpriseDetails = useMemo(() => generateEnterpriseSystemDetails(), [])
+  
+  // 计算指标卡数据
+  const totalEnterprises = enterpriseDetails.length
+  const totalCompleted = enterpriseDetails.filter(e => e.completion.allComplete).length
+  
+  const productionEnterprises = enterpriseDetails.filter(e => e.entityType === '生产企业')
+  const productionCompleted = productionEnterprises.filter(e => e.completion.allComplete).length
+  
+  const fireEnterprises = enterpriseDetails.filter(e => e.entityType === '消防场所')
+  const fireCompleted = fireEnterprises.filter(e => e.completion.allComplete).length
+  
+  const kpiData = [
+    {
+      label: '已完善台账的总户数/监管总户数',
+      completed: totalCompleted,
+      total: totalEnterprises,
+      rate: totalEnterprises > 0 ? Math.round(totalCompleted / totalEnterprises * 100) : 0,
+      color: '#4F46E5',
+      bgColor: '#EEF2FF',
+    },
+    {
+      label: '生产企业已完善台账户数/生产企业总户数',
+      completed: productionCompleted,
+      total: productionEnterprises.length,
+      rate: productionEnterprises.length > 0 ? Math.round(productionCompleted / productionEnterprises.length * 100) : 0,
+      color: '#059669',
+      bgColor: '#F0FDF4',
+    },
+    {
+      label: '消防场所已完善台账户数/消防场所总户数',
+      completed: fireCompleted,
+      total: fireEnterprises.length,
+      rate: fireEnterprises.length > 0 ? Math.round(fireCompleted / fireEnterprises.length * 100) : 0,
+      color: '#D97706',
+      bgColor: '#FFFBEB',
+    },
+  ]
+  
+  // 表格列配置
+  const systemColumns = [
+    { key: 'allComplete', label: '是否全部完善' },
+    { key: 'organization', label: '机构与职责' },
+    { key: 'investment', label: '安全投入' },
+    { key: 'institutional', label: '制度化管理' },
+    { key: 'education', label: '教育培训' },
+    { key: 'dualPrevention', label: '双重预防' },
+    { key: 'emergency', label: '应急管理' },
+    { key: 'accident', label: '事故管理' },
+  ]
+  
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* 指标卡区域 */}
+      <div style={{ display: 'flex', gap: 16 }}>
+        {kpiData.map((kpi, idx) => (
+          <div
+            key={idx}
+            style={{
+              flex: 1,
+              background: 'white',
+              borderRadius: 8,
+              border: `1px solid ${kpi.color}20`,
+              padding: '16px 20px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            }}
+          >
+            <div style={{
+              fontSize: 12,
+              fontWeight: 500,
+              color: '#6B7280',
+              marginBottom: 8,
+            }}>
+              {kpi.label}
+            </div>
+            
+            <div style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 8,
+              marginBottom: 8,
+            }}>
+              <span style={{ fontSize: 28, fontWeight: 700, color: kpi.color }}>
+                {kpi.completed}
+              </span>
+              <span style={{ fontSize: 14, color: '#9CA3AF' }}>
+                / {kpi.total}
+              </span>
+            </div>
+            
+            <div style={{
+              fontSize: 12,
+              color: '#9CA3AF',
+            }}>
+              完善率：<span style={{ color: kpi.color, fontWeight: 600 }}>{kpi.rate}%</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {/* 生产企业制度台账完善情况统计 */}
+      <div style={{
+        background: 'white',
+        borderRadius: 8,
+        border: '1px solid #E5E7EB',
+        padding: '16px 20px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      }}>
+        <div style={{
+          fontSize: 14,
+          fontWeight: 600,
+          color: '#374151',
+          marginBottom: 16,
+        }}>
+          生产企业制度台账完善情况统计（按风险等级）
+        </div>
+        
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: 13,
+          }}>
+            <thead>
+              <tr style={{ background: '#F9FAFB' }}>
+                <th style={{
+                  padding: '10px 12px',
+                  textAlign: 'left',
+                  fontWeight: 600,
+                  color: '#374151',
+                  borderBottom: '2px solid #E5E7EB',
+                  position: 'sticky',
+                  left: 0,
+                  background: '#F9FAFB',
+                  minWidth: 120,
+                }}>
+                  风险等级
+                </th>
+                {systemColumns.map(col => (
+                  <th key={col.key} style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    fontWeight: 600,
+                    color: '#6B7280',
+                    borderBottom: '2px solid #E5E7EB',
+                    borderLeft: '1px solid #E5E7EB',
+                    minWidth: 100,
+                  }}>
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {productionStats.map((stat, idx) => (
+                <tr 
+                  key={stat.riskLevel}
+                  style={{
+                    background: idx % 2 === 0 ? 'white' : '#F9FAFB',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
+                  onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#F9FAFB'}
+                >
+                  <td style={{
+                    padding: '10px 12px',
+                    fontWeight: 500,
+                    color: '#374151',
+                    borderBottom: '1px solid #F3F4F6',
+                    position: 'sticky',
+                    left: 0,
+                    background: idx % 2 === 0 ? 'white' : '#F9FAFB',
+                  }}>
+                    {stat.riskLevel}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.allComplete ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.allComplete ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.allComplete)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.organization ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.organization ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.organization)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.investment ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.investment ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.investment)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.institutional ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.institutional ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.institutional)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.education ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.education ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.education)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.dualPrevention ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.dualPrevention ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.dualPrevention)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.emergency ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.emergency ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.emergency)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.accident ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.accident ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.accident)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      {/* 消防场所制度台账完善情况统计 */}
+      <div style={{
+        background: 'white',
+        borderRadius: 8,
+        border: '1px solid #E5E7EB',
+        padding: '16px 20px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      }}>
+        <div style={{
+          fontSize: 14,
+          fontWeight: 600,
+          color: '#374151',
+          marginBottom: 16,
+        }}>
+          消防场所制度台账完善情况统计（按消防类型）
+        </div>
+        
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: 13,
+          }}>
+            <thead>
+              <tr style={{ background: '#F9FAFB' }}>
+                <th style={{
+                  padding: '10px 12px',
+                  textAlign: 'left',
+                  fontWeight: 600,
+                  color: '#374151',
+                  borderBottom: '2px solid #E5E7EB',
+                  position: 'sticky',
+                  left: 0,
+                  background: '#F9FAFB',
+                  minWidth: 120,
+                }}>
+                  消防类型
+                </th>
+                {systemColumns.map(col => (
+                  <th key={col.key} style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    fontWeight: 600,
+                    color: '#6B7280',
+                    borderBottom: '2px solid #E5E7EB',
+                    borderLeft: '1px solid #E5E7EB',
+                    minWidth: 100,
+                  }}>
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {fireStats.map((stat, idx) => (
+                <tr 
+                  key={stat.fireType}
+                  style={{
+                    background: idx % 2 === 0 ? 'white' : '#F9FAFB',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
+                  onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#F9FAFB'}
+                >
+                  <td style={{
+                    padding: '10px 12px',
+                    fontWeight: 500,
+                    color: '#374151',
+                    borderBottom: '1px solid #F3F4F6',
+                    position: 'sticky',
+                    left: 0,
+                    background: idx % 2 === 0 ? 'white' : '#F9FAFB',
+                  }}>
+                    {stat.fireType}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.allComplete ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.allComplete ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.allComplete)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.organization ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.organization ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.organization)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.investment ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.investment ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.investment)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.institutional ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.institutional ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.institutional)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.education ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.education ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.education)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.dualPrevention ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.dualPrevention ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.dualPrevention)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.emergency ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.emergency ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.emergency)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: stat.completion.accident ? '#059669' : '#DC2626',
+                    fontWeight: stat.completion.accident ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(stat.completion.accident)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      {/* 制度台账明细表 */}
+      <div style={{
+        background: 'white',
+        borderRadius: 8,
+        border: '1px solid #E5E7EB',
+        padding: '16px 20px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      }}>
+        <div style={{
+          fontSize: 14,
+          fontWeight: 600,
+          color: '#374151',
+          marginBottom: 16,
+        }}>
+          制度台账明细（按企业名称）
+        </div>
+        
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: 13,
+          }}>
+            <thead>
+              <tr style={{ background: '#F9FAFB' }}>
+                <th style={{
+                  padding: '10px 12px',
+                  textAlign: 'left',
+                  fontWeight: 600,
+                  color: '#374151',
+                  borderBottom: '2px solid #E5E7EB',
+                  position: 'sticky',
+                  left: 0,
+                  background: '#F9FAFB',
+                  minWidth: 180,
+                }}>
+                  企业名称
+                </th>
+                <th style={{
+                  padding: '10px 12px',
+                  textAlign: 'center',
+                  fontWeight: 600,
+                  color: '#6B7280',
+                  borderBottom: '2px solid #E5E7EB',
+                  borderLeft: '1px solid #E5E7EB',
+                  minWidth: 100,
+                }}>
+                  责任主体类型
+                </th>
+                <th style={{
+                  padding: '10px 12px',
+                  textAlign: 'center',
+                  fontWeight: 600,
+                  color: '#6B7280',
+                  borderBottom: '2px solid #E5E7EB',
+                  borderLeft: '1px solid #E5E7EB',
+                  minWidth: 100,
+                }}>
+                  风险等级/消防类型
+                </th>
+                {systemColumns.map(col => (
+                  <th key={col.key} style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    fontWeight: 600,
+                    color: '#6B7280',
+                    borderBottom: '2px solid #E5E7EB',
+                    borderLeft: '1px solid #E5E7EB',
+                    minWidth: 100,
+                  }}>
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {enterpriseDetails.map((detail, idx) => (
+                <tr 
+                  key={detail.enterpriseName}
+                  style={{
+                    background: idx % 2 === 0 ? 'white' : '#F9FAFB',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
+                  onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#F9FAFB'}
+                >
+                  <td style={{
+                    padding: '10px 12px',
+                    fontWeight: 500,
+                    color: '#374151',
+                    borderBottom: '1px solid #F3F4F6',
+                    position: 'sticky',
+                    left: 0,
+                    background: idx % 2 === 0 ? 'white' : '#F9FAFB',
+                  }}>
+                    {detail.enterpriseName}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: '#6B7280',
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                  }}>
+                    {detail.entityType}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: '#6B7280',
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                  }}>
+                    {detail.entityType === '生产企业' ? detail.riskLevel : detail.fireType}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: detail.completion.allComplete ? '#059669' : '#DC2626',
+                    fontWeight: detail.completion.allComplete ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(detail.completion.allComplete)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: detail.completion.organization ? '#059669' : '#DC2626',
+                    fontWeight: detail.completion.organization ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(detail.completion.organization)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: detail.completion.investment ? '#059669' : '#DC2626',
+                    fontWeight: detail.completion.investment ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(detail.completion.investment)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: detail.completion.institutional ? '#059669' : '#DC2626',
+                    fontWeight: detail.completion.institutional ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(detail.completion.institutional)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: detail.completion.education ? '#059669' : '#DC2626',
+                    fontWeight: detail.completion.education ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(detail.completion.education)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: detail.completion.dualPrevention ? '#059669' : '#DC2626',
+                    fontWeight: detail.completion.dualPrevention ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(detail.completion.dualPrevention)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: detail.completion.emergency ? '#059669' : '#DC2626',
+                    fontWeight: detail.completion.emergency ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(detail.completion.emergency)}
+                  </td>
+                  <td style={{
+                    padding: '10px 12px',
+                    textAlign: 'center',
+                    color: detail.completion.accident ? '#059669' : '#DC2626',
+                    fontWeight: detail.completion.accident ? 600 : 400,
+                    borderBottom: '1px solid #F3F4F6',
+                    borderLeft: '1px solid #F3F4F6',
+                    fontSize: 16,
+                  }}>
+                    {formatBool(detail.completion.accident)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function EnterpriseDashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -606,6 +1542,7 @@ export function EnterpriseDashboard() {
   const [filterEntityType, setFilterEntityType] = useState<string>('all')  // 责任主体类型
   const [filterFireType, setFilterFireType] = useState<string>('all')  // 消防类型
   const [filterEnterpriseName, setFilterEnterpriseName] = useState<string>('')  // 企业名称搜索
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([])  // 月份多选
 
   const handleTabChange = (key: TabKey) => {
     setSearchParams({ tab: key })
@@ -618,9 +1555,10 @@ export function EnterpriseDashboard() {
     setFilterEntityType('all')
     setFilterFireType('all')
     setFilterEnterpriseName('')
+    setSelectedMonths([])
   }
 
-  const hasActiveFilters = filterTown !== 'all' || filterRiskLevel !== 'all' || filterEntityType !== 'all' || filterFireType !== 'all' || filterEnterpriseName !== ''
+  const hasActiveFilters = filterTown !== 'all' || filterRiskLevel !== 'all' || filterEntityType !== 'all' || filterFireType !== 'all' || filterEnterpriseName !== '' || selectedMonths.length > 0
 
   return (
     <div style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
@@ -735,6 +1673,9 @@ export function EnterpriseDashboard() {
             minWidth: 180,
           }}
         />
+
+        {/* 月份多选 */}
+        <MonthMultiSelect selectedMonths={selectedMonths} onChange={setSelectedMonths} />
 
         {/* 重置筛选 */}
         {hasActiveFilters && (
