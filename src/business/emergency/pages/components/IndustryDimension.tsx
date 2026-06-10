@@ -15,6 +15,7 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [tagModalOpen, setTagModalOpen] = useState(false)
   const [tagSearch, setTagSearch] = useState('')
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([])
 
   // 加载数据
   useEffect(() => {
@@ -656,38 +657,61 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
                 />
               </div>
               <div style={{ flex: 1, overflowY: 'auto', marginBottom: 16 }}>
-                {filteredTagGroups.map(group => (
-                  <div key={group.category} style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid #F3F4F6' }}>
-                      {group.category}
+                {filteredTagGroups.map(group => {
+                  const isExpanded = expandedCategories.includes(group.category)
+                  return (
+                    <div key={group.category} style={{ marginBottom: 8 }}>
+                      <div
+                        onClick={() => {
+                          setExpandedCategories(prev =>
+                            prev.includes(group.category)
+                              ? prev.filter(c => c !== group.category)
+                              : [...prev, group.category]
+                          )
+                        }}
+                        style={{
+                          fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8,
+                          paddingBottom: 4, borderBottom: '1px solid #F3F4F6',
+                          cursor: 'pointer', userSelect: 'none',
+                          display: 'flex', alignItems: 'center', gap: 6,
+                        }}
+                      >
+                        <span style={{ fontSize: 10, color: '#9CA3AF', width: 12, display: 'inline-block' }}>
+                          {isExpanded ? '▼' : '▶'}
+                        </span>
+                        {group.category}
+                        <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}>({group.tags.length})</span>
+                      </div>
+                      {isExpanded && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingLeft: 18 }}>
+                          {group.tags.map(tag => {
+                            const fullTag = `${group.category}：${tag}`
+                            const isSelected = selectedTags.includes(fullTag)
+                            return (
+                              <span
+                                key={fullTag}
+                                onClick={() => toggleTag(fullTag)}
+                                style={{
+                                  padding: '4px 12px',
+                                  borderRadius: 16,
+                                  border: '1px solid',
+                                  borderColor: isSelected ? '#4F46E5' : '#D1D5DB',
+                                  background: isSelected ? '#EEF2FF' : 'white',
+                                  color: isSelected ? '#4F46E5' : '#6B7280',
+                                  fontSize: 13,
+                                  cursor: 'pointer',
+                                  userSelect: 'none',
+                                }}
+                              >
+                                {tag}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {group.tags.map(tag => {
-                        const fullTag = `${group.category}：${tag}`
-                        const isSelected = selectedTags.includes(fullTag)
-                        return (
-                          <span
-                            key={fullTag}
-                            onClick={() => toggleTag(fullTag)}
-                            style={{
-                              padding: '4px 12px',
-                              borderRadius: 16,
-                              border: '1px solid',
-                              borderColor: isSelected ? '#4F46E5' : '#D1D5DB',
-                              background: isSelected ? '#EEF2FF' : 'white',
-                              color: isSelected ? '#4F46E5' : '#6B7280',
-                              fontSize: 13,
-                              cursor: 'pointer',
-                              userSelect: 'none',
-                            }}
-                          >
-                            {fullTag}
-                          </span>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
                 {filteredTagGroups.length === 0 && (
                   <div style={{ color: '#9CA3AF', fontSize: 13, padding: '20px 0', textAlign: 'center', width: '100%' }}>未找到匹配的标签</div>
                 )}
@@ -696,22 +720,27 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
                 <div style={{ marginBottom: 12, padding: '8px 12px', background: '#F9FAFB', borderRadius: 4 }}>
                   <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }}>已选标签：</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {selectedTags.map(tag => (
-                      <span
-                        key={tag}
-                        onClick={() => toggleTag(tag)}
-                        style={{
-                          padding: '2px 8px',
-                          borderRadius: 12,
-                          background: '#EEF2FF',
-                          color: '#4F46E5',
-                          fontSize: 12,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {tag} ×
-                      </span>
-                    ))}
+                    {selectedTags.map(tag => {
+                      // 只显示二级标签名（去掉"一级：")
+                      const parts = tag.split('：')
+                      const displayTag = parts.length > 1 ? parts[1] : tag
+                      return (
+                        <span
+                          key={tag}
+                          onClick={() => toggleTag(tag)}
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                            background: '#EEF2FF',
+                            color: '#4F46E5',
+                            fontSize: 12,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {displayTag} ×
+                        </span>
+                      )
+                    })}
                   </div>
                 </div>
               )}
