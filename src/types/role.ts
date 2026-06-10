@@ -127,9 +127,9 @@ export const emergencyConfig: BusinessLine = {
     },
     {
       id: 'station-chief-v2',
-      name: '站长(V2)',
-      title: '站长看板 V2（新维度）',
-      description: '基于通用维度模型构建的新版站长看板，与旧版对比参考',
+      name: '镇街数据看板',
+      title: '镇街数据看板',
+      description: '基于通用维度模型构建的镇街应急消防数据看板',
       goals: [
         '从组织与人员维度审视辖区安全治理',
         '通过风险、执行、成效多维度观察',
