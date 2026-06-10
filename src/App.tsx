@@ -8,6 +8,7 @@ import { SalesDashboard } from './business/quickbi/pages/SalesDashboard'
 // import { GovernmentLeaderDashboard } from './business/emergency/pages/GovernmentLeaderDashboard'
 import { StationChiefDashboard } from './business/emergency/pages/StationChiefDashboard'
 import { StationChiefV2Dashboard } from './business/emergency/pages/StationChiefV2Dashboard'
+import { EnterpriseDashboard } from './business/emergency/pages/EnterpriseDashboard'
 import { EnterpriseBossDashboard } from './business/emergency/pages/EnterpriseBossDashboard'
 import { ExpertApp } from './business/expert/ExpertApp'
 
@@ -30,6 +31,7 @@ const ROLE_PATHS: Record<string, Record<string, string>> = {
     'expert-workbench': '/emergency/expert/queue',
     'enterprise-boss': '/emergency/enterprise-boss',
     'monthly-report': '/emergency/monthly-report',
+    'enterprise-dashboard': '/emergency/enterprise-dashboard',
   },
 }
 
@@ -129,6 +131,7 @@ function App() {
           <Route path="/emergency/station-chief-v2" element={<StationChiefV2Dashboard />} />
           <Route path="/emergency/expert/*" element={<ExpertApp />} />
           <Route path="/emergency/enterprise-boss" element={<EnterpriseBossDashboard />} />
+          <Route path="/emergency/enterprise-dashboard" element={<EnterpriseDashboard />} />
           <Route path="/emergency/monthly-report" element={<PlaceholderPage title="月度报告" />} />
 
           <Route path="*" element={<Navigate to="/emergency/station-chief-v2" replace />} />
