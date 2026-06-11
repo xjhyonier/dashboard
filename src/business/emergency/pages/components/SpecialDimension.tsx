@@ -369,7 +369,7 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
       <div style={{ marginTop: 24, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid #E5E7EB', background: '#F9FAFB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>
-            {selectedTask ? `高频问题汇总（${selectedTask.name}）` : '高频问题汇总（全部任务）'}
+            {selectedTask ? `高频问题汇总（${selectedTask.name}）` : '高频问题汇总（非实时数据，隔日更新）'}
           </div>
           {selectedTask && (
             <button 

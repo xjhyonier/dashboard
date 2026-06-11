@@ -551,9 +551,9 @@ export function IndustryDimension({ dateRange, riskLevel, timeRange, selectedKpi
         </div>
       </div>
 
-      {/* 标签隐患分析统计表 */}
+      {/* 标签隐患分析统计表（非实时数据，隔日更新） */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>标签隐患分析统计表</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937', marginBottom: 8 }}>标签隐患分析统计表（非实时数据，隔日更新）</div>
         {/* 标签选择器入口 */}
         <div style={{ marginBottom: 8 }}>
           <button
