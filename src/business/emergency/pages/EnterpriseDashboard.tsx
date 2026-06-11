@@ -483,12 +483,34 @@ function TodoTabContent() {
             />
             <Legend 
               wrapperStyle={{ fontSize: 12, paddingTop: 16 }}
-              payload={[
-                { value: '待办数量', type: 'rect', color: '#4F46E5' },
-                { value: '已读待办数', type: 'rect', color: '#3B82F6' },
-                { value: '已整改待办数', type: 'rect', color: '#059669' },
-                { value: '已读待办整改率', type: 'line', color: '#D97706' },
-              ]}
+              content={() => {
+                const items = [
+                  { value: '待办数量', color: '#4F46E5', type: 'rect' },
+                  { value: '已读待办数', color: '#3B82F6', type: 'rect' },
+                  { value: '已整改待办数', color: '#059669', type: 'rect' },
+                  { value: '已读待办整改率', color: '#D97706', type: 'line' },
+                ]
+                return (
+                  <ul className="recharts-default-legend" style={{ display: 'flex', justifyContent: 'center', gap: 16, listStyle: 'none', padding: 0, margin: 0 }}>
+                    {items.map((item) => (
+                      <li key={item.value} style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#374151' }}>
+                        {item.type === 'rect' ? (
+                          <svg width={14} height={14} viewBox="0 0 14 14">
+                            <rect width={14} height={14} fill={item.color} rx={2} />
+                          </svg>
+                        ) : (
+                          <svg width={20} height={14} viewBox="0 0 20 14">
+                            <line x1={2} y1={7} x2={18} y2={7} stroke={item.color} strokeWidth={3} strokeLinecap="round" />
+                            <circle cx={4} cy={7} r={3} fill={item.color} />
+                            <circle cx={16} cy={7} r={3} fill={item.color} />
+                          </svg>
+                        )}
+                        <span style={{ fontSize: 12 }}>{item.value}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )
+              }}
             />
             <Bar 
               yAxisId="left"
