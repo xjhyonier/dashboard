@@ -513,6 +513,7 @@ function TodoTabContent() {
               type="monotone" 
               dataKey="totalRate" 
               name="已读待办整改率" 
+              unit="%"
               stroke="#D97706" 
               strokeWidth={2}
               dot={{ r: 4 }}
