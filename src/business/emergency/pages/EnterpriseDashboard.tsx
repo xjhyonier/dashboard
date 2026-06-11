@@ -1873,6 +1873,127 @@ function EducationTabContent() {
   )
 }
 
+// 现场管理月度数据
+interface SiteMonthlyData {
+  month: string
+  workPermitCount: number    // 作业票数量
+  workPermitReportCount: number // 作业票报备数量
+}
+
+// 企业现场管理明细
+interface EnterpriseSiteDetail {
+  enterpriseName: string
+  workPermitCount: number
+  workPermitReportCount: number
+}
+
+const generateSiteMonthlyData = (): SiteMonthlyData[] => {
+  const months = [
+    '2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12',
+    '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'
+  ]
+  return months.map(month => {
+    const count = Math.floor(Math.random() * 60) + 20
+    return {
+      month,
+      workPermitCount: count,
+      workPermitReportCount: Math.floor(count * (0.6 + Math.random() * 0.3)),
+    }
+  })
+}
+
+const generateEnterpriseSiteDetails = (): EnterpriseSiteDetail[] => {
+  const enterprises = [
+    '杭州华兴消防设备有限公司', '浙江久安安全科技有限公司', '杭州五常消防工程有限公司',
+    '仁和街道工业园区管理委员会', '西虹桥经济开发区', '良渚文化村社区服务中心',
+    '杭州消防器材厂', '浙江安防科技有限公司', '杭州应急装备有限公司',
+    '五常街道社区卫生服务中心', '仁和街道中心小学', '西虹街道便民服务中心'
+  ]
+  return enterprises.map(name => ({
+    enterpriseName: name,
+    workPermitCount: Math.floor(Math.random() * 40) + 5,
+    workPermitReportCount: Math.floor(Math.random() * 35) + 3,
+  })).sort((a, b) => b.workPermitCount - a.workPermitCount)
+}
+
+// 现场管理Tab内容组件
+function SiteTabContent() {
+  const monthlyData = useMemo(() => generateSiteMonthlyData(), [])
+  const enterpriseDetails = useMemo(() => generateEnterpriseSiteDetails(), [])
+
+  const latest = monthlyData[monthlyData.length - 1]
+
+  const kpis = [
+    { label: '作业票数量', value: latest.workPermitCount, color: '#4F46E5' },
+    { label: '作业票报备数量', value: latest.workPermitReportCount, color: '#059669' },
+  ]
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* 指标卡 + 折线图 */}
+      <div style={{ display: 'flex', gap: 16 }}>
+        {/* 左侧：指标卡 */}
+        <div style={{ flex: '0 0 220px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 4 }}>现场管理</div>
+          {kpis.map(kpi => (
+            <div key={kpi.label} style={{
+              background: 'white', borderRadius: 6,
+              border: `1px solid ${kpi.color}20`, padding: '12px 14px',
+            }}>
+              <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{kpi.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* 右侧：折线图 */}
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px', minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 12 }}>月度变化趋势</div>
+          <ResponsiveContainer width="100%" height={280}>
+            <ComposedChart data={monthlyData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+              <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+              <Tooltip contentStyle={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
+              <Line type="monotone" dataKey="workPermitCount" name="作业票数量" stroke="#4F46E5" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+              <Line type="monotone" dataKey="workPermitReportCount" name="作业票报备数量" stroke="#059669" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* 企业明细表 */}
+      <div style={{ background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 16 }}>企业明细表（按企业名称）</div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: '#F9FAFB' }}>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '2px solid #E5E7EB', position: 'sticky', left: 0, background: '#F9FAFB', minWidth: 180 }}>企业名称</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#4F46E5', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 120 }}>作业票数量</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#059669', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 120 }}>作业票报备数量</th>
+              </tr>
+            </thead>
+            <tbody>
+              {enterpriseDetails.map((detail, idx) => (
+                <tr key={detail.enterpriseName} style={{ background: idx % 2 === 0 ? 'white' : '#F9FAFB' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
+                  onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#F9FAFB'}>
+                  <td style={{ padding: '10px 12px', fontWeight: 500, color: '#374151', borderBottom: '1px solid #F3F4F6', position: 'sticky', left: 0, background: idx % 2 === 0 ? 'white' : '#F9FAFB' }}>{detail.enterpriseName}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#4F46E5', fontWeight: 600, borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #F3F4F6' }}>{detail.workPermitCount}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#059669', fontWeight: 600, borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #F3F4F6' }}>{detail.workPermitReportCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
 export function EnterpriseDashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -2077,7 +2198,7 @@ export function EnterpriseDashboard() {
       {activeTab === 'todo' && <TodoTabContent />}
       {activeTab === 'system' && <SystemTabContent />}
       {activeTab === 'education' && <EducationTabContent />}
-      {activeTab === 'site' && <PlaceholderTab title="现场管理" />}
+      {activeTab === 'site' && <SiteTabContent />}
       {activeTab === 'dualPrevention' && <PlaceholderTab title="双重预防" />}
       {activeTab === 'tenant' && <PlaceholderTab title="入驻单位管理" />}
     </div>
