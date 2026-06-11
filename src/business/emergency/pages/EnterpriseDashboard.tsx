@@ -483,6 +483,12 @@ function TodoTabContent() {
             />
             <Legend 
               wrapperStyle={{ fontSize: 12, paddingTop: 16 }}
+              payload={[
+                { value: '待办数量', type: 'rect', color: '#4F46E5' },
+                { value: '已读待办数', type: 'rect', color: '#3B82F6' },
+                { value: '已整改待办数', type: 'rect', color: '#059669' },
+                { value: '已读待办整改率', type: 'line', color: '#D97706' },
+              ]}
             />
             <Bar 
               yAxisId="left"
