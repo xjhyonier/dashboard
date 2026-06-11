@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 
 type TabKey = 'overview' | 'todo' | 'system' | 'education' | 'site' | 'dualPrevention' | 'tenant'
@@ -433,7 +433,7 @@ function TodoTabContent() {
         ))}
       </div>
       
-      {/* 折线图区域 */}
+      {/* 柱状图+折线图区域 */}
       <div style={{
         background: 'white',
         borderRadius: 8,
@@ -451,7 +451,7 @@ function TodoTabContent() {
         </div>
         
         <ResponsiveContainer width="100%" height={350}>
-          <LineChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+          <ComposedChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
             <XAxis 
               dataKey="month" 
@@ -484,35 +484,29 @@ function TodoTabContent() {
             <Legend 
               wrapperStyle={{ fontSize: 12, paddingTop: 16 }}
             />
-            <Line 
+            <Bar 
               yAxisId="left"
-              type="monotone" 
               dataKey="totalCount" 
               name="待办数量" 
-              stroke="#4F46E5" 
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              activeDot={{ r: 5 }}
+              fill="#4F46E5" 
+              barSize={20}
+              radius={[4, 4, 0, 0]}
             />
-            <Line 
+            <Bar 
               yAxisId="left"
-              type="monotone" 
               dataKey="totalRead" 
               name="已读待办数" 
-              stroke="#3B82F6" 
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              activeDot={{ r: 5 }}
+              fill="#3B82F6" 
+              barSize={20}
+              radius={[4, 4, 0, 0]}
             />
-            <Line 
+            <Bar 
               yAxisId="left"
-              type="monotone" 
               dataKey="totalRectified" 
               name="已整改待办数" 
-              stroke="#059669" 
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              activeDot={{ r: 5 }}
+              fill="#059669" 
+              barSize={20}
+              radius={[4, 4, 0, 0]}
             />
             <Line 
               yAxisId="right"
@@ -521,10 +515,10 @@ function TodoTabContent() {
               name="已读待办整改率" 
               stroke="#D97706" 
               strokeWidth={2}
-              dot={{ r: 3 }}
-              activeDot={{ r: 5 }}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
             />
-          </LineChart>
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
       
