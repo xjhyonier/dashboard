@@ -1994,6 +1994,333 @@ function SiteTabContent() {
   )
 }
 
+// 双重预防月度数据
+interface DualPreventionMonthlyData {
+  month: string
+  dailyTotal: number
+  dailyCompleted: number
+  dailyOverdue: number
+  hiddenConfirmed: number
+  hiddenMajor: number
+  hiddenRectified: number
+  hiddenOverdue: number
+}
+
+interface EnterpriseDualPreventionDetail {
+  enterpriseName: string
+  riskTotal: number
+  riskMajor: number
+  riskHigh: number
+  riskMedium: number
+  riskLow: number
+  dailyStart: number
+  dailySelfCheck: number
+  dailyTotal: number
+  dailyCompleted: number
+  dailyOverdue: number
+  dailyRate: number
+  specialTotal: number
+  specialCompleted: number
+  specialOverdue: number
+  specialRate: number
+  superviseTotal: number
+  superviseCompleted: number
+  superviseOverdue: number
+  superviseRate: number
+  hiddenConfirmed: number
+  hiddenMajor: number
+  hiddenRectified: number
+  hiddenOverdue: number
+  hiddenRate: number
+}
+
+const generateDualPreventionMonthlyData = (): DualPreventionMonthlyData[] => {
+  const months = [
+    '2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12',
+    '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'
+  ]
+  return months.map(month => {
+    const dailyTotal = Math.floor(Math.random() * 80) + 40
+    const dailyCompleted = Math.floor(dailyTotal * (0.6 + Math.random() * 0.3))
+    const confirmed = Math.floor(Math.random() * 50) + 20
+    const rectified = Math.floor(confirmed * (0.5 + Math.random() * 0.4))
+    return {
+      month,
+      dailyTotal,
+      dailyCompleted,
+      dailyOverdue: dailyTotal - dailyCompleted,
+      hiddenConfirmed: confirmed,
+      hiddenMajor: Math.floor(Math.random() * 8) + 1,
+      hiddenRectified: rectified,
+      hiddenOverdue: confirmed - rectified,
+    }
+  })
+}
+
+const generateEnterpriseDualPreventionDetails = (): EnterpriseDualPreventionDetail[] => {
+  const enterprises = [
+    '杭州华兴消防设备有限公司', '浙江久安安全科技有限公司', '杭州五常消防工程有限公司',
+    '仁和街道工业园区管理委员会', '西虹桥经济开发区', '良渚文化村社区服务中心',
+    '杭州消防器材厂', '浙江安防科技有限公司', '杭州应急装备有限公司',
+    '五常街道社区卫生服务中心', '仁和街道中心小学', '西虹街道便民服务中心'
+  ]
+  return enterprises.map(name => {
+    const riskTotal = Math.floor(Math.random() * 30) + 10
+    const riskMajor = Math.floor(Math.random() * 5)
+    const riskHigh = Math.floor(Math.random() * 8) + 2
+    const riskMedium = Math.floor(Math.random() * 10) + 3
+    const dailyTotal = Math.floor(Math.random() * 50) + 10
+    const dailyCompleted = Math.floor(dailyTotal * (0.6 + Math.random() * 0.3))
+    const specialTotal = Math.floor(Math.random() * 20) + 5
+    const specialCompleted = Math.floor(specialTotal * (0.6 + Math.random() * 0.3))
+    const superviseTotal = Math.floor(Math.random() * 15) + 3
+    const superviseCompleted = Math.floor(superviseTotal * (0.7 + Math.random() * 0.25))
+    const confirmed = Math.floor(Math.random() * 25) + 5
+    const rectified = Math.floor(confirmed * (0.6 + Math.random() * 0.3))
+    return {
+      enterpriseName: name,
+      riskTotal,
+      riskMajor,
+      riskHigh,
+      riskMedium,
+      riskLow: riskTotal - riskMajor - riskHigh - riskMedium,
+      dailyStart: Math.floor(Math.random() * 10) + 2,
+      dailySelfCheck: Math.floor(Math.random() * 8) + 1,
+      dailyTotal, dailyCompleted, dailyOverdue: dailyTotal - dailyCompleted,
+      dailyRate: dailyTotal > 0 ? Math.round(dailyCompleted / dailyTotal * 100) : 0,
+      specialTotal, specialCompleted, specialOverdue: specialTotal - specialCompleted,
+      specialRate: specialTotal > 0 ? Math.round(specialCompleted / specialTotal * 100) : 0,
+      superviseTotal, superviseCompleted, superviseOverdue: superviseTotal - superviseCompleted,
+      superviseRate: superviseTotal > 0 ? Math.round(superviseCompleted / superviseTotal * 100) : 0,
+      hiddenConfirmed: confirmed,
+      hiddenMajor: Math.floor(Math.random() * 3),
+      hiddenRectified: rectified,
+      hiddenOverdue: confirmed - rectified,
+      hiddenRate: confirmed > 0 ? Math.round(rectified / confirmed * 100) : 0,
+    }
+  }).sort((a, b) => b.riskTotal - a.riskTotal)
+}
+
+// 双重预防Tab内容组件
+function DualPreventionTabContent() {
+  const monthlyData = useMemo(() => generateDualPreventionMonthlyData(), [])
+  const enterpriseDetails = useMemo(() => generateEnterpriseDualPreventionDetails(), [])
+
+  const totalEnterprise = enterpriseDetails.length
+  const totalTasks = enterpriseDetails.reduce((s, e) => s + e.dailyTotal + e.specialTotal + e.superviseTotal, 0)
+  const totalCompleted = enterpriseDetails.reduce((s, e) => s + e.dailyCompleted + e.specialCompleted + e.superviseCompleted, 0)
+  const totalRisk = enterpriseDetails.reduce((s, e) => s + e.riskTotal, 0)
+  const sumDaily = enterpriseDetails.reduce((s, e) => s + e.dailyTotal, 0)
+  const sumDailyCompleted = enterpriseDetails.reduce((s, e) => s + e.dailyCompleted, 0)
+  const sumSpecial = enterpriseDetails.reduce((s, e) => s + e.specialTotal, 0)
+  const sumSpecialCompleted = enterpriseDetails.reduce((s, e) => s + e.specialCompleted, 0)
+  const sumSupervise = enterpriseDetails.reduce((s, e) => s + e.superviseTotal, 0)
+  const sumSuperviseCompleted = enterpriseDetails.reduce((s, e) => s + e.superviseCompleted, 0)
+  const sumConfirmed = enterpriseDetails.reduce((s, e) => s + e.hiddenConfirmed, 0)
+  const sumRectified = enterpriseDetails.reduce((s, e) => s + e.hiddenRectified, 0)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* 1. 风险点数量 */}
+      <div style={{ background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 16 }}>风险点数量</div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {[
+            { label: '风险点总数', value: totalRisk, color: '#4F46E5' },
+            { label: '重大风险', value: enterpriseDetails.reduce((s, e) => s + e.riskMajor, 0), color: '#DC2626' },
+            { label: '较大风险', value: enterpriseDetails.reduce((s, e) => s + e.riskHigh, 0), color: '#D97706' },
+            { label: '一般风险', value: enterpriseDetails.reduce((s, e) => s + e.riskMedium, 0), color: '#F59E0B' },
+            { label: '低风险', value: enterpriseDetails.reduce((s, e) => s + e.riskLow, 0), color: '#059669' },
+          ].map(kpi => (
+            <div key={kpi.label} style={{ background: 'white', borderRadius: 6, border: `1px solid ${kpi.color}20`, padding: '10px 14px', minWidth: 110 }}>
+              <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{kpi.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 2. 隐患排查治理 */}
+      <div style={{ background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 16 }}>隐患排查治理</div>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+          {[
+            { label: '监管总户数', value: totalEnterprise, color: '#4F46E5' },
+            { label: '总任务数', value: totalTasks, color: '#3B82F6' },
+            { label: '已完成任务数', value: totalCompleted, color: '#059669' },
+          ].map(kpi => (
+            <div key={kpi.label} style={{ background: 'white', borderRadius: 6, border: `1px solid ${kpi.color}20`, padding: '10px 14px', minWidth: 110 }}>
+              <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{kpi.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {['日常检查统计', '专项检查统计', '监督检查统计'].map((title, si) => {
+          const totalKeys: (keyof EnterpriseDualPreventionDetail)[] = ['dailyTotal', 'specialTotal', 'superviseTotal']
+          const completedKeys: (keyof EnterpriseDualPreventionDetail)[] = ['dailyCompleted', 'specialCompleted', 'superviseCompleted']
+          const overdueKeys: (keyof EnterpriseDualPreventionDetail)[] = ['dailyOverdue', 'specialOverdue', 'superviseOverdue']
+          const extras = si === 0 ? [
+            { label: '启用户数', val: enterpriseDetails.reduce((s, e) => s + e.dailyStart, 0), clr: '#4F46E5' },
+            { label: '自查自纠户数', val: enterpriseDetails.reduce((s, e) => s + e.dailySelfCheck, 0), clr: '#3B82F6' },
+          ] : []
+          const totalVal = enterpriseDetails.reduce((s, e) => s + Number(e[totalKeys[si]]), 0)
+          const completedVal = enterpriseDetails.reduce((s, e) => s + Number(e[completedKeys[si]]), 0)
+          const rateVal = totalVal > 0 ? Math.round(completedVal / totalVal * 100) : 0
+          return (
+            <div key={title} style={{ marginBottom: si < 2 ? 16 : 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#6B7280', marginBottom: 10 }}>{title}</div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {extras.map(e => (
+                  <div key={e.label} style={{ background: 'white', borderRadius: 6, border: `1px solid ${e.clr}20`, padding: '10px 14px', minWidth: 110 }}>
+                    <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{e.label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: e.clr }}>{e.val}</div>
+                  </div>
+                ))}
+                {[
+                  { label: '总任务数', value: totalVal, color: '#7C3AED' },
+                  { label: '已完成', value: completedVal, color: '#059669' },
+                  { label: '逾期', value: enterpriseDetails.reduce((s, e) => s + Number(e[overdueKeys[si]]), 0), color: '#DC2626' },
+                ].map(kpi => (
+                  <div key={kpi.label} style={{ background: 'white', borderRadius: 6, border: `1px solid ${kpi.color}20`, padding: '10px 14px', minWidth: 110 }}>
+                    <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{kpi.label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
+                  </div>
+                ))}
+                <div style={{ background: 'white', borderRadius: 6, border: '1px solid #05966920', padding: '10px 14px', minWidth: 110 }}>
+                  <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>完成率</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#059669' }}>{rateVal}%</div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* 3. 隐患整改 */}
+      <div style={{ background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 16 }}>隐患整改</div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {[
+            { label: '已确认隐患数', value: sumConfirmed, color: '#4F46E5' },
+            { label: '其中:重大事故隐患数', value: enterpriseDetails.reduce((s, e) => s + e.hiddenMajor, 0), color: '#DC2626' },
+            { label: '已整改隐患数', value: sumRectified, color: '#059669' },
+            { label: '超时未整改隐患数', value: sumConfirmed - sumRectified, color: '#D97706' },
+          ].map(kpi => (
+            <div key={kpi.label} style={{ background: 'white', borderRadius: 6, border: `1px solid ${kpi.color}20`, padding: '10px 14px', minWidth: 130 }}>
+              <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{kpi.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
+            </div>
+          ))}
+          <div style={{ background: 'white', borderRadius: 6, border: '1px solid #05966920', padding: '10px 14px', minWidth: 130 }}>
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>隐患整改完成率</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#059669' }}>
+              {sumConfirmed > 0 ? Math.round(sumRectified / sumConfirmed * 100) : 0}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. 月度日常检查变化 */}
+      <div style={{ background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 12 }}>月度日常检查变化情况</div>
+        <ResponsiveContainer width="100%" height={280}>
+          <ComposedChart data={monthlyData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+            <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+            <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+            <Tooltip contentStyle={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12 }} />
+            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
+            <Line type="monotone" dataKey="dailyTotal" name="日常检查总任务数" stroke="#7C3AED" strokeWidth={2} dot={{ r: 2 }} />
+            <Line type="monotone" dataKey="dailyCompleted" name="已完成任务数" stroke="#059669" strokeWidth={2} dot={{ r: 2 }} />
+            <Line type="monotone" dataKey="dailyOverdue" name="逾期任务数" stroke="#DC2626" strokeWidth={2} dot={{ r: 2 }} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* 5. 月度隐患整改数据变化 */}
+      <div style={{ background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 12 }}>月度隐患整改数据变化情况</div>
+        <ResponsiveContainer width="100%" height={280}>
+          <ComposedChart data={monthlyData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+            <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+            <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+            <Tooltip contentStyle={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12 }} />
+            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
+            <Line type="monotone" dataKey="hiddenConfirmed" name="已确认隐患数" stroke="#4F46E5" strokeWidth={2} dot={{ r: 2 }} />
+            <Line type="monotone" dataKey="hiddenMajor" name="重大事故隐患数" stroke="#DC2626" strokeWidth={2} dot={{ r: 2 }} />
+            <Line type="monotone" dataKey="hiddenRectified" name="已整改隐患数" stroke="#059669" strokeWidth={2} dot={{ r: 2 }} />
+            <Line type="monotone" dataKey="hiddenOverdue" name="超时未整改" stroke="#D97706" strokeWidth={2} dot={{ r: 2 }} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* 6. 企业明细表 */}
+      <div style={{ background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 16 }}>企业明细表（按企业名称）</div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: '#F9FAFB' }}>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '2px solid #E5E7EB', position: 'sticky', left: 0, background: '#F9FAFB', minWidth: 180 }}>企业名称</th>
+                <th colSpan={5} style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 600, color: '#4F46E5', borderBottom: '2px solid #E5E7EB', borderLeft: '2px solid #E5E7EB' }}>风险点数量</th>
+                <th colSpan={6} style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 600, color: '#7C3AED', borderBottom: '2px solid #E5E7EB', borderLeft: '2px solid #E5E7EB' }}>日常检查</th>
+                <th colSpan={4} style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 600, color: '#DB2777', borderBottom: '2px solid #E5E7EB', borderLeft: '2px solid #E5E7EB' }}>专项检查</th>
+                <th colSpan={4} style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 600, color: '#0891B2', borderBottom: '2px solid #E5E7EB', borderLeft: '2px solid #E5E7EB' }}>监督检查</th>
+                <th colSpan={5} style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 600, color: '#DC2626', borderBottom: '2px solid #E5E7EB', borderLeft: '2px solid #E5E7EB' }}>隐患整改</th>
+              </tr>
+              <tr style={{ background: '#F9FAFB' }}>
+                <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 500, color: '#6B7280', borderBottom: '1px solid #E5E7EB', position: 'sticky', left: 0, background: '#F9FAFB' }}></th>
+                {['总数', '重大', '较大', '一般', '低'].map(h => <th key={'r'+h} style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 500, color: '#6B7280', borderBottom: '1px solid #E5E7EB', borderLeft: h==='总数'?'2px solid #E5E7EB':'1px solid #F3F4F6', minWidth: 45, fontSize: 11 }}>{h}</th>)}
+                {['总任务', '已完成', '逾期', '完成率', '启用户', '自查户'].map(h => <th key={'d'+h} style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 500, color: '#6B7280', borderBottom: '1px solid #E5E7EB', borderLeft: h==='总任务'?'2px solid #E5E7EB':'1px solid #F3F4F6', minWidth: 50, fontSize: 11 }}>{h}</th>)}
+                {['总任务', '已完成', '逾期', '完成率'].map(h => <th key={'s'+h} style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 500, color: '#6B7280', borderBottom: '1px solid #E5E7EB', borderLeft: h==='总任务'?'2px solid #E5E7EB':'1px solid #F3F4F6', minWidth: 50, fontSize: 11 }}>{h}</th>)}
+                {['总任务', '已完成', '逾期', '完成率'].map(h => <th key={'v'+h} style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 500, color: '#6B7280', borderBottom: '1px solid #E5E7EB', borderLeft: h==='总任务'?'2px solid #E5E7EB':'1px solid #F3F4F6', minWidth: 50, fontSize: 11 }}>{h}</th>)}
+                {['已确认', '重大', '已整改', '超时', '完成率'].map(h => <th key={'h'+h} style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 500, color: '#6B7280', borderBottom: '1px solid #E5E7EB', borderLeft: h==='已确认'?'2px solid #E5E7EB':'1px solid #F3F4F6', minWidth: 50, fontSize: 11 }}>{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {enterpriseDetails.map((detail, idx) => (
+                <tr key={detail.enterpriseName} style={{ background: idx % 2 === 0 ? 'white' : '#F9FAFB' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
+                  onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#F9FAFB'}>
+                  <td style={{ padding: '10px 12px', fontWeight: 500, color: '#374151', borderBottom: '1px solid #F3F4F6', position: 'sticky', left: 0, background: idx % 2 === 0 ? 'white' : '#F9FAFB' }}>{detail.enterpriseName}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 600, color: '#4F46E5', borderBottom: '1px solid #F3F4F6', borderLeft: '2px solid #E5E7EB' }}>{detail.riskTotal}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#DC2626', borderBottom: '1px solid #F3F4F6' }}>{detail.riskMajor}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#D97706', borderBottom: '1px solid #F3F4F6' }}>{detail.riskHigh}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#F59E0B', borderBottom: '1px solid #F3F4F6' }}>{detail.riskMedium}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#059669', borderBottom: '1px solid #F3F4F6' }}>{detail.riskLow}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#374151', borderBottom: '1px solid #F3F4F6', borderLeft: '2px solid #E5E7EB' }}>{detail.dailyTotal}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#059669', borderBottom: '1px solid #F3F4F6' }}>{detail.dailyCompleted}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#DC2626', borderBottom: '1px solid #F3F4F6' }}>{detail.dailyOverdue}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 600, color: '#059669', borderBottom: '1px solid #F3F4F6' }}>{detail.dailyRate}%</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#374151', borderBottom: '1px solid #F3F4F6' }}>{detail.dailyStart}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#374151', borderBottom: '1px solid #F3F4F6' }}>{detail.dailySelfCheck}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#374151', borderBottom: '1px solid #F3F4F6', borderLeft: '2px solid #E5E7EB' }}>{detail.specialTotal}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#059669', borderBottom: '1px solid #F3F4F6' }}>{detail.specialCompleted}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#DC2626', borderBottom: '1px solid #F3F4F6' }}>{detail.specialOverdue}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 600, color: '#059669', borderBottom: '1px solid #F3F4F6' }}>{detail.specialRate}%</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#374151', borderBottom: '1px solid #F3F4F6', borderLeft: '2px solid #E5E7EB' }}>{detail.superviseTotal}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#059669', borderBottom: '1px solid #F3F4F6' }}>{detail.superviseCompleted}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#DC2626', borderBottom: '1px solid #F3F4F6' }}>{detail.superviseOverdue}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 600, color: '#059669', borderBottom: '1px solid #F3F4F6' }}>{detail.superviseRate}%</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#4F46E5', borderBottom: '1px solid #F3F4F6', borderLeft: '2px solid #E5E7EB' }}>{detail.hiddenConfirmed}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#DC2626', borderBottom: '1px solid #F3F4F6' }}>{detail.hiddenMajor}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#059669', borderBottom: '1px solid #F3F4F6' }}>{detail.hiddenRectified}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', color: '#D97706', borderBottom: '1px solid #F3F4F6' }}>{detail.hiddenOverdue}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 600, color: '#059669', borderBottom: '1px solid #F3F4F6' }}>{detail.hiddenRate}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
 export function EnterpriseDashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -2199,7 +2526,7 @@ export function EnterpriseDashboard() {
       {activeTab === 'system' && <SystemTabContent />}
       {activeTab === 'education' && <EducationTabContent />}
       {activeTab === 'site' && <SiteTabContent />}
-      {activeTab === 'dualPrevention' && <PlaceholderTab title="双重预防" />}
+      {activeTab === 'dualPrevention' && <DualPreventionTabContent />}
       {activeTab === 'tenant' && <PlaceholderTab title="入驻单位管理" />}
     </div>
   )
