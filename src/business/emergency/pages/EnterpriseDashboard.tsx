@@ -1641,6 +1641,238 @@ function SystemTabContent() {
   )
 }
 
+// 教育培训月度数据
+interface EducationMonthlyData {
+  month: string
+  planCount: number       // 年度培训计划制定户数
+  courseCount: number     // 上传课件数量
+  safetyCount: number     // 日常安全教育数量
+  traineeCount: number    // 培训人数
+  checkinCount: number    // 签到人数
+  level3Courses: number   // 三级安全教育课程数
+  level3Cards: number     // 教育卡数量
+  level3Offline: number   // 线下培训数量
+}
+
+// 企业教育培训明细
+interface EnterpriseEducationDetail {
+  enterpriseName: string
+  planCount: number
+  courseCount: number
+  safetyCount: number
+  traineeCount: number
+  checkinCount: number
+  level3Courses: number
+  level3Cards: number
+  level3Offline: number
+}
+
+const generateEducationMonthlyData = (): EducationMonthlyData[] => {
+  const months = [
+    '2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12',
+    '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'
+  ]
+  return months.map(month => ({
+    month,
+    planCount: Math.floor(Math.random() * 20) + 5,
+    courseCount: Math.floor(Math.random() * 50) + 20,
+    safetyCount: Math.floor(Math.random() * 40) + 15,
+    traineeCount: Math.floor(Math.random() * 300) + 100,
+    checkinCount: Math.floor(Math.random() * 280) + 80,
+    level3Courses: Math.floor(Math.random() * 15) + 3,
+    level3Cards: Math.floor(Math.random() * 30) + 10,
+    level3Offline: Math.floor(Math.random() * 20) + 5,
+  }))
+}
+
+const generateEnterpriseEducationDetails = (): EnterpriseEducationDetail[] => {
+  const enterprises = [
+    '杭州华兴消防设备有限公司', '浙江久安安全科技有限公司', '杭州五常消防工程有限公司',
+    '仁和街道工业园区管理委员会', '西虹桥经济开发区', '良渚文化村社区服务中心',
+    '杭州消防器材厂', '浙江安防科技有限公司', '杭州应急装备有限公司',
+    '五常街道社区卫生服务中心', '仁和街道中心小学', '西虹街道便民服务中心'
+  ]
+  return enterprises.map(name => ({
+    enterpriseName: name,
+    planCount: Math.floor(Math.random() * 5) + 1,
+    courseCount: Math.floor(Math.random() * 30) + 5,
+    safetyCount: Math.floor(Math.random() * 20) + 3,
+    traineeCount: Math.floor(Math.random() * 150) + 20,
+    checkinCount: Math.floor(Math.random() * 140) + 15,
+    level3Courses: Math.floor(Math.random() * 8) + 1,
+    level3Cards: Math.floor(Math.random() * 15) + 3,
+    level3Offline: Math.floor(Math.random() * 10) + 2,
+  })).sort((a, b) => b.traineeCount - a.traineeCount)
+}
+
+// 教育培训Tab内容组件
+function EducationTabContent() {
+  const monthlyData = useMemo(() => generateEducationMonthlyData(), [])
+  const enterpriseDetails = useMemo(() => generateEnterpriseEducationDetails(), [])
+
+  const latest = monthlyData[monthlyData.length - 1]
+
+  // 教育培训 KPI
+  const educationKpis = [
+    { label: '年度培训计划制定户数', value: latest.planCount, color: '#4F46E5' },
+    { label: '上传课件数量', value: latest.courseCount, color: '#3B82F6' },
+    { label: '日常安全教育数量', value: latest.safetyCount, color: '#059669' },
+    { label: '培训人数', value: latest.traineeCount, color: '#D97706' },
+    { label: '签到人数', value: latest.checkinCount, color: '#DC2626' },
+  ]
+
+  // 三级安全教育 KPI
+  const level3Kpis = [
+    { label: '三级安全教育课程数', value: latest.level3Courses, color: '#7C3AED' },
+    { label: '教育卡数量', value: latest.level3Cards, color: '#DB2777' },
+    { label: '线下培训数量', value: latest.level3Offline, color: '#0891B2' },
+  ]
+
+  // 教育培训折线图配置
+  const educationChartLines = [
+    { dataKey: 'planCount', name: '年度培训计划制定户数', stroke: '#4F46E5' },
+    { dataKey: 'courseCount', name: '上传课件数量', stroke: '#3B82F6' },
+    { dataKey: 'safetyCount', name: '日常安全教育数量', stroke: '#059669' },
+    { dataKey: 'traineeCount', name: '培训人数', stroke: '#D97706' },
+    { dataKey: 'checkinCount', name: '签到人数', stroke: '#DC2626' },
+  ]
+
+  // 三级安全教育折线图配置
+  const level3ChartLines = [
+    { dataKey: 'level3Courses', name: '三级安全教育课程数', stroke: '#7C3AED' },
+    { dataKey: 'level3Cards', name: '教育卡数量', stroke: '#DB2777' },
+    { dataKey: 'level3Offline', name: '线下培训数量', stroke: '#0891B2' },
+  ]
+
+  // 明细表列配置
+  const detailColumns = [
+    ...educationKpis,
+    ...level3Kpis,
+  ]
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* 教育培训 */}
+
+      <div style={{ display: 'flex', gap: 16 }}>
+        {/* 左侧：指标卡 */}
+        <div style={{ flex: '0 0 260px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 4 }}>教育培训</div>
+          {educationKpis.map(kpi => (
+            <div key={kpi.label} style={{
+              background: 'white',
+              borderRadius: 6,
+              border: `1px solid ${kpi.color}20`,
+              padding: '12px 14px',
+            }}>
+              <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{kpi.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* 右侧：折线图 */}
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px', minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 12 }}>教育培训月度趋势</div>
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={monthlyData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+              <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+              <Tooltip contentStyle={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
+              {educationChartLines.map(line => (
+                <Line key={line.dataKey} type="monotone" dataKey={line.dataKey} name={line.name} stroke={line.stroke} strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+              ))}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* 三级安全教育 */}
+
+      <div style={{ display: 'flex', gap: 16 }}>
+        {/* 左侧：指标卡 */}
+        <div style={{ flex: '0 0 260px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 4 }}>三级安全教育</div>
+          {level3Kpis.map(kpi => (
+            <div key={kpi.label} style={{
+              background: 'white',
+              borderRadius: 6,
+              border: `1px solid ${kpi.color}20`,
+              padding: '12px 14px',
+            }}>
+              <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{kpi.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* 右侧：折线图 */}
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px', minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 12 }}>三级安全教育月度趋势</div>
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={monthlyData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+              <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+              <Tooltip contentStyle={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
+              {level3ChartLines.map(line => (
+                <Line key={line.dataKey} type="monotone" dataKey={line.dataKey} name={line.name} stroke={line.stroke} strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+              ))}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* 企业明细表 */}
+
+      <div style={{ background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 16 }}>企业明细表（按企业名称）</div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: '#F9FAFB' }}>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '2px solid #E5E7EB', position: 'sticky', left: 0, background: '#F9FAFB', minWidth: 180 }}>企业名称</th>
+                <th colSpan={5} style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#4F46E5', borderBottom: '2px solid #E5E7EB', borderLeft: '2px solid #E5E7EB' }}>教育培训</th>
+                <th colSpan={3} style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#7C3AED', borderBottom: '2px solid #E5E7EB', borderLeft: '2px solid #E5E7EB' }}>三级安全教育</th>
+              </tr>
+              <tr style={{ background: '#F9FAFB' }}>
+                <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 500, color: '#6B7280', borderBottom: '1px solid #E5E7EB', position: 'sticky', left: 0, background: '#F9FAFB' }}></th>
+                {educationKpis.map(kpi => (
+                  <th key={kpi.label} style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 500, color: '#6B7280', borderBottom: '1px solid #E5E7EB', borderLeft: '1px solid #F3F4F6', minWidth: 90, fontSize: 12 }}>{kpi.label}</th>
+                ))}
+                {level3Kpis.map(kpi => (
+                  <th key={kpi.label} style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 500, color: '#6B7280', borderBottom: '1px solid #E5E7EB', borderLeft: '2px solid #E5E7EB', minWidth: 90, fontSize: 12 }}>{kpi.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {enterpriseDetails.map((detail, idx) => (
+                <tr key={detail.enterpriseName} style={{ background: idx % 2 === 0 ? 'white' : '#F9FAFB' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
+                  onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#F9FAFB'}>
+                  <td style={{ padding: '10px 12px', fontWeight: 500, color: '#374151', borderBottom: '1px solid #F3F4F6', position: 'sticky', left: 0, background: idx % 2 === 0 ? 'white' : '#F9FAFB' }}>{detail.enterpriseName}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#374151', borderBottom: '1px solid #F3F4F6', borderLeft: '2px solid #E5E7EB' }}>{detail.planCount}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#3B82F6', borderBottom: '1px solid #F3F4F6' }}>{detail.courseCount}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#059669', borderBottom: '1px solid #F3F4F6' }}>{detail.safetyCount}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#D97706', borderBottom: '1px solid #F3F4F6' }}>{detail.traineeCount}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#DC2626', borderBottom: '1px solid #F3F4F6' }}>{detail.checkinCount}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#7C3AED', borderBottom: '1px solid #F3F4F6', borderLeft: '2px solid #E5E7EB' }}>{detail.level3Courses}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#DB2777', borderBottom: '1px solid #F3F4F6' }}>{detail.level3Cards}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#0891B2', borderBottom: '1px solid #F3F4F6' }}>{detail.level3Offline}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
 export function EnterpriseDashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -1844,7 +2076,7 @@ export function EnterpriseDashboard() {
       {activeTab === 'overview' && <PlaceholderTab title="总览" />}
       {activeTab === 'todo' && <TodoTabContent />}
       {activeTab === 'system' && <SystemTabContent />}
-      {activeTab === 'education' && <PlaceholderTab title="教育培训" />}
+      {activeTab === 'education' && <EducationTabContent />}
       {activeTab === 'site' && <PlaceholderTab title="现场管理" />}
       {activeTab === 'dualPrevention' && <PlaceholderTab title="双重预防" />}
       {activeTab === 'tenant' && <PlaceholderTab title="入驻单位管理" />}
