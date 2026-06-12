@@ -2321,6 +2321,158 @@ function DualPreventionTabContent() {
   )
 }
 
+// 入驻单位管理数据
+interface TenantDetail {
+  parkName: string
+  tenantName: string
+  registered: boolean
+  entityType: '企业' | '场所'
+  inspectCount: number
+  hazardCount: number
+  hazardMajor: number
+  hazardRectified: number
+}
+
+const generateTenantDetails = (): TenantDetail[] => {
+  const parks = ['杭州华兴消防设备有限公司', '浙江久安安全科技有限公司', '杭州五常消防工程有限公司',
+    '仁和街道工业园区管理委员会', '西虹桥经济开发区', '良渚文化村社区服务中心']
+  const tenantNames = [
+    'A区生产车间', 'B区仓储中心', 'C区研发楼', 'D区办公楼', 'E区食堂', 'F区宿舍楼',
+    'G区动力站', 'H区维修间', '一号厂房', '二号厂房', '三号厂房', '综合服务楼',
+    '消防泵房', '配电房', '锅炉房'
+  ]
+  const results: TenantDetail[] = []
+  parks.forEach(park => {
+    const count = Math.floor(Math.random() * 4) + 2
+    const shuffled = [...tenantNames].sort(() => Math.random() - 0.5).slice(0, count)
+    shuffled.forEach(tn => {
+      const registered = Math.random() > 0.3
+      const inspectCount = registered ? Math.floor(Math.random() * 10) + 2 : 0
+      const hazardCount = Math.floor(Math.random() * 8)
+      const hazardMajor = hazardCount > 0 ? Math.floor(Math.random() * Math.min(hazardCount, 2) + 1) : 0
+      results.push({
+        parkName: park,
+        tenantName: tn,
+        registered,
+        entityType: Math.random() > 0.5 ? '企业' : '场所',
+        inspectCount,
+        hazardCount,
+        hazardMajor,
+        hazardRectified: Math.floor(hazardCount * (0.5 + Math.random() * 0.5)),
+      })
+    })
+  })
+  return results.sort((a, b) => b.inspectCount - a.inspectCount)
+}
+
+// 入驻单位管理Tab内容组件
+function TenantTabContent() {
+  const tenantDetails = useMemo(() => generateTenantDetails(), [])
+
+  const total = tenantDetails.length
+  const registeredCount = tenantDetails.filter(t => t.registered).length
+  const enterpriseTotal = tenantDetails.filter(t => t.entityType === '企业').length
+  const enterpriseRegistered = tenantDetails.filter(t => t.entityType === '企业' && t.registered).length
+  const venueTotal = tenantDetails.filter(t => t.entityType === '场所').length
+  const venueRegistered = tenantDetails.filter(t => t.entityType === '场所' && t.registered).length
+  const inspectedCount = tenantDetails.filter(t => t.inspectCount > 0).length
+  const totalInspects = tenantDetails.reduce((s, t) => s + t.inspectCount, 0)
+  const totalHazards = tenantDetails.reduce((s, t) => s + t.hazardCount, 0)
+  const totalMajor = tenantDetails.reduce((s, t) => s + t.hazardMajor, 0)
+  const totalRectified = tenantDetails.reduce((s, t) => s + t.hazardRectified, 0)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* 1. 入驻单位注册情况 */}
+      <div style={{ background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 16 }}>入驻单位注册情况</div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {[
+            { label: '注册数/总数', completed: registeredCount, total, color: '#4F46E5' },
+            { label: '企业注册数/企业数', completed: enterpriseRegistered, total: enterpriseTotal, color: '#059669' },
+            { label: '场所注册数/场所数', completed: venueRegistered, total: venueTotal, color: '#D97706' },
+          ].map(kpi => (
+            <div key={kpi.label} style={{ background: 'white', borderRadius: 8, border: `1px solid ${kpi.color}20`, padding: '16px 20px', flex: 1, minWidth: 180 }}>
+              <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>{kpi.label}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 26, fontWeight: 700, color: kpi.color }}>{kpi.completed}</span>
+                <span style={{ fontSize: 14, color: '#9CA3AF' }}>/ {kpi.total}</span>
+              </div>
+              <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>
+                注册率：{kpi.total > 0 ? Math.round(kpi.completed / kpi.total * 100) : 0}%
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 2. 入驻单位检查情况 */}
+      <div style={{ background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 16 }}>入驻单位检查情况</div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {[
+            { label: '检查户数', value: inspectedCount, color: '#4F46E5' },
+            { label: '检查次数', value: totalInspects, color: '#3B82F6' },
+            { label: '发现隐患数', value: totalHazards, color: '#D97706' },
+            { label: '其中:重大事故隐患数', value: totalMajor, color: '#DC2626' },
+            { label: '已整改隐患数', value: totalRectified, color: '#059669' },
+          ].map(kpi => (
+            <div key={kpi.label} style={{ background: 'white', borderRadius: 6, border: `1px solid ${kpi.color}20`, padding: '12px 16px', minWidth: 130 }}>
+              <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{kpi.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
+            </div>
+          ))}
+          <div style={{ background: 'white', borderRadius: 6, border: '1px solid #05966920', padding: '12px 16px', minWidth: 130 }}>
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>隐患整改率</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#059669' }}>
+              {totalHazards > 0 ? Math.round(totalRectified / totalHazards * 100) : 0}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. 明细表 */}
+      <div style={{ background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 16 }}>入驻单位明细（按园区企业名称、入驻单位名称）</div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: '#F9FAFB' }}>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '2px solid #E5E7EB', position: 'sticky', left: 0, background: '#F9FAFB', minWidth: 150 }}>园区企业名称</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '2px solid #E5E7EB', minWidth: 140 }}>入驻单位名称</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#6B7280', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 80 }}>主体类型</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#4F46E5', borderBottom: '2px solid #E5E7EB', borderLeft: '2px solid #E5E7EB', minWidth: 80 }}>是否注册</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#3B82F6', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 80 }}>检查次数</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#D97706', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 80 }}>发现隐患</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#DC2626', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 80 }}>重大隐患</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#059669', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 80 }}>已整改</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tenantDetails.map((detail, idx) => (
+                <tr key={`${detail.parkName}-${detail.tenantName}`} style={{ background: idx % 2 === 0 ? 'white' : '#F9FAFB' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
+                  onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#F9FAFB'}>
+                  <td style={{ padding: '10px 12px', fontWeight: 500, color: '#374151', borderBottom: '1px solid #F3F4F6', position: 'sticky', left: 0, background: idx % 2 === 0 ? 'white' : '#F9FAFB' }}>{detail.parkName}</td>
+                  <td style={{ padding: '10px 12px', color: '#374151', borderBottom: '1px solid #F3F4F6' }}>{detail.tenantName}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#6B7280', borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #F3F4F6' }}>{detail.entityType}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: detail.registered ? '#059669' : '#DC2626', borderBottom: '1px solid #F3F4F6', borderLeft: '2px solid #E5E7EB' }}>{detail.registered ? '已注册' : '未注册'}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#3B82F6', borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #E5E7EB' }}>{detail.inspectCount}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#D97706', borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #F3F4F6' }}>{detail.hazardCount}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#DC2626', borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #F3F4F6' }}>{detail.hazardMajor}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', color: '#059669', borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #F3F4F6' }}>{detail.hazardRectified}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
 export function EnterpriseDashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -2527,7 +2679,7 @@ export function EnterpriseDashboard() {
       {activeTab === 'education' && <EducationTabContent />}
       {activeTab === 'site' && <SiteTabContent />}
       {activeTab === 'dualPrevention' && <DualPreventionTabContent />}
-      {activeTab === 'tenant' && <PlaceholderTab title="入驻单位管理" />}
+      {activeTab === 'tenant' && <TenantTabContent />}
     </div>
   )
 }
