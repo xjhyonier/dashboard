@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell,
 } from 'recharts'
 
 type TabKey = 'overview' | 'todo' | 'system' | 'education' | 'site' | 'dualPrevention' | 'tenant'
@@ -204,11 +205,569 @@ function MonthMultiSelect({ selectedMonths, onChange }: {
   )
 }
 
-function PlaceholderTab({ title }: { title: string }) {
+// ==================== 企业总览Tab：健康度评分模型 ====================
+
+// 企业健康度等级
+type HealthLevel = '优秀' | '良好' | '一般' | '风险'
+
+// 企业档案（整合各模块数据）
+interface EnterpriseProfile {
+  id: string
+  enterpriseName: string
+  town: string
+  riskLevel: string
+  entityType: string
+  fireType: string
+  // 各维度评分（0-100）
+  systemScore: number      // 制度台账完成度
+  todoRate: number         // 待办整改率 %
+  educationScore: number   // 教育培训完成度
+  inspectionScore: number  // 隐患排查覆盖率
+  siteScore: number        // 现场管理规范度
+  // 综合评分
+  healthScore: number
+  healthLevel: HealthLevel
+  // 活跃度
+  lastActiveDate: string
+  monthlyActiveDays: number
+  // 各模块明细数据（用于下钻）
+  systemCompletion: SystemCompletion
+  todoDetail: EnterpriseTodoDetail
+  educationDetail: EnterpriseEducationDetail
+  siteDetail: EnterpriseSiteDetail
+  dualPreventionDetail: EnterpriseDualPreventionDetail
+  tenantDetails: TenantDetail[]
+}
+
+// 计算健康度等级
+function getHealthLevel(score: number): HealthLevel {
+  if (score >= 85) return '优秀'
+  if (score >= 70) return '良好'
+  if (score >= 60) return '一般'
+  return '风险'
+}
+
+// 健康等级对应颜色
+const HEALTH_LEVEL_COLORS: Record<HealthLevel, string> = {
+  '优秀': '#059669',
+  '良好': '#3B82F6',
+  '一般': '#F59E0B',
+  '风险': '#DC2626',
+}
+const HEALTH_LEVEL_BG: Record<HealthLevel, string> = {
+  '优秀': '#ECFDF5',
+  '良好': '#EFF6FF',
+  '一般': '#FFFBEB',
+  '风险': '#FEF2F2',
+}
+
+// 生成企业档案数据（整合所有模块）
+const generateEnterpriseProfiles = (): EnterpriseProfile[] => {
+  const enterprises = [
+    { name: '杭州华兴消防设备有限公司', town: '良渚街道', risk: '重大风险', type: '生产企业', fire: '-' },
+    { name: '浙江久安安全科技有限公司', town: '五常街道', risk: '较大风险', type: '生产企业', fire: '-' },
+    { name: '杭州五常消防工程有限公司', town: '五常街道', risk: '一般风险', type: '生产企业', fire: '-' },
+    { name: '仁和街道工业园区管理委员会', town: '仁和街道', risk: '低风险', type: '生产企业', fire: '-' },
+    { name: '西虹桥经济开发区', town: '西虹街道', risk: '-', type: '消防场所', fire: '消防重点单位' },
+    { name: '良渚文化村社区服务中心', town: '良渚街道', risk: '-', type: '消防场所', fire: '九小场所' },
+    { name: '杭州消防器材厂', town: '良渚街道', risk: '重大风险', type: '生产企业', fire: '-' },
+    { name: '浙江安防科技有限公司', town: '五常街道', risk: '较大风险', type: '生产企业', fire: '-' },
+    { name: '杭州应急装备有限公司', town: '西虹街道', risk: '-', type: '消防场所', fire: '一般单位' },
+    { name: '五常街道社区卫生服务中心', town: '五常街道', risk: '-', type: '消防场所', fire: '九小场所' },
+    { name: '仁和街道中心小学', town: '仁和街道', risk: '-', type: '消防场所', fire: '消防重点单位' },
+    { name: '西虹街道便民服务中心', town: '西虹街道', risk: '-', type: '消防场所', fire: '一般单位' },
+  ]
+
+  return enterprises.map((ent, idx) => {
+    // 制度台账完成度（0-100）
+    const systemCompletion = generateRandomCompletion()
+    const systemScore = systemCompletion.allComplete ? 100 :
+      Math.round([
+        systemCompletion.organization,
+        systemCompletion.investment,
+        systemCompletion.institutional,
+        systemCompletion.education,
+        systemCompletion.dualPrevention,
+        systemCompletion.emergency,
+        systemCompletion.accident,
+      ].filter(Boolean).length / 7 * 100)
+
+    // 待办整改率
+    const todoRate = Math.round(Math.random() * 40 + 60) // 60-100%
+
+    // 教育培训完成度
+    const educationScore = Math.round(Math.random() * 30 + 70) // 70-100
+
+    // 隐患排查覆盖率
+    const inspectionScore = Math.round(Math.random() * 35 + 65) // 65-100
+
+    // 现场管理规范度
+    const siteScore = Math.round(Math.random() * 30 + 70) // 70-100
+
+    // 综合评分：加权计算
+    const healthScore = Math.round(
+      systemScore * 0.25 +
+      todoRate * 0.20 +
+      educationScore * 0.15 +
+      inspectionScore * 0.20 +
+      siteScore * 0.20
+    )
+
+    const healthLevel = getHealthLevel(healthScore)
+
+    // 生成各模块明细
+    const todoDetail: EnterpriseTodoDetail = {
+      enterpriseName: ent.name,
+      totalCount: Math.floor(Math.random() * 20) + 5,
+      totalRead: 0, totalRectified: 0, totalRate: 0,
+      internalCount: 0, internalRead: 0, internalRectified: 0, internalRate: 0,
+      supervisionCount: 0, supervisionRead: 0, supervisionRectified: 0, supervisionRate: 0,
+    }
+    todoDetail.totalRead = Math.floor(todoDetail.totalCount * (todoRate / 100))
+    todoDetail.totalRectified = Math.floor(todoDetail.totalRead * (0.6 + Math.random() * 0.3))
+    todoDetail.totalRate = todoDetail.totalRead > 0 ? Math.round(todoDetail.totalRectified / todoDetail.totalRead * 100) : 0
+
+    const educationDetail: EnterpriseEducationDetail = {
+      enterpriseName: ent.name,
+      planCount: Math.floor(Math.random() * 5) + 1,
+      courseCount: Math.floor(Math.random() * 30) + 5,
+      safetyCount: Math.floor(Math.random() * 20) + 3,
+      traineeCount: Math.floor(Math.random() * 150) + 20,
+      checkinCount: Math.floor(Math.random() * 140) + 15,
+      level3Courses: Math.floor(Math.random() * 8) + 1,
+      level3Cards: Math.floor(Math.random() * 15) + 3,
+      level3Offline: Math.floor(Math.random() * 10) + 2,
+    }
+
+    const siteDetail: EnterpriseSiteDetail = {
+      enterpriseName: ent.name,
+      workPermitCount: Math.floor(Math.random() * 40) + 5,
+      workPermitReportCount: Math.floor(Math.random() * 35) + 3,
+    }
+
+    const dp = generateEnterpriseDualPreventionDetails()
+    const dpDetail = dp.find(d => d.enterpriseName === ent.name) || dp[0]
+
+    // 生成入驻单位明细
+    const tenantCount = Math.floor(Math.random() * 4) + 1
+    const tenantNames = ['A区生产车间', 'B区仓储中心', 'C区研发楼', 'D区办公楼', 'E区食堂']
+    const tenantDetails: TenantDetail[] = Array.from({ length: tenantCount }, (_, i) => ({
+      parkName: ent.name,
+      tenantName: tenantNames[i] || `入驻单位${i + 1}`,
+      registered: Math.random() > 0.3,
+      entityType: (Math.random() > 0.5 ? '企业' : '场所') as '企业' | '场所',
+      inspectCount: Math.floor(Math.random() * 10) + 2,
+      hazardCount: Math.floor(Math.random() * 8),
+      hazardMajor: Math.floor(Math.random() * 2),
+      hazardRectified: 0,
+    }))
+    tenantDetails.forEach(t => {
+      t.hazardRectified = Math.floor(t.hazardCount * (0.5 + Math.random() * 0.5))
+    })
+
+    return {
+      id: `ent-${idx}`,
+      enterpriseName: ent.name,
+      town: ent.town,
+      riskLevel: ent.risk,
+      entityType: ent.type,
+      fireType: ent.fire,
+      systemScore,
+      todoRate,
+      educationScore,
+      inspectionScore,
+      siteScore,
+      healthScore,
+      healthLevel,
+      lastActiveDate: `2026-06-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
+      monthlyActiveDays: Math.floor(Math.random() * 20) + 5,
+      systemCompletion,
+      todoDetail,
+      educationDetail,
+      siteDetail,
+      dualPreventionDetail: dpDetail,
+      tenantDetails,
+    }
+  }).sort((a, b) => b.healthScore - a.healthScore)
+}
+
+// ==================== 企业总览Tab组件 ====================
+
+// 企业总览Tab内容组件
+function EnterpriseOverviewTab() {
+  const profiles = useMemo(() => generateEnterpriseProfiles(), [])
+  const [expandedEnterprise, setExpandedEnterprise] = useState<string | null>(null)
+
+  // 计算指标卡数据
+  const totalEnterprises = profiles.length
+  const activeEnterprises = profiles.filter(p => p.monthlyActiveDays >= 10).length
+  const riskEnterprises = profiles.filter(p => p.healthLevel === '风险').length
+  const newThisMonth = Math.floor(totalEnterprises * 0.25) // 模拟本月新增
+
+  // 健康度分布
+  const healthDistribution = useMemo(() => {
+    const dist = { '优秀': 0, '良好': 0, '一般': 0, '风险': 0 }
+    profiles.forEach(p => { dist[p.healthLevel]++ })
+    return dist
+  }, [profiles])
+
+  const healthPieData = [
+    { name: '优秀', value: healthDistribution['优秀'], color: '#059669' },
+    { name: '良好', value: healthDistribution['良好'], color: '#3B82F6' },
+    { name: '一般', value: healthDistribution['一般'], color: '#F59E0B' },
+    { name: '风险', value: healthDistribution['风险'], color: '#DC2626' },
+  ]
+
+  // 模拟近12个月活跃企业趋势
+  const monthlyTrendData = useMemo(() => {
+    const months = [
+      '2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12',
+      '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'
+    ]
+    let base = Math.floor(totalEnterprises * 0.5)
+    return months.map(month => {
+      base += Math.floor(Math.random() * 3)
+      return {
+        month,
+        活跃企业数: Math.min(base + Math.floor(Math.random() * 5), totalEnterprises),
+        风险企业数: Math.floor(Math.random() * 3) + 1,
+      }
+    })
+  }, [totalEnterprises])
+
+  // 切换展开/收起
+  const toggleExpand = (id: string) => {
+    setExpandedEnterprise(prev => prev === id ? null : id)
+  }
+
   return (
-    <div style={{ padding: '48px 24px', textAlign: 'center', color: '#9CA3AF' }}>
-      <div style={{ fontSize: 18, fontWeight: 600, color: '#374151', marginBottom: 8 }}>{title}</div>
-      <div style={{ fontSize: 14 }}>该模块暂未实现，后续逐步完善。</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* 顶部指标卡 */}
+      <div style={{ display: 'flex', gap: 16 }}>
+        {[
+          { label: '企业总数', value: totalEnterprises, color: '#4F46E5', bg: '#EEF2FF' },
+          { label: '活跃企业数', value: activeEnterprises, color: '#059669', bg: '#F0FDF4' },
+          { label: '风险企业数', value: riskEnterprises, color: '#DC2626', bg: '#FEF2F2' },
+          { label: '本月新增企业数', value: newThisMonth, color: '#D97706', bg: '#FFFBEB' },
+        ].map(kpi => (
+          <div key={kpi.label} style={{
+            flex: 1, background: 'white', borderRadius: 8,
+            border: `1px solid ${kpi.color}20`, padding: '16px 20px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          }}>
+            <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>{kpi.label}</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 健康度分布 + 活跃趋势 */}
+      <div style={{ display: 'flex', gap: 16 }}>
+        {/* 健康度分布饼图 */}
+        <div style={{ flex: '0 0 320px', background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 12 }}>企业健康度分布</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie
+                data={healthPieData}
+                cx="50%" cy="50%"
+                innerRadius={50} outerRadius={85}
+                paddingAngle={3}
+                dataKey="value"
+                label={({ name, value }) => `${name} ${value}家`}
+                labelLine={false}
+              >
+                {healthPieData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12 }} />
+            </PieChart>
+          </ResponsiveContainer>
+          {/* 图例 */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 4 }}>
+            {healthPieData.map(item => (
+              <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#374151' }}>
+                <span style={{ width: 10, height: 10, borderRadius: 2, background: item.color, display: 'inline-block' }} />
+                {item.name} {item.value}家
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 活跃趋势折线图 */}
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px', minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 12 }}>企业活跃趋势（近12个月）</div>
+          <ResponsiveContainer width="100%" height={260}>
+            <ComposedChart data={monthlyTrendData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+              <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+              <Tooltip contentStyle={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
+              <Line type="monotone" dataKey="活跃企业数" stroke="#059669" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="风险企业数" stroke="#DC2626" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* 企业健康度矩阵（表格） */}
+      <div style={{ background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 16 }}>企业健康度矩阵（按综合评分排序）</div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: '#F9FAFB' }}>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#374151', borderBottom: '2px solid #E5E7EB', minWidth: 180 }}>企业名称</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#6B7280', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 80 }}>镇街</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#6B7280', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 90 }}>责任主体</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#6B7280', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 90 }}>风险等级</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#4F46E5', borderBottom: '2px solid #E5E7EB', borderLeft: '2px solid #E5E7EB', minWidth: 80 }}>制度台账</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#3B82F6', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 80 }}>待办整改率</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#7C3AED', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 80 }}>教育培训</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#0891B2', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 80 }}>隐患排查</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#DB2777', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 80 }}>现场管理</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#DC2626', borderBottom: '2px solid #E5E7EB', borderLeft: '2px solid #E5E7EB', minWidth: 90 }}>综合评分</th>
+                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#6B7280', borderBottom: '2px solid #E5E7EB', borderLeft: '1px solid #E5E7EB', minWidth: 70 }}>健康等级</th>
+              </tr>
+            </thead>
+            <tbody>
+              {profiles.map((profile, idx) => {
+                const bgColor = HEALTH_LEVEL_BG[profile.healthLevel]
+                const levelColor = HEALTH_LEVEL_COLORS[profile.healthLevel]
+                const isExpanded = expandedEnterprise === profile.id
+                return (
+                  <>
+                    <tr
+                      key={profile.id}
+                      style={{ background: idx % 2 === 0 ? 'white' : '#F9FAFB', transition: 'background 0.15s', cursor: 'pointer' }}
+                      onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = '#F3F4F6' }}
+                      onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#F9FAFB' }}
+                      onClick={() => toggleExpand(profile.id)}
+                    >
+                      {/* 企业名称（可点击展开） */}
+                      <td style={{
+                        padding: '10px 12px', fontWeight: 500, color: '#374151',
+                        borderBottom: '1px solid #F3F4F6',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                      }}>
+                        <span style={{
+                          display: 'inline-block', width: 0, height: 0,
+                          borderLeft: '5px solid #9CA3AF', borderTop: '4px solid transparent', borderBottom: '4px solid transparent',
+                          transition: 'transform 0.2s',
+                          transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                        }} />
+                        {profile.enterpriseName}
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', color: '#6B7280', borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #F3F4F6' }}>{profile.town}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', color: '#6B7280', borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #F3F4F6' }}>{profile.entityType}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', color: profile.riskLevel === '重大风险' ? '#DC2626' : '#6B7280', borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #F3F4F6' }}>{profile.riskLevel !== '-' ? profile.riskLevel : profile.fireType}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: profile.systemScore >= 85 ? '#059669' : profile.systemScore >= 60 ? '#F59E0B' : '#DC2626', borderBottom: '1px solid #F3F4F6', borderLeft: '2px solid #E5E7EB' }}>{profile.systemScore}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: profile.todoRate >= 85 ? '#059669' : profile.todoRate >= 60 ? '#F59E0B' : '#DC2626', borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #F3F4F6' }}>{profile.todoRate}%</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: profile.educationScore >= 85 ? '#059669' : profile.educationScore >= 60 ? '#F59E0B' : '#DC2626', borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #F3F4F6' }}>{profile.educationScore}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: profile.inspectionScore >= 85 ? '#059669' : profile.inspectionScore >= 60 ? '#F59E0B' : '#DC2626', borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #F3F4F6' }}>{profile.inspectionScore}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: profile.siteScore >= 85 ? '#059669' : profile.siteScore >= 60 ? '#F59E0B' : '#DC2626', borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #F3F4F6' }}>{profile.siteScore}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, fontSize: 15, color: levelColor, borderBottom: '1px solid #F3F4F6', borderLeft: '2px solid #E5E7EB', background: bgColor }}>{profile.healthScore}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, fontSize: 12, color: levelColor, borderBottom: '1px solid #F3F4F6', borderLeft: '1px solid #F3F4F6', background: bgColor }}>{profile.healthLevel}</td>
+                    </tr>
+
+                    {/* 展开行：企业详情下钻 */}
+                    {isExpanded && (
+                      <tr key={`${profile.id}-detail`}>
+                        <td colSpan={11} style={{ padding: 0, borderBottom: '2px solid #E5E7EB', background: '#FAFAFA' }}>
+                          <EnterpriseDetailPanel profile={profile} />
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 企业详情下钻面板（行内展开）
+function EnterpriseDetailPanel({ profile }: { profile: EnterpriseProfile }) {
+  const [activeDetailTab, setActiveDetailTab] = useState<'system' | 'todo' | 'education' | 'site' | 'dualPrevention' | 'tenant'>('system')
+
+  const tabs = [
+    { key: 'system' as const, label: '制度台账' },
+    { key: 'todo' as const, label: '待办' },
+    { key: 'education' as const, label: '教育培训' },
+    { key: 'site' as const, label: '现场管理' },
+    { key: 'dualPrevention' as const, label: '双重预防' },
+    { key: 'tenant' as const, label: '入驻单位' },
+  ]
+
+  const renderDetailContent = () => {
+    const c = profile.systemCompletion
+    switch (activeDetailTab) {
+      case 'system':
+        return (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            {[
+              { label: '机构与职责', val: c.organization },
+              { label: '安全投入', val: c.investment },
+              { label: '制度化管理', val: c.institutional },
+              { label: '教育培训', val: c.education },
+              { label: '双重预防', val: c.dualPrevention },
+              { label: '应急管理', val: c.emergency },
+              { label: '事故管理', val: c.accident },
+            ].map(item => (
+              <div key={item.label} style={{
+                background: item.val ? '#F0FDF4' : '#FEF2F2',
+                border: `1px solid ${item.val ? '#BBF7D0' : '#FECACA'}`,
+                borderRadius: 6, padding: '8px 14px',
+                fontSize: 13, display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <span style={{ color: item.val ? '#059669' : '#DC2626', fontSize: 14 }}>{item.val ? '✓' : '✗'}</span>
+                <span style={{ color: '#374151' }}>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        )
+      case 'todo': {
+        const d = profile.todoDetail
+        return (
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            {[
+              { label: '待办数量', val: d.totalCount, color: '#4F46E5' },
+              { label: '已读数', val: d.totalRead, color: '#3B82F6' },
+              { label: '已整改数', val: d.totalRectified, color: '#059669' },
+              { label: '整改率', val: `${d.totalRate}%`, color: '#D97706' },
+            ].map(item => (
+              <div key={item.label} style={{ background: 'white', borderRadius: 6, border: `1px solid ${item.color}20`, padding: '10px 16px' }}>
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{item.label}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: item.color }}>{item.val}</div>
+              </div>
+            ))}
+          </div>
+        )
+      }
+      case 'education': {
+        const d = profile.educationDetail
+        return (
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {[
+              { label: '年度培训计划', val: d.planCount, color: '#4F46E5' },
+              { label: '上传课件', val: d.courseCount, color: '#3B82F6' },
+              { label: '日常安全教育', val: d.safetyCount, color: '#059669' },
+              { label: '培训人数', val: d.traineeCount, color: '#D97706' },
+              { label: '签到人数', val: d.checkinCount, color: '#DC2626' },
+              { label: '三级安全课程', val: d.level3Courses, color: '#7C3AED' },
+              { label: '教育卡', val: d.level3Cards, color: '#DB2777' },
+              { label: '线下培训', val: d.level3Offline, color: '#0891B2' },
+            ].map(item => (
+              <div key={item.label} style={{ background: 'white', borderRadius: 6, border: `1px solid ${item.color}20`, padding: '8px 12px', minWidth: 100 }}>
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>{item.label}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: item.color }}>{item.val}</div>
+              </div>
+            ))}
+          </div>
+        )
+      }
+      case 'site': {
+        const d = profile.siteDetail
+        return (
+          <div style={{ display: 'flex', gap: 16 }}>
+            {[
+              { label: '作业票数量', val: d.workPermitCount, color: '#4F46E5' },
+              { label: '作业票报备数量', val: d.workPermitReportCount, color: '#059669' },
+            ].map(item => (
+              <div key={item.label} style={{ background: 'white', borderRadius: 6, border: `1px solid ${item.color}20`, padding: '12px 20px' }}>
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{item.label}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: item.color }}>{item.val}</div>
+              </div>
+            ))}
+          </div>
+        )
+      }
+      case 'dualPrevention': {
+        const d = profile.dualPreventionDetail
+        return (
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {[
+              { label: '风险点总数', val: d.riskTotal, color: '#4F46E5' },
+              { label: '日常检查任务', val: d.dailyTotal, color: '#7C3AED' },
+              { label: '日常已完成', val: d.dailyCompleted, color: '#059669' },
+              { label: '日常完成率', val: `${d.dailyRate}%`, color: '#3B82F6' },
+              { label: '专项检查任务', val: d.specialTotal, color: '#DB2777' },
+              { label: '专项已完成', val: d.specialCompleted, color: '#059669' },
+              { label: '隐患确认数', val: d.hiddenConfirmed, color: '#D97706' },
+              { label: '隐患已整改', val: d.hiddenRectified, color: '#059669' },
+            ].map(item => (
+              <div key={item.label} style={{ background: 'white', borderRadius: 6, border: `1px solid ${item.color}20`, padding: '8px 12px', minWidth: 110 }}>
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>{item.label}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: item.color }}>{item.val}</div>
+              </div>
+            ))}
+          </div>
+        )
+      }
+      case 'tenant':
+        return (
+          <div>
+            {profile.tenantDetails.length === 0 ? (
+              <div style={{ color: '#9CA3AF', fontSize: 13, padding: 8 }}>暂无入驻单位数据</div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: '#F3F4F6' }}>
+                    {['入驻单位', '主体类型', '是否注册', '检查次数', '发现隐患', '已整改'].map(h => (
+                      <th key={h} style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600, color: '#374151', borderBottom: '1px solid #E5E7EB' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {profile.tenantDetails.map((t, i) => (
+                    <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#F9FAFB' }}>
+                      <td style={{ padding: '8px 12px', color: '#374151', borderBottom: '1px solid #F3F4F6' }}>{t.tenantName}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center', color: '#6B7280', borderBottom: '1px solid #F3F4F6' }}>{t.entityType}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center', color: t.registered ? '#059669' : '#DC2626', fontWeight: 600, borderBottom: '1px solid #F3F4F6' }}>{t.registered ? '已注册' : '未注册'}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center', color: '#3B82F6', borderBottom: '1px solid #F3F4F6' }}>{t.inspectCount}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center', color: '#D97706', borderBottom: '1px solid #F3F4F6' }}>{t.hazardCount}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center', color: '#059669', borderBottom: '1px solid #F3F4F6' }}>{t.hazardRectified}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )
+    }
+  }
+
+  return (
+    <div style={{ padding: '16px 20px' }}>
+      {/* 子Tab切换 */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '2px solid #E5E7EB' }}>
+        {tabs.map(tab => {
+          const isActive = activeDetailTab === tab.key
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveDetailTab(tab.key)}
+              style={{
+                padding: '8px 16px', border: 'none',
+                borderBottom: isActive ? '2px solid #4F46E5' : '2px solid transparent',
+                marginBottom: -2, background: 'transparent',
+                color: isActive ? '#4F46E5' : '#6B7280',
+                cursor: 'pointer', fontSize: 13, fontWeight: isActive ? 600 : 400,
+              }}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+      {/* 详情内容 */}
+      {renderDetailContent()}
     </div>
   )
 }
@@ -2673,7 +3232,7 @@ export function EnterpriseDashboard() {
       </div>
 
       {/* Tab 内容 */}
-      {activeTab === 'overview' && <PlaceholderTab title="总览" />}
+      {activeTab === 'overview' && <EnterpriseOverviewTab />}
       {activeTab === 'todo' && <TodoTabContent />}
       {activeTab === 'system' && <SystemTabContent />}
       {activeTab === 'education' && <EducationTabContent />}
