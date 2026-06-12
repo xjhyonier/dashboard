@@ -221,6 +221,26 @@ export const emergencyConfig: BusinessLine = {
         '隐患排查治理率',
         '入驻单位管理覆盖率'
       ]
+    },
+    {
+      id: 'operations-analytics',
+      name: '运营数据分析',
+      title: '运营数据分析',
+      description: 'SaaS平台用户运营数据分析，追踪用户粘性、功能使用频次和企业活跃度',
+      goals: [
+        '掌握平台用户活跃度',
+        '追踪用户粘性和留存率',
+        '分析各功能模块使用情况',
+        '识别活跃/流失企业',
+        '为产品迭代提供数据支撑'
+      ],
+      keyMetrics: [
+        'DAU/MAU比',
+        '用户留存率',
+        '功能渗透率',
+        '人均会话数',
+        '企业活跃度排名'
+      ]
     }
   ]
 }
