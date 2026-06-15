@@ -1,4 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import {
+  ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts'
 
 // ─── 表2数据：14项已同步任务分析 ────────────────────────────────────────
 interface SyncRow {
@@ -145,6 +148,82 @@ const VILLAGE_ROWS: VillageRow[] = VILLAGE_RAW.map(r => ({
   venueCount: Math.max(0, Math.round(r.total * R_VENUE)),
   rentalCount: Math.max(0, Math.round(r.total * R_RENTAL)),
 }))
+
+// ─── 村社每月任务变化折线图数据 ────────────────────────────────────────────
+// 生成多个月份的模拟趋势数据
+interface MonthlyTrendData {
+  month: string
+  任务总数: number
+  完成率: number
+  查出隐患数: number
+  隐患整改完成率: number
+}
+
+const generateMonthlyTrendData = (): MonthlyTrendData[] => {
+  const months = [
+    '2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12',
+    '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'
+  ]
+
+  // 基于现有数据计算基准值
+  const totalTasks = VILLAGE_ROWS.reduce((sum, r) => sum + r.fzjz.total + r.rcjc.total + r.sync141.total, 0)
+  const totalHazards = VILLAGE_ROWS.reduce((sum, r) => sum + r.fzjz.hazard + r.rcjc.hazard + r.sync141.hazard, 0)
+  const avgCompletionRate = Math.round(VILLAGE_ROWS.reduce((sum, r) => {
+    const total = r.fzjz.total + r.rcjc.total + r.sync141.total
+    const done = r.fzjz.done + r.rcjc.done + r.sync141.done
+    return sum + (total > 0 ? done / total : 0)
+  }, 0) / VILLAGE_ROWS.length * 100)
+
+  // 生成每月数据（带趋势变化）
+  let baseTasks = Math.round(totalTasks * 0.5) // 起始值较低
+  let baseHazards = Math.round(totalHazards * 0.5)
+  let completionRate = Math.max(50, avgCompletionRate - 20) // 起始完成率较低
+  let hazardRectRate = Math.max(40, avgCompletionRate - 30) // 起始隐患整改率较低
+
+  return months.map((month, idx) => {
+    // 模拟趋势：任务数逐渐增加，完成率逐渐提高
+    const growthFactor = 1 + idx * 0.05 // 每月增长5%
+    const tasks = Math.round(baseTasks * growthFactor + Math.random() * 500)
+    const hazards = Math.round(baseHazards * growthFactor * 0.6 + Math.random() * 100)
+
+    // 完成率和隐患整改率逐渐提高
+    completionRate = Math.min(95, completionRate + Math.random() * 3)
+    hazardRectRate = Math.min(90, hazardRectRate + Math.random() * 4)
+
+    // 更新基准值
+    baseTasks = tasks
+    baseHazards = hazards
+
+    return {
+      month,
+      任务总数: tasks,
+      完成率: Math.round(completionRate),
+      查出隐患数: hazards,
+      隐患整改完成率: Math.round(hazardRectRate),
+    }
+  })
+}
+
+// 自定义图例组件（固定顺序）
+const CustomLegend = (props: any) => {
+  const { payload } = props
+  const items = [
+    { name: '任务总数', color: '#4F46E5' },
+    { name: '完成率', color: '#059669' },
+    { name: '查出隐患数', color: '#DC2626' },
+    { name: '隐患整改完成率', color: '#D97706' },
+  ]
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', gap: 20, paddingTop: 12, fontSize: 12 }}>
+      {items.map(item => (
+        <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 12, height: 3, background: item.color, display: 'inline-block', borderRadius: 2 }} />
+          <span style={{ color: '#374151' }}>{item.name}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 // ─── 通用样式 ─────────────────────────────────────────────────────────────
 const th: React.CSSProperties = {
@@ -633,6 +712,25 @@ export function YuzhiSyncDimension() {
       </div>
       )
     })()}
+
+      {/* ─── 村社每月任务变化折线图 ─────────────────────────────── */}
+      <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, padding: '16px 20px' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 12 }}>村社每月任务变化折线图</div>
+        <ResponsiveContainer width="100%" height={320}>
+          <ComposedChart data={generateMonthlyTrendData()} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+            <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+            <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} unit="%" />
+            <Tooltip contentStyle={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12 }} />
+            <Legend content={<CustomLegend />} />
+            <Line yAxisId="left" type="monotone" dataKey="任务总数" stroke="#4F46E5" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+            <Line yAxisId="right" type="monotone" dataKey="完成率" stroke="#059669" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} unit="%" />
+            <Line yAxisId="left" type="monotone" dataKey="查出隐患数" stroke="#DC2626" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+            <Line yAxisId="right" type="monotone" dataKey="隐患整改完成率" stroke="#D97706" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} unit="%" />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
 
       {/* ─── 表1：村社检查任务统计 ─────────────────────────────── */}
       <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
