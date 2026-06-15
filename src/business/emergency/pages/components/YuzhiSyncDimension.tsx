@@ -715,7 +715,7 @@ export function YuzhiSyncDimension() {
 
       {/* ─── 村社每月任务变化折线图 ─────────────────────────────── */}
       <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, padding: '16px 20px' }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 12 }}>村社每月任务变化折线图</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 12 }}>村社近一年每月检查任务数据</div>
         <ResponsiveContainer width="100%" height={320}>
           <ComposedChart data={generateMonthlyTrendData()} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
