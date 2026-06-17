@@ -253,6 +253,54 @@ const generateDailyTrendData = (): TrendDataPoint[] => {
   return days
 }
 
+// 生成近12周的趋势数据
+const generateWeeklyTrendData = (): TrendDataPoint[] => {
+  const weeks: TrendDataPoint[] = []
+  const now = new Date(2026, 5, 15) // 2026-06-15
+
+  // 基于现有数据计算基准值
+  const totalTasks = VILLAGE_ROWS.reduce((sum, r) => sum + r.fzjz.total + r.rcjc.total + r.sync141.total, 0)
+  const totalHazards = VILLAGE_ROWS.reduce((sum, r) => sum + r.fzjz.hazard + r.rcjc.hazard + r.sync141.hazard, 0)
+  const avgCompletionRate = Math.round(VILLAGE_ROWS.reduce((sum, r) => {
+    const total = r.fzjz.total + r.rcjc.total + r.sync141.total
+    const done = r.fzjz.done + r.rcjc.done + r.sync141.done
+    return sum + (total > 0 ? done / total : 0)
+  }, 0) / VILLAGE_ROWS.length * 100)
+
+  // 生成每周数据（带趋势变化）
+  let baseTasks = Math.round(totalTasks * 0.1) // 每周平均值
+  let baseHazards = Math.round(totalHazards * 0.1)
+  let completionRate = Math.max(50, avgCompletionRate - 20)
+  let hazardRectRate = Math.max(40, avgCompletionRate - 30)
+
+  for (let i = 11; i >= 0; i--) {
+    const weekStart = new Date(now)
+    weekStart.setDate(weekStart.getDate() - i * 7)
+    const month = weekStart.getMonth() + 1
+    const day = weekStart.getDate()
+    const period = `W${12 - i}` // W1, W2, ..., W12
+
+    // 模拟每周波动
+    const weekVariation = 0.8 + Math.random() * 0.4 // 0.8-1.2的随机系数
+    const tasks = Math.round(baseTasks * weekVariation)
+    const hazards = Math.round(baseHazards * weekVariation * 0.6)
+
+    // 完成率和隐患整改率逐渐提高
+    completionRate = Math.min(95, completionRate + Math.random() * 1.5)
+    hazardRectRate = Math.min(90, hazardRectRate + Math.random() * 1.2)
+
+    weeks.push({
+      period,
+      任务总数: tasks,
+      完成率: Math.round(completionRate),
+      查出隐患数: hazards,
+      隐患整改完成率: Math.round(hazardRectRate),
+    })
+  }
+
+  return weeks
+}
+
 // 自定义图例组件（固定顺序）
 const CustomLegend = (props: any) => {
   const { payload } = props
@@ -359,7 +407,7 @@ export function YuzhiSyncDimension() {
   const [dateTo, setDateTo] = useState('')
   const [quickRange, setQuickRange] = useState<'month' | 'lastMonth' | 'quarter' | 'year' | ''>('')
   const [showNote, setShowNote] = useState(false)
-  const [timeDimension, setTimeDimension] = useState<'12months' | '30days'>('12months')
+  const [timeDimension, setTimeDimension] = useState<'12months' | '12weeks' | '30days'>('12months')
   const dropdownRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
@@ -771,6 +819,7 @@ export function YuzhiSyncDimension() {
           <div style={{ display: 'flex', gap: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #D1D5DB' }}>
             {([
               { key: '12months', label: '近12个月' },
+              { key: '12weeks', label: '近12周' },
               { key: '30days', label: '近30天' },
             ] as const).map(opt => {
               const isActive = timeDimension === opt.key
@@ -796,14 +845,18 @@ export function YuzhiSyncDimension() {
           </div>
         </div>
         <ResponsiveContainer width="100%" height={320}>
-          <ComposedChart data={timeDimension === '12months' ? generateMonthlyTrendData() : generateDailyTrendData()} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+          <ComposedChart data={
+            timeDimension === '12months' ? generateMonthlyTrendData() :
+            timeDimension === '12weeks' ? generateWeeklyTrendData() :
+            generateDailyTrendData()
+          } margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
             <XAxis
               dataKey="period"
               tick={{ fontSize: 11, fill: '#9CA3AF' }}
               axisLine={{ stroke: '#E5E7EB' }}
               tickLine={{ stroke: '#E5E7EB' }}
-              interval={timeDimension === '30days' ? 4 : 0}
+              interval={timeDimension === '30days' ? 4 : timeDimension === '12weeks' ? 1 : 0}
             />
             <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
             <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} unit="%" />
