@@ -149,17 +149,18 @@ const VILLAGE_ROWS: VillageRow[] = VILLAGE_RAW.map(r => ({
   rentalCount: Math.max(0, Math.round(r.total * R_RENTAL)),
 }))
 
-// ─── 村社每月任务变化折线图数据 ────────────────────────────────────────────
-// 生成多个月份的模拟趋势数据
-interface MonthlyTrendData {
-  month: string
+// ─── 村社近期检查数据变化折线图数据 ────────────────────────────────────────────
+// 支持近12个月和近30天两种维度
+interface TrendDataPoint {
+  period: string      // 时间周期（月份或日期）
   任务总数: number
   完成率: number
   查出隐患数: number
   隐患整改完成率: number
 }
 
-const generateMonthlyTrendData = (): MonthlyTrendData[] => {
+// 生成近12个月的趋势数据
+const generateMonthlyTrendData = (): TrendDataPoint[] => {
   const months = [
     '2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12',
     '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'
@@ -195,13 +196,61 @@ const generateMonthlyTrendData = (): MonthlyTrendData[] => {
     baseHazards = hazards
 
     return {
-      month,
+      period: month,
       任务总数: tasks,
       完成率: Math.round(completionRate),
       查出隐患数: hazards,
       隐患整改完成率: Math.round(hazardRectRate),
     }
   })
+}
+
+// 生成近30天的趋势数据
+const generateDailyTrendData = (): TrendDataPoint[] => {
+  const days: TrendDataPoint[] = []
+  const now = new Date(2026, 5, 15) // 2026-06-15
+
+  // 基于现有数据计算基准值
+  const totalTasks = VILLAGE_ROWS.reduce((sum, r) => sum + r.fzjz.total + r.rcjc.total + r.sync141.total, 0)
+  const totalHazards = VILLAGE_ROWS.reduce((sum, r) => sum + r.fzjz.hazard + r.rcjc.hazard + r.sync141.hazard, 0)
+  const avgCompletionRate = Math.round(VILLAGE_ROWS.reduce((sum, r) => {
+    const total = r.fzjz.total + r.rcjc.total + r.sync141.total
+    const done = r.fzjz.done + r.rcjc.done + r.sync141.done
+    return sum + (total > 0 ? done / total : 0)
+  }, 0) / VILLAGE_ROWS.length * 100)
+
+  // 生成每日数据（带趋势变化）
+  let baseTasks = Math.round(totalTasks * 0.03) // 每日平均值
+  let baseHazards = Math.round(totalHazards * 0.03)
+  let completionRate = Math.max(50, avgCompletionRate - 20)
+  let hazardRectRate = Math.max(40, avgCompletionRate - 30)
+
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date(now)
+    date.setDate(date.getDate() - i)
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    const period = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+
+    // 模拟每日波动
+    const dayVariation = 0.7 + Math.random() * 0.6 // 0.7-1.3的随机系数
+    const tasks = Math.round(baseTasks * dayVariation)
+    const hazards = Math.round(baseHazards * dayVariation * 0.6)
+
+    // 完成率和隐患整改率逐渐提高
+    completionRate = Math.min(95, completionRate + Math.random() * 0.5)
+    hazardRectRate = Math.min(90, hazardRectRate + Math.random() * 0.3)
+
+    days.push({
+      period,
+      任务总数: tasks,
+      完成率: Math.round(completionRate),
+      查出隐患数: hazards,
+      隐患整改完成率: Math.round(hazardRectRate),
+    })
+  }
+
+  return days
 }
 
 // 自定义图例组件（固定顺序）
@@ -310,6 +359,7 @@ export function YuzhiSyncDimension() {
   const [dateTo, setDateTo] = useState('')
   const [quickRange, setQuickRange] = useState<'month' | 'lastMonth' | 'quarter' | 'year' | ''>('')
   const [showNote, setShowNote] = useState(false)
+  const [timeDimension, setTimeDimension] = useState<'12months' | '30days'>('12months')
   const dropdownRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
@@ -713,13 +763,48 @@ export function YuzhiSyncDimension() {
       )
     })()}
 
-      {/* ─── 村社每月任务变化折线图 ─────────────────────────────── */}
+      {/* ─── 村社近期检查数据变化 ─────────────────────────────── */}
       <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, padding: '16px 20px' }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 12 }}>村社近一年每月检查任务数据</div>
+        {/* 标题栏 + 维度切换 */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>村社近期检查数据变化</div>
+          <div style={{ display: 'flex', gap: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #D1D5DB' }}>
+            {([
+              { key: '12months', label: '近12个月' },
+              { key: '30days', label: '近30天' },
+            ] as const).map(opt => {
+              const isActive = timeDimension === opt.key
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => setTimeDimension(opt.key)}
+                  style={{
+                    padding: '6px 16px',
+                    border: 'none',
+                    background: isActive ? '#4F46E5' : 'white',
+                    color: isActive ? 'white' : '#6B7280',
+                    fontSize: 13,
+                    fontWeight: isActive ? 600 : 400,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
         <ResponsiveContainer width="100%" height={320}>
-          <ComposedChart data={generateMonthlyTrendData()} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+          <ComposedChart data={timeDimension === '12months' ? generateMonthlyTrendData() : generateDailyTrendData()} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-            <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+            <XAxis
+              dataKey="period"
+              tick={{ fontSize: 11, fill: '#9CA3AF' }}
+              axisLine={{ stroke: '#E5E7EB' }}
+              tickLine={{ stroke: '#E5E7EB' }}
+              interval={timeDimension === '30days' ? 4 : 0}
+            />
             <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
             <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} unit="%" />
             <Tooltip contentStyle={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12 }} />
