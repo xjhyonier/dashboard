@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
@@ -394,6 +394,7 @@ export function YuzhiSyncDimension() {
   const [quickRange, setQuickRange] = useState<'month' | 'lastMonth' | 'quarter' | 'year' | ''>('')
   const [showNote, setShowNote] = useState(false)
   const [timeDimension, setTimeDimension] = useState<'12months' | '12weeks' | '30days'>('12months')
+  const [hoveredMetric, setHoveredMetric] = useState<number | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
@@ -717,9 +718,48 @@ export function YuzhiSyncDimension() {
         const rentReg = Math.round(rent * 0.82)
         const rate = (v: number, base: number) => base > 0 ? `${((v / base) * 100).toFixed(2)}%` : '-'
 
-        // 计算任务总数和隐患总数（用于第4个指标卡）
-        const totalTasks = data.reduce((sum, r) => sum + r.fzjz.total + r.rcjc.total + r.sync141.total, 0)
-        const totalHazards = data.reduce((sum, r) => sum + r.fzjz.hazard + r.rcjc.hazard + r.sync141.hazard, 0)
+        // 任务统计指标定义（用于第4个指标卡）
+  const taskStatMetrics = [
+    { name: '新增任务数', definition: '查询期间新增的任务数' },
+    { name: '完成任务数', definition: '查询期间完成的任务数' },
+    { name: '未完成任务数', definition: '截止查询时间，未完成的任务数' },
+    { name: '累计完成率', definition: '截止查询时间，总完成任务数/总任务数' },
+    { name: '发现隐患数', definition: '查询期间发现的隐患数' },
+    { name: '整改隐患数', definition: '查询期间整改的隐患数' },
+    { name: '累计整改率', definition: '截止查询时间，总整改隐患数/总隐患数' },
+  ] as const
+
+  // 生成任务统计数据（昨日 + 上周）
+  const generateTaskStats = () => {
+    const data = selectedVillages.length > 0 ? filteredVillages : allVillages
+    const totalTasks = data.reduce((sum, r) => sum + r.fzjz.total + r.rcjc.total + r.sync141.total, 0)
+    const totalHazards = data.reduce((sum, r) => sum + r.fzjz.hazard + r.rcjc.hazard + r.sync141.hazard, 0)
+    const totalDone = data.reduce((sum, r) => sum + r.fzjz.done + r.rcjc.done + r.sync141.done, 0)
+    const totalRectified = data.reduce((sum, r) => sum + r.fzjz.rectified + r.rcjc.rectified + r.sync141.rectified, 0)
+
+    // 昨日数据（模拟）
+    const yesterdayNew = Math.round(totalTasks * 0.03 + Math.random() * 50)
+    const yesterdayDone = Math.round(totalDone * 0.03 + Math.random() * 40)
+    const yesterdayPending = Math.round(totalTasks * 0.97 - yesterdayDone) // 模拟未完成任务
+    const yesterdayHazard = Math.round(totalHazards * 0.03 + Math.random() * 20)
+    const yesterdayRectified = Math.round(yesterdayHazard * 0.7)
+    const yesterdayCumulativeRate = totalTasks > 0 ? Math.round((totalDone / totalTasks) * 100) : 0
+    const yesterdayHazardRate = totalHazards > 0 ? Math.round((totalRectified / totalHazards) * 100) : 0
+
+    // 上周数据（模拟）
+    const lastWeekNew = Math.round(totalTasks * 0.21 + Math.random() * 200)
+    const lastWeekDone = Math.round(totalDone * 0.21 + Math.random() * 150)
+    const lastWeekPending = Math.round(totalTasks * 0.79 - lastWeekDone) // 模拟未完成任务
+    const lastWeekHazard = Math.round(totalHazards * 0.21 + Math.random() * 80)
+    const lastWeekRectified = Math.round(lastWeekHazard * 0.7)
+    const lastWeekCumulativeRate = yesterdayCumulativeRate // 累计率随时间变化不大
+    const lastWeekHazardRate = yesterdayHazardRate
+
+    return {
+      yesterday: [yesterdayNew, yesterdayDone, yesterdayPending, yesterdayCumulativeRate, yesterdayHazard, yesterdayRectified, yesterdayHazardRate],
+      lastWeek: [lastWeekNew, lastWeekDone, lastWeekPending, lastWeekCumulativeRate, lastWeekHazard, lastWeekRectified, lastWeekHazardRate],
+    }
+  }
 
         const cards = [
           {
@@ -757,13 +797,7 @@ export function YuzhiSyncDimension() {
           },
         ]
 
-        // 第4个指标卡：任务统计数据（昨日 + 上周）
-        const yesterdayDone = Math.round(totalTasks * 0.03 + Math.random() * 50)
-        const yesterdayHazard = Math.round(totalHazards * 0.03 + Math.random() * 20)
-        const yesterdayRectified = Math.round(yesterdayHazard * 0.7)
-        const lastWeekDone = Math.round(totalTasks * 0.21 + Math.random() * 200)
-        const lastWeekHazard = Math.round(totalHazards * 0.21 + Math.random() * 80)
-        const lastWeekRectified = Math.round(lastWeekHazard * 0.7)
+        const stats = generateTaskStats()
 
         return (
       <div style={{ display: 'flex', gap: 12 }}>
@@ -818,51 +852,86 @@ export function YuzhiSyncDimension() {
             gap: 10,
           }}
         >
-          {/* 顶部：图标 + 标题 */}
+          {/* 顶部：图标 + 标题 + 备注图标 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ fontSize: 28 }}>📊</div>
-            <div>
+            <div style={{ flex: 1 }}>
               <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, marginBottom: 4 }}>任务统计</div>
               <div style={{ fontSize: 11, color: '#9CA3AF' }}>昨日 · 上周</div>
             </div>
-          </div>
-          {/* 底部：昨日 + 上周统计 */}
-          <div style={{ display: 'flex', gap: 16, borderTop: '1px dashed #FECACA', paddingTop: 8 }}>
-            {/* 昨日任务统计 */}
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 4, fontWeight: 600 }}>昨日任务统计</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 10, color: '#6B7280' }}>完成任务数</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#DC2626' }}>{yesterdayDone}</span>
+            {/* 备注图标：悬浮显示所有指标解释 */}
+            <div style={{ position: 'relative' }}>
+              <span
+                onMouseEnter={() => setHoveredMetric(-1)}
+                onMouseLeave={() => setHoveredMetric(null)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  border: '1px solid #9CA3AF',
+                  fontSize: 10,
+                  color: '#9CA3AF',
+                  cursor: 'help',
+                  fontWeight: 600,
+                  lineHeight: 1,
+                }}
+              >
+                ?
+              </span>
+              {hoveredMetric === -1 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: 6,
+                  background: 'white',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: 6,
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                  padding: '12px 16px',
+                  zIndex: 1000,
+                  minWidth: 280,
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 8 }}>指标解释</div>
+                  {taskStatMetrics.map((m, i) => (
+                    <div key={i} style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>
+                      <span style={{ fontWeight: 600, color: '#374151' }}>{m.name}：</span>
+                      {m.definition}
+                    </div>
+                  ))}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 10, color: '#6B7280' }}>发现隐患数</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#DC2626' }}>{yesterdayHazard}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 10, color: '#6B7280' }}>整改隐患数</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#DC2626' }}>{yesterdayRectified}</span>
-                </div>
-              </div>
+              )}
             </div>
-            {/* 上周任务统计 */}
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 4, fontWeight: 600 }}>上周任务统计</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 10, color: '#6B7280' }}>完成任务数</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#059669' }}>{lastWeekDone}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 10, color: '#6B7280' }}>发现隐患数</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#059669' }}>{lastWeekHazard}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 10, color: '#6B7280' }}>整改隐患数</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#059669' }}>{lastWeekRectified}</span>
-                </div>
-              </div>
+          </div>
+          {/* 底部：指标表格 */}
+          <div style={{ borderTop: '1px dashed #FECACA', paddingTop: 8, overflowY: 'auto', maxHeight: 280 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: '4px 8px', fontSize: 11 }}>
+              {/* 表头 */}
+              <div style={{ fontWeight: 600, color: '#6B7280', paddingBottom: 4, borderBottom: '1px solid #FECACA' }}></div>
+              <div style={{ fontWeight: 600, color: '#6B7280', textAlign: 'right', paddingBottom: 4, borderBottom: '1px solid #FECACA' }}>昨日</div>
+              <div style={{ fontWeight: 600, color: '#6B7280', textAlign: 'right', paddingBottom: 4, borderBottom: '1px solid #FECACA' }}>上周</div>
+              {/* 数据行 */}
+              {taskStatMetrics.map((metric, i) => {
+                const isRate = metric.name.includes('率')
+                const yesterdayVal = stats.yesterday[i]
+                const lastWeekVal = stats.lastWeek[i]
+                return (
+                  <React.Fragment key={metric.name}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 0', color: '#374151', fontWeight: 500 }}>
+                      {metric.name}
+                    </div>
+                    <div style={{ textAlign: 'right', fontWeight: 600, color: '#DC2626', padding: '3px 0' }}>
+                      {isRate ? `${yesterdayVal}%` : yesterdayVal.toLocaleString()}
+                    </div>
+                    <div style={{ textAlign: 'right', fontWeight: 600, color: '#059669', padding: '3px 0' }}>
+                      {isRate ? `${lastWeekVal}%` : lastWeekVal.toLocaleString()}
+                    </div>
+                  </React.Fragment>
+                )
+              })}
             </div>
           </div>
         </div>
