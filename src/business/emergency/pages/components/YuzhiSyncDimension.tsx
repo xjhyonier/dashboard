@@ -38,11 +38,15 @@ const SYNC_ROWS: SyncRow[] = [
 
 // ─── 表1数据：村社检查任务统计 ────────────────────────────────────────────
 interface TaskSub {
-  total: number    // 任务总数
-  done: number     // 已完成
-  hazard: number   // 隐患数量
+  total: number     // 总任务数
+  done: number      // 已完成（用于计算总完成率）
+  hazard: number    // 总隐患数
   rectified: number // 已整改
   rectifying: number // 整改中
+  // 查询期间新增字段
+  newTasks: number   // 新增任务数
+  newDone: number    // 新增完成数
+  newHazard: number  // 确认隐患数（查询期间新增）
 }
 
 interface VillageRow {
@@ -71,7 +75,11 @@ function genMock(total: number, done: number): Pick<VillageRow, 'fzjz' | 'rcjc' 
     const hazard = Math.max(0, Math.round((t - d) * 0.6))
     const rectified = Math.max(0, Math.round(hazard * 0.7))
     const rectifying = hazard - rectified
-    return { total: t, done: d, hazard, rectified, rectifying }
+    // 查询期间数据（模拟：新增任务数约10-20% of total，新增完成数约10-20% of done）
+    const newTasks = Math.round(t * (0.1 + Math.random() * 0.1))
+    const newDone = Math.round(d * (0.1 + Math.random() * 0.1))
+    const newHazard = Math.round(hazard * (0.1 + Math.random() * 0.1))
+    return { total: t, done: d, hazard, rectified, rectifying, newTasks, newDone, newHazard }
   }
 
   return {
@@ -357,26 +365,41 @@ function RateText({ rate }: { rate: string }) {
 }
 
 // ─── 排序列类型 ───────────────────────────────────────────────────────────
-type SortCol = 'village' | 'fzjz_total' | 'fzjz_done' | 'fzjz_hazard' | 'fzjz_rectified' | 'fzjz_rectifying'
+type SortCol = 'village' |
+  'fzjz_total' | 'fzjz_done' | 'fzjz_newTasks' | 'fzjz_newDone' | 'fzjz_hazard' | 'fzjz_newHazard' | 'fzjz_rectified' | 'fzjz_rectifying' |
+  'rcjc_total' | 'rcjc_done' | 'rcjc_newTasks' | 'rcjc_newDone' | 'rcjc_hazard' | 'rcjc_newHazard' | 'rcjc_rectified' | 'rcjc_rectifying' |
+  'sync141_total' | 'sync141_done' | 'sync141_newTasks' | 'sync141_newDone' | 'sync141_hazard' | 'sync141_newHazard' | 'sync141_rectified' | 'sync141_rectifying'
   | 'rcjc_total' | 'rcjc_done' | 'rcjc_hazard' | 'rcjc_rectified' | 'rcjc_rectifying'
   | 'sync141_total' | 'sync141_done' | 'sync141_hazard' | 'sync141_rectified' | 'sync141_rectifying'
 
 function getSortValue(row: VillageRow, col: SortCol): number {
   switch (col) {
     case 'village': return 0
+    // 防灾减灾
     case 'fzjz_total': return row.fzjz.total
     case 'fzjz_done': return row.fzjz.done
+    case 'fzjz_newTasks': return row.fzjz.newTasks
+    case 'fzjz_newDone': return row.fzjz.newDone
     case 'fzjz_hazard': return row.fzjz.hazard
+    case 'fzjz_newHazard': return row.fzjz.newHazard
     case 'fzjz_rectified': return row.fzjz.rectified
     case 'fzjz_rectifying': return row.fzjz.rectifying
+    // 日常检查
     case 'rcjc_total': return row.rcjc.total
     case 'rcjc_done': return row.rcjc.done
+    case 'rcjc_newTasks': return row.rcjc.newTasks
+    case 'rcjc_newDone': return row.rcjc.newDone
     case 'rcjc_hazard': return row.rcjc.hazard
+    case 'rcjc_newHazard': return row.rcjc.newHazard
     case 'rcjc_rectified': return row.rcjc.rectified
     case 'rcjc_rectifying': return row.rcjc.rectifying
+    // 141同步
     case 'sync141_total': return row.sync141.total
     case 'sync141_done': return row.sync141.done
+    case 'sync141_newTasks': return row.sync141.newTasks
+    case 'sync141_newDone': return row.sync141.newDone
     case 'sync141_hazard': return row.sync141.hazard
+    case 'sync141_newHazard': return row.sync141.newHazard
     case 'sync141_rectified': return row.sync141.rectified
     case 'sync141_rectifying': return row.sync141.rectifying
   }
@@ -402,6 +425,7 @@ export function YuzhiSyncDimension() {
   const [showNote, setShowNote] = useState(false)
   const [timeDimension, setTimeDimension] = useState<'12months' | '12weeks' | '30days'>('12months')
   const [hoveredMetric, setHoveredMetric] = useState<number | null>(null)
+  const [showTableHelp, setShowTableHelp] = useState(false) // 表1指标说明悬浮框
   const dropdownRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
@@ -536,7 +560,7 @@ export function YuzhiSyncDimension() {
 
   // 全量汇总统计（用于表1顶部统计行 - 基于筛选后的数据）
   const overallStats = useMemo(() => {
-    const zero: TaskSub = { total: 0, done: 0, hazard: 0, rectified: 0, rectifying: 0 }
+    const zero: TaskSub = { total: 0, done: 0, hazard: 0, rectified: 0, rectifying: 0, newTasks: 0, newDone: 0, newHazard: 0 }
     const data = filteredVillages // 使用筛选后的数据
     const sum = data.reduce((acc, r) => ({
       fzjz: {
@@ -545,6 +569,9 @@ export function YuzhiSyncDimension() {
         hazard: acc.fzjz.hazard + r.fzjz.hazard,
         rectified: acc.fzjz.rectified + r.fzjz.rectified,
         rectifying: acc.fzjz.rectifying + r.fzjz.rectifying,
+        newTasks: acc.fzjz.newTasks + r.fzjz.newTasks,
+        newDone: acc.fzjz.newDone + r.fzjz.newDone,
+        newHazard: acc.fzjz.newHazard + r.fzjz.newHazard,
       },
       rcjc: {
         total: acc.rcjc.total + r.rcjc.total,
@@ -552,6 +579,9 @@ export function YuzhiSyncDimension() {
         hazard: acc.rcjc.hazard + r.rcjc.hazard,
         rectified: acc.rcjc.rectified + r.rcjc.rectified,
         rectifying: acc.rcjc.rectifying + r.rcjc.rectifying,
+        newTasks: acc.rcjc.newTasks + r.rcjc.newTasks,
+        newDone: acc.rcjc.newDone + r.rcjc.newDone,
+        newHazard: acc.rcjc.newHazard + r.rcjc.newHazard,
       },
       sync141: {
         total: acc.sync141.total + r.sync141.total,
@@ -559,6 +589,9 @@ export function YuzhiSyncDimension() {
         hazard: acc.sync141.hazard + r.sync141.hazard,
         rectified: acc.sync141.rectified + r.sync141.rectified,
         rectifying: acc.sync141.rectifying + r.sync141.rectifying,
+        newTasks: acc.sync141.newTasks + r.sync141.newTasks,
+        newDone: acc.sync141.newDone + r.sync141.newDone,
+        newHazard: acc.sync141.newHazard + r.sync141.newHazard,
       },
     }), { fzjz: zero, rcjc: zero, sync141: zero })
     return sum
@@ -593,37 +626,67 @@ export function YuzhiSyncDimension() {
     </th>
   )
 
-  const subCols = ['任务数', '已完成', '完成率', '确认隐患数', '已整改', '整改中', '整改完成率'] as const
-  const subKeys = ['total', 'done', 'hazard', 'rectified', 'rectifying'] as const
+  // 表1列定义（9个指标）
+  const subCols = ['总任务数', '总完成率', '新增任务数', '新增完成数', '总隐患数', '整改完成率', '确认隐患数', '已整改', '整改中'] as const
+  // 指标说明
+  const tableMetrics = [
+    { name: '总任务数', definition: '截止查询时间，共有多少任务数' },
+    { name: '总完成率', definition: '截止查询时间，总已完成任务数/总任务数' },
+    { name: '新增任务数', definition: '查询期间新增的任务数' },
+    { name: '新增完成数', definition: '查询期间完成的任务数' },
+    { name: '总隐患数', definition: '截止查询时间，共有多少隐患数' },
+    { name: '整改完成率', definition: '截止查询时间，已整改的隐患数/总隐患数' },
+    { name: '确认隐患数', definition: '查询期间新增的隐患数' },
+    { name: '已整改', definition: '查询期间已整改的隐患数' },
+    { name: '整改中', definition: '查询期间整改中的隐患数' },
+  ] as const
 
-  // 渲染某个 TaskSub 的子列，isLast 表示是否最后一类（不需要右侧粗分隔线）
+  // 渲染某个 TaskSub 的子列（9个指标），isLast 表示是否最后一类（不需要右侧粗分隔线）
   function renderSubCols(sub: TaskSub, subBg?: string, isLast = false) {
-    const rate = rateStr(sub.done, sub.total)
+    const totalRate = rateStr(sub.done, sub.total)
+    const hazardRate = rateStr(sub.rectified, sub.hazard)
     const lastStyle: React.CSSProperties = isLast ? {} : { borderRight: '2px solid #D1D5DB' }
     return (
       <>
+        {/* 1.总任务数 */}
         <td style={td({ textAlign: 'center', fontWeight: 600, background: subBg })}>{sub.total.toLocaleString()}</td>
-        <td style={td({ textAlign: 'center', color: sub.done === 0 ? '#9CA3AF' : '#111827', background: subBg })}>{sub.done.toLocaleString()}</td>
+        {/* 2.总完成率 */}
         <td style={td({ textAlign: 'center', background: subBg })}>
-          <RateText rate={rate} />
+          <RateText rate={totalRate} />
         </td>
+        {/* 3.新增任务数 */}
+        <td style={td({ textAlign: 'center', color: sub.newTasks > 0 ? '#7C3AED' : '#9CA3AF', fontWeight: sub.newTasks > 0 ? 600 : 400, background: subBg })}>
+          {sub.newTasks.toLocaleString()}
+        </td>
+        {/* 4.新增完成数 */}
+        <td style={td({ textAlign: 'center', color: sub.newDone > 0 ? '#4F46E5' : '#9CA3AF', fontWeight: sub.newDone > 0 ? 600 : 400, background: subBg })}>
+          {sub.newDone.toLocaleString()}
+        </td>
+        {/* 5.总隐患数 */}
         <td style={td({ textAlign: 'center', color: sub.hazard > 0 ? '#DC2626' : '#9CA3AF', fontWeight: sub.hazard > 0 ? 600 : 400, background: subBg })}>
           {sub.hazard.toLocaleString()}
         </td>
+        {/* 6.整改完成率 */}
+        <td style={td({ textAlign: 'center', background: subBg })}>
+          <RateText rate={hazardRate} />
+        </td>
+        {/* 7.确认隐患数 */}
+        <td style={td({ textAlign: 'center', color: sub.newHazard > 0 ? '#F59E0B' : '#9CA3AF', fontWeight: sub.newHazard > 0 ? 600 : 400, background: subBg })}>
+          {sub.newHazard.toLocaleString()}
+        </td>
+        {/* 8.已整改 */}
         <td style={td({ textAlign: 'center', color: sub.rectified > 0 ? '#059669' : '#9CA3AF', fontWeight: sub.rectified > 0 ? 600 : 400, background: subBg })}>
           {sub.rectified.toLocaleString()}
         </td>
-        <td style={td({ textAlign: 'center', color: sub.rectifying > 0 ? '#F59E0B' : '#9CA3AF', fontWeight: sub.rectifying > 0 ? 600 : 400, background: subBg })}>
+        {/* 9.整改中 */}
+        <td style={td({ textAlign: 'center', color: sub.rectifying > 0 ? '#F59E0B' : '#9CA3AF', fontWeight: sub.rectifying > 0 ? 600 : 400, background: subBg, ...lastStyle })}>
           {sub.rectifying.toLocaleString()}
-        </td>
-        <td style={td({ textAlign: 'center', background: subBg, ...lastStyle })}>
-          <RateText rate={rateStr(sub.rectified, sub.hazard)} />
         </td>
       </>
     )
   }
 
-  const totalColSpan = 1 + 1 + 3 * 7 // # + 村社 + 3类 × 7子列 = 23
+  const totalColSpan = 1 + 1 + 3 * 9 // # + 村社 + 3类 × 9子列 = 29
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -1078,11 +1141,57 @@ export function YuzhiSyncDimension() {
       <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
         {/* 标题栏 */}
         <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>表1：村社检查任务统计</span>
-            <span style={{ marginLeft: 12, fontSize: 12, color: '#6B7280' }}>
+            <span style={{ fontSize: 12, color: '#6B7280' }}>
               共 {filteredVillages.length} 条
             </span>
+            {/* 指标说明图标：悬浮显示所有指标解释 */}
+            <div style={{ position: 'relative' }}>
+              <span
+                onMouseEnter={() => setShowTableHelp(true)}
+                onMouseLeave={() => setShowTableHelp(false)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  border: '1px solid #9CA3AF',
+                  fontSize: 10,
+                  color: '#9CA3AF',
+                  cursor: 'help',
+                  fontWeight: 600,
+                  lineHeight: 1,
+                }}
+              >
+                ?
+              </span>
+              {showTableHelp && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  marginTop: 6,
+                  background: 'white',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: 6,
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                  padding: '12px 16px',
+                  zIndex: 1000,
+                  minWidth: 320,
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 8 }}>指标说明</div>
+                  {tableMetrics.map((m, i) => (
+                    <div key={i} style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>
+                      <span style={{ fontWeight: 600, color: '#374151' }}>{m.name}：</span>
+                      {m.definition}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           {/* 任务创建时间筛选 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -1239,36 +1348,42 @@ export function YuzhiSyncDimension() {
               <tr>
                 <th rowSpan={2} style={{ ...th, width: 42, borderRight: '1px solid #E5E7EB' }}>#</th>
                 <th rowSpan={2} style={{ ...th, textAlign: 'left', minWidth: 110 }}>村社</th>
-                <GroupTh label="日常检查任务" colSpan={7} bg="#F0FDF4" />
-                <GroupTh label="141同步任务" colSpan={7} bg="#FAF5FF" />
-                <GroupTh label="防灾减灾任务" colSpan={7} bg="#EFF6FF" />
+                <GroupTh label="日常检查任务" colSpan={9} bg="#F0FDF4" />
+                <GroupTh label="141同步任务" colSpan={9} bg="#FAF5FF" />
+                <GroupTh label="防灾减灾任务" colSpan={9} bg="#EFF6FF" />
               </tr>
-              {/* 第二级表头：子列 */}
+              {/* 第二级表头：9个子列 */}
               <tr>
-                {/* 日常检查 */}
-                <SortTh col="rcjc_total" label="任务数" extraStyle={{ background: '#F0FDF4' }} />
-                <SortTh col="rcjc_done" label="已完成" extraStyle={{ background: '#F0FDF4' }} />
-                <th style={{ ...th, background: '#F0FDF4', width: 64 }}>完成率</th>
-                <SortTh col="rcjc_hazard" label="确认隐患数" extraStyle={{ background: '#F0FDF4' }} />
+                {/* 日常检查 - 9个指标 */}
+                <SortTh col="rcjc_total" label="总任务数" extraStyle={{ background: '#F0FDF4' }} />
+                <th style={{ ...th, background: '#F0FDF4', width: 64 }}>总完成率</th>
+                <SortTh col="rcjc_newTasks" label="新增任务数" extraStyle={{ background: '#F0FDF4' }} />
+                <SortTh col="rcjc_newDone" label="新增完成数" extraStyle={{ background: '#F0FDF4' }} />
+                <SortTh col="rcjc_hazard" label="总隐患数" extraStyle={{ background: '#F0FDF4' }} />
+                <th style={{ ...th, background: '#F0FDF4', width: 76 }}>整改完成率</th>
+                <SortTh col="rcjc_newHazard" label="确认隐患数" extraStyle={{ background: '#F0FDF4' }} />
                 <SortTh col="rcjc_rectified" label="已整改" extraStyle={{ background: '#F0FDF4' }} />
-                <SortTh col="rcjc_rectifying" label="整改中" extraStyle={{ background: '#F0FDF4' }} />
-                <th style={{ ...th, background: '#F0FDF4', width: 76, borderRight: '2px solid #D1D5DB' }}>整改完成率</th>
-                {/* 141同步 */}
-                <SortTh col="sync141_total" label="任务数" extraStyle={{ background: '#FAF5FF' }} />
-                <SortTh col="sync141_done" label="已完成" extraStyle={{ background: '#FAF5FF' }} />
-                <th style={{ ...th, background: '#FAF5FF', width: 64 }}>完成率</th>
-                <SortTh col="sync141_hazard" label="确认隐患数" extraStyle={{ background: '#FAF5FF' }} />
+                <SortTh col="rcjc_rectifying" label="整改中" extraStyle={{ background: '#F0FDF4', borderRight: '2px solid #D1D5DB' }} />
+                {/* 141同步 - 9个指标 */}
+                <SortTh col="sync141_total" label="总任务数" extraStyle={{ background: '#FAF5FF' }} />
+                <th style={{ ...th, background: '#FAF5FF', width: 64 }}>总完成率</th>
+                <SortTh col="sync141_newTasks" label="新增任务数" extraStyle={{ background: '#FAF5FF' }} />
+                <SortTh col="sync141_newDone" label="新增完成数" extraStyle={{ background: '#FAF5FF' }} />
+                <SortTh col="sync141_hazard" label="总隐患数" extraStyle={{ background: '#FAF5FF' }} />
+                <th style={{ ...th, background: '#FAF5FF', width: 76 }}>整改完成率</th>
+                <SortTh col="sync141_newHazard" label="确认隐患数" extraStyle={{ background: '#FAF5FF' }} />
                 <SortTh col="sync141_rectified" label="已整改" extraStyle={{ background: '#FAF5FF' }} />
-                <SortTh col="sync141_rectifying" label="整改中" extraStyle={{ background: '#FAF5FF' }} />
-                <th style={{ ...th, background: '#FAF5FF', width: 76, borderRight: '2px solid #D1D5DB' }}>整改完成率</th>
-                {/* 防灾减灾 */}
-                <SortTh col="fzjz_total" label="任务数" extraStyle={{ background: '#EFF6FF' }} />
-                <SortTh col="fzjz_done" label="已完成" extraStyle={{ background: '#EFF6FF' }} />
-                <th style={{ ...th, background: '#EFF6FF', width: 64 }}>完成率</th>
-                <SortTh col="fzjz_hazard" label="确认隐患数" extraStyle={{ background: '#EFF6FF' }} />
+                <SortTh col="sync141_rectifying" label="整改中" extraStyle={{ background: '#FAF5FF', borderRight: '2px solid #D1D5DB' }} />
+                {/* 防灾减灾 - 9个指标 */}
+                <SortTh col="fzjz_total" label="总任务数" extraStyle={{ background: '#EFF6FF' }} />
+                <th style={{ ...th, background: '#EFF6FF', width: 64 }}>总完成率</th>
+                <SortTh col="fzjz_newTasks" label="新增任务数" extraStyle={{ background: '#EFF6FF' }} />
+                <SortTh col="fzjz_newDone" label="新增完成数" extraStyle={{ background: '#EFF6FF' }} />
+                <SortTh col="fzjz_hazard" label="总隐患数" extraStyle={{ background: '#EFF6FF' }} />
+                <th style={{ ...th, background: '#EFF6FF', width: 76 }}>整改完成率</th>
+                <SortTh col="fzjz_newHazard" label="确认隐患数" extraStyle={{ background: '#EFF6FF' }} />
                 <SortTh col="fzjz_rectified" label="已整改" extraStyle={{ background: '#EFF6FF' }} />
-                <SortTh col="fzjz_rectifying" label="整改中" extraStyle={{ background: '#EFF6FF' }} />
-                <th style={{ ...th, background: '#EFF6FF', width: 76, borderRight: 'none' }}>整改完成率</th>
+                <SortTh col="fzjz_rectifying" label="整改中" extraStyle={{ background: '#EFF6FF', borderRight: 'none' }} />
               </tr>
             </thead>
             <tbody>
