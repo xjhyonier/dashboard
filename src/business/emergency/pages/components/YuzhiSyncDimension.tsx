@@ -767,6 +767,14 @@ export function YuzhiSyncDimension() {
           },
         ]
 
+        // 第4个指标卡：任务统计数据（昨日 + 上周）
+        const yesterdayDone = Math.round(totalTasks * 0.03 + Math.random() * 50)
+        const yesterdayHazard = Math.round(totalHazards * 0.03 + Math.random() * 20)
+        const yesterdayRectified = Math.round(yesterdayHazard * 0.7)
+        const lastWeekDone = Math.round(totalTasks * 0.21 + Math.random() * 200)
+        const lastWeekHazard = Math.round(totalHazards * 0.21 + Math.random() * 80)
+        const lastWeekRectified = Math.round(lastWeekHazard * 0.7)
+
         return (
       <div style={{ display: 'flex', gap: 12 }}>
         {cards.map(item => (
@@ -807,8 +815,69 @@ export function YuzhiSyncDimension() {
             </div>
           </div>
         ))}
+        {/* ─── 第4个指标卡：任务统计 ─────────────────────── */}
+        <div
+          style={{
+            flex: 1,
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            borderRadius: 8,
+            padding: '16px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+          }}
+        >
+          {/* 顶部：图标 + 标题 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ fontSize: 28 }}>📊</div>
+            <div>
+              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, marginBottom: 4 }}>任务统计</div>
+              <div style={{ fontSize: 11, color: '#9CA3AF' }}>昨日 · 上周</div>
+            </div>
+          </div>
+          {/* 底部：昨日 + 上周统计 */}
+          <div style={{ display: 'flex', gap: 16, borderTop: '1px dashed #FECACA', paddingTop: 8 }}>
+            {/* 昨日任务统计 */}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 4, fontWeight: 600 }}>昨日任务统计</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 10, color: '#6B7280' }}>完成任务数</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#DC2626' }}>{yesterdayDone}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 10, color: '#6B7280' }}>发现隐患数</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#DC2626' }}>{yesterdayHazard}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 10, color: '#6B7280' }}>整改隐患数</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#DC2626' }}>{yesterdayRectified}</span>
+                </div>
+              </div>
+            </div>
+            {/* 上周任务统计 */}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 4, fontWeight: 600 }}>上周任务统计</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 10, color: '#6B7280' }}>完成任务数</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#059669' }}>{lastWeekDone}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 10, color: '#6B7280' }}>发现隐患数</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#059669' }}>{lastWeekHazard}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 10, color: '#6B7280' }}>整改隐患数</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#059669' }}>{lastWeekRectified}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      )
+    )
     })()}
 
       {/* ─── 村社近期检查数据变化 ─────────────────────────────── */}
