@@ -722,7 +722,7 @@ export function YuzhiSyncDimension() {
   const taskStatMetrics = [
     { name: '新增任务数', definition: '查询期间新增的任务数' },
     { name: '完成任务数', definition: '查询期间完成的任务数' },
-    { name: '未完成任务数', definition: '截止查询时间，未完成的任务数' },
+    { name: '累计未完成任务数', definition: '截止查询时间，累计未完成的任务总数' },
     { name: '累计完成率', definition: '截止查询时间，总完成任务数/总任务数' },
     { name: '发现隐患数', definition: '查询期间发现的隐患数' },
     { name: '整改隐患数', definition: '查询期间整改的隐患数' },
