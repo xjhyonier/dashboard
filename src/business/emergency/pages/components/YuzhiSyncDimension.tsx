@@ -865,18 +865,18 @@ export function YuzhiSyncDimension() {
             background: '#FEF2F2',
             border: '1px solid #FECACA',
             borderRadius: 8,
-            padding: '16px 20px',
+            padding: '14px 16px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 10,
+            gap: 6,
           }}
         >
           {/* 顶部：图标 + 标题 + 备注图标 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ fontSize: 28 }}>📊</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontSize: 22 }}>📊</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, marginBottom: 4 }}>任务统计</div>
-              <div style={{ fontSize: 11, color: '#9CA3AF' }}>昨日 · 上周</div>
+              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>任务统计</div>
+              <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 1 }}>昨日 · 上周</div>
             </div>
             {/* 备注图标：悬浮显示所有指标解释 */}
             <div style={{ position: 'relative' }}>
@@ -887,11 +887,11 @@ export function YuzhiSyncDimension() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: 16,
-                  height: 16,
+                  width: 14,
+                  height: 14,
                   borderRadius: '50%',
                   border: '1px solid #9CA3AF',
-                  fontSize: 10,
+                  fontSize: 9,
                   color: '#9CA3AF',
                   cursor: 'help',
                   fontWeight: 600,
@@ -905,18 +905,18 @@ export function YuzhiSyncDimension() {
                   position: 'absolute',
                   top: '100%',
                   right: 0,
-                  marginTop: 6,
+                  marginTop: 4,
                   background: 'white',
                   border: '1px solid #E5E7EB',
                   borderRadius: 6,
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                  padding: '12px 16px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  padding: '8px 12px',
                   zIndex: 1000,
-                  minWidth: 280,
+                  minWidth: 240,
                 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 8 }}>指标解释</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#111827', marginBottom: 6 }}>指标解释</div>
                   {taskStatMetrics.map((m, i) => (
-                    <div key={i} style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>
+                    <div key={i} style={{ fontSize: 10, color: '#6B7280', marginBottom: 2 }}>
                       <span style={{ fontWeight: 600, color: '#374151' }}>{m.name}：</span>
                       {m.definition}
                     </div>
@@ -926,12 +926,12 @@ export function YuzhiSyncDimension() {
             </div>
           </div>
           {/* 底部：指标表格 */}
-          <div style={{ borderTop: '1px dashed #FECACA', paddingTop: 8, overflowY: 'auto', maxHeight: 280 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: '4px 8px', fontSize: 11 }}>
+          <div style={{ borderTop: '1px dashed #FECACA', paddingTop: 6, flex: 1 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px 70px', gap: '0 8px', fontSize: 10 }}>
               {/* 表头 */}
-              <div style={{ fontWeight: 600, color: '#6B7280', paddingBottom: 4, borderBottom: '1px solid #FECACA' }}></div>
-              <div style={{ fontWeight: 600, color: '#6B7280', textAlign: 'right', paddingBottom: 4, borderBottom: '1px solid #FECACA' }}>昨日</div>
-              <div style={{ fontWeight: 600, color: '#6B7280', textAlign: 'right', paddingBottom: 4, borderBottom: '1px solid #FECACA' }}>上周</div>
+              <div style={{ fontWeight: 600, color: '#9CA3AF', paddingBottom: 3, borderBottom: '1px solid #FECACA' }}></div>
+              <div style={{ fontWeight: 600, color: '#DC2626', textAlign: 'right', paddingBottom: 3, borderBottom: '1px solid #FECACA' }}>昨日</div>
+              <div style={{ fontWeight: 600, color: '#059669', textAlign: 'right', paddingBottom: 3, borderBottom: '1px solid #FECACA' }}>上周</div>
               {/* 数据行 */}
               {taskStatMetrics.map((metric, i) => {
                 const isRate = metric.name.includes('率')
@@ -939,13 +939,13 @@ export function YuzhiSyncDimension() {
                 const lastWeekVal = stats.lastWeek[i]
                 return (
                   <React.Fragment key={metric.name}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 0', color: '#374151', fontWeight: 500 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '1.5px 0', color: '#4B5563', fontSize: 10 }}>
                       {metric.name}
                     </div>
-                    <div style={{ textAlign: 'right', fontWeight: 600, color: '#DC2626', padding: '3px 0' }}>
+                    <div style={{ textAlign: 'right', fontWeight: 600, color: '#DC2626', padding: '1.5px 0', fontSize: 11 }}>
                       {isRate ? `${yesterdayVal}%` : yesterdayVal.toLocaleString()}
                     </div>
-                    <div style={{ textAlign: 'right', fontWeight: 600, color: '#059669', padding: '3px 0' }}>
+                    <div style={{ textAlign: 'right', fontWeight: 600, color: '#059669', padding: '1.5px 0', fontSize: 11 }}>
                       {isRate ? `${lastWeekVal}%` : lastWeekVal.toLocaleString()}
                     </div>
                   </React.Fragment>
