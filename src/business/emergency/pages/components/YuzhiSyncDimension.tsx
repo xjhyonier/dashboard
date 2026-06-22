@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import {
-  ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList,
 } from 'recharts'
 
 // ─── 表2数据：14项已同步任务分析 ────────────────────────────────────────
@@ -1006,10 +1006,18 @@ export function YuzhiSyncDimension() {
                   </div>
                 )}
               />
-              <Line yAxisId="left" type="monotone" dataKey="任务总数" stroke="#4F46E5" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-              <Line yAxisId="right" type="monotone" dataKey="完成率" stroke="#059669" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} unit="%" />
-              <Line yAxisId="left" type="monotone" dataKey="查出隐患数" stroke="#DC2626" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-              <Line yAxisId="right" type="monotone" dataKey="隐患整改完成率" stroke="#D97706" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} unit="%" />
+              <Line yAxisId="left" type="monotone" dataKey="任务总数" stroke="#4F46E5" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }}>
+                <LabelList dataKey="任务总数" position="top" style={{ fontSize: 9, fill: '#4F46E5' }} />
+              </Line>
+              <Line yAxisId="right" type="monotone" dataKey="完成率" stroke="#059669" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} unit="%">
+                <LabelList dataKey="完成率" position="top" style={{ fontSize: 9, fill: '#059669' }} formatter={(v: number) => `${v}%`} />
+              </Line>
+              <Line yAxisId="left" type="monotone" dataKey="查出隐患数" stroke="#DC2626" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }}>
+                <LabelList dataKey="查出隐患数" position="top" style={{ fontSize: 9, fill: '#DC2626' }} />
+              </Line>
+              <Line yAxisId="right" type="monotone" dataKey="隐患整改完成率" stroke="#D97706" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} unit="%">
+                <LabelList dataKey="隐患整改完成率" position="top" style={{ fontSize: 9, fill: '#D97706' }} formatter={(v: number) => `${v}%`} />
+              </Line>
             </ComposedChart>
           </ResponsiveContainer>
         ) : (
@@ -1049,10 +1057,18 @@ export function YuzhiSyncDimension() {
                   </div>
                 )}
               />
-              <Line yAxisId="left" type="monotone" dataKey="新增任务数" stroke="#7C3AED" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-              <Line yAxisId="left" type="monotone" dataKey="完成任务数" stroke="#4F46E5" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-              <Line yAxisId="left" type="monotone" dataKey="发现隐患数" stroke="#DC2626" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-              <Line yAxisId="left" type="monotone" dataKey="整改隐患数" stroke="#059669" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              <Line yAxisId="left" type="monotone" dataKey="新增任务数" stroke="#7C3AED" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }}>
+                <LabelList dataKey="新增任务数" position="top" style={{ fontSize: 9, fill: '#7C3AED' }} />
+              </Line>
+              <Line yAxisId="left" type="monotone" dataKey="完成任务数" stroke="#4F46E5" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }}>
+                <LabelList dataKey="完成任务数" position="top" style={{ fontSize: 9, fill: '#4F46E5' }} />
+              </Line>
+              <Line yAxisId="left" type="monotone" dataKey="发现隐患数" stroke="#DC2626" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }}>
+                <LabelList dataKey="发现隐患数" position="top" style={{ fontSize: 9, fill: '#DC2626' }} />
+              </Line>
+              <Line yAxisId="left" type="monotone" dataKey="整改隐患数" stroke="#059669" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }}>
+                <LabelList dataKey="整改隐患数" position="top" style={{ fontSize: 9, fill: '#059669' }} />
+              </Line>
             </ComposedChart>
           </ResponsiveContainer>
         )}
