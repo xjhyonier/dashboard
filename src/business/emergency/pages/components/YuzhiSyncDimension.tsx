@@ -159,6 +159,7 @@ interface TrendDataPoint {
   查出隐患数?: number
   隐患整改完成率?: number
   // 近12周、近30天维度
+  新增任务数?: number
   完成任务数?: number
   发现隐患数?: number
   整改隐患数?: number
@@ -228,6 +229,7 @@ const generateDailyTrendData = (): TrendDataPoint[] => {
   const dailyRectifyRate = totalHazards > 0 ? totalRectified / totalHazards : 0.7
 
   // 生成每日数据（带趋势变化）
+  let baseNewTasks = Math.round(dailyTasks * 1.1) // 新增任务数（略多于完成任务数）
   let baseDone = Math.round(dailyTasks * dailyDoneRate * 0.9)
   let baseHazards = Math.round(dailyHazards * 0.9)
   let baseRectified = Math.round(baseHazards * dailyRectifyRate * 0.9)
@@ -241,12 +243,14 @@ const generateDailyTrendData = (): TrendDataPoint[] => {
 
     // 模拟每日波动
     const dayVariation = 0.7 + Math.random() * 0.6 // 0.7-1.3的随机系数
+    const newTasks = Math.round(baseNewTasks * dayVariation)
     const done = Math.round(baseDone * dayVariation)
     const hazards = Math.round(baseHazards * dayVariation)
     const rectified = Math.round(hazards * dailyRectifyRate * (0.85 + i * 0.005) + Math.random() * 5)
 
     days.push({
       period,
+      新增任务数: newTasks,
       完成任务数: done,
       发现隐患数: hazards,
       整改隐患数: Math.min(rectified, hazards),
@@ -279,6 +283,7 @@ const generateWeeklyTrendData = (): TrendDataPoint[] => {
   const weeklyRectifyRate = totalHazards > 0 ? totalRectified / totalHazards : 0.7
 
   // 生成每周数据（带趋势变化）
+  let baseNewTasks = Math.round(weeklyTasks * 1.1) // 新增任务数（略多于完成任务数）
   let baseDone = Math.round(weeklyTasks * weeklyDoneRate * 0.9) // 起始值
   let baseHazards = Math.round(weeklyHazards * 0.9)
   let baseRectified = Math.round(baseHazards * weeklyRectifyRate * 0.9)
@@ -288,12 +293,14 @@ const generateWeeklyTrendData = (): TrendDataPoint[] => {
 
     // 模拟每周波动（逐渐提高完成率和整改率）
     const weekVariation = 0.85 + Math.random() * 0.3 // 0.85-1.15的随机系数
+    const newTasks = Math.round(baseNewTasks * weekVariation)
     const done = Math.round(baseDone * weekVariation)
     const hazards = Math.round(baseHazards * weekVariation)
     const rectified = Math.round(hazards * weeklyRectifyRate * (0.9 + i * 0.01) + Math.random() * 20)
 
     weeks.push({
       period,
+      新增任务数: newTasks,
       完成任务数: done,
       发现隐患数: hazards,
       整改隐患数: Math.min(rectified, hazards), // 整改数不超过隐患数
@@ -1029,6 +1036,7 @@ export function YuzhiSyncDimension() {
                 content={() => (
                   <div style={{ display: 'flex', justifyContent: 'center', gap: 20, paddingTop: 12, fontSize: 12 }}>
                     {[
+                      { name: '新增任务数', color: '#7C3AED' },
                       { name: '完成任务数', color: '#4F46E5' },
                       { name: '发现隐患数', color: '#DC2626' },
                       { name: '整改隐患数', color: '#059669' },
@@ -1041,6 +1049,7 @@ export function YuzhiSyncDimension() {
                   </div>
                 )}
               />
+              <Line yAxisId="left" type="monotone" dataKey="新增任务数" stroke="#7C3AED" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
               <Line yAxisId="left" type="monotone" dataKey="完成任务数" stroke="#4F46E5" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
               <Line yAxisId="left" type="monotone" dataKey="发现隐患数" stroke="#DC2626" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
               <Line yAxisId="left" type="monotone" dataKey="整改隐患数" stroke="#059669" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
