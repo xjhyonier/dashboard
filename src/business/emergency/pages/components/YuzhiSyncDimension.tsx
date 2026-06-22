@@ -731,6 +731,10 @@ export function YuzhiSyncDimension() {
         const rentReg = Math.round(rent * 0.82)
         const rate = (v: number, base: number) => base > 0 ? `${((v / base) * 100).toFixed(2)}%` : '-'
 
+        // 计算任务总数和隐患总数（用于第4个指标卡）
+        const totalTasks = data.reduce((sum, r) => sum + r.fzjz.total + r.rcjc.total + r.sync141.total, 0)
+        const totalHazards = data.reduce((sum, r) => sum + r.fzjz.hazard + r.rcjc.hazard + r.sync141.hazard, 0)
+
         const cards = [
           {
             label: '企业数',
