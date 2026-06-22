@@ -962,7 +962,7 @@ export function YuzhiSyncDimension() {
       <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, padding: '16px 20px' }}>
         {/* 标题栏 + 维度切换 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>村社近期检查数据变化</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>村社近期检查及隐患数据趋势</div>
           <div style={{ display: 'flex', gap: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #D1D5DB' }}>
             {([
               { key: '12weeks', label: '近12周' },
