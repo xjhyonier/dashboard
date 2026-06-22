@@ -168,7 +168,7 @@ interface TrendDataPoint {
   隐患整改完成率?: number
   // 近12周、近30天维度
   新增任务数?: number
-  完成任务数?: number
+  新增完成数?: number
   发现隐患数?: number
   整改隐患数?: number
 }
@@ -259,7 +259,7 @@ const generateDailyTrendData = (): TrendDataPoint[] => {
     days.push({
       period,
       新增任务数: newTasks,
-      完成任务数: done,
+      新增完成数: done,
       发现隐患数: hazards,
       整改隐患数: Math.min(rectified, hazards),
     })
@@ -309,7 +309,7 @@ const generateWeeklyTrendData = (): TrendDataPoint[] => {
     weeks.push({
       period,
       新增任务数: newTasks,
-      完成任务数: done,
+      新增完成数: done,
       发现隐患数: hazards,
       整改隐患数: Math.min(rectified, hazards), // 整改数不超过隐患数
     })
@@ -791,7 +791,7 @@ export function YuzhiSyncDimension() {
         // 任务统计指标定义（用于第4个指标卡）
   const taskStatMetrics = [
     { name: '新增任务数', definition: '查询期间新增的任务数' },
-    { name: '完成任务数', definition: '查询期间完成的任务数' },
+    { name: '新增完成数', definition: '查询期间完成的任务数' },
     { name: '累计未完成任务数', definition: '截止查询时间，累计未完成的任务总数' },
     { name: '累计完成率', definition: '截止查询时间，总完成任务数/总任务数' },
     { name: '发现隐患数', definition: '查询期间发现的隐患数' },
@@ -1108,7 +1108,7 @@ export function YuzhiSyncDimension() {
                   <div style={{ display: 'flex', justifyContent: 'center', gap: 20, paddingTop: 12, fontSize: 12 }}>
                     {[
                       { name: '新增任务数', color: '#7C3AED' },
-                      { name: '完成任务数', color: '#4F46E5' },
+                      { name: '新增完成数', color: '#4F46E5' },
                       { name: '发现隐患数', color: '#DC2626' },
                       { name: '整改隐患数', color: '#059669' },
                     ].map(item => (
@@ -1123,8 +1123,8 @@ export function YuzhiSyncDimension() {
               <Line yAxisId="left" type="monotone" dataKey="新增任务数" stroke="#7C3AED" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }}>
                 <LabelList dataKey="新增任务数" position="top" style={{ fontSize: 9, fill: '#7C3AED' }} />
               </Line>
-              <Line yAxisId="left" type="monotone" dataKey="完成任务数" stroke="#4F46E5" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }}>
-                <LabelList dataKey="完成任务数" position="top" style={{ fontSize: 9, fill: '#4F46E5' }} />
+              <Line yAxisId="left" type="monotone" dataKey="新增完成数" stroke="#4F46E5" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }}>
+                <LabelList dataKey="新增完成数" position="top" style={{ fontSize: 9, fill: '#4F46E5' }} />
               </Line>
               <Line yAxisId="left" type="monotone" dataKey="发现隐患数" stroke="#DC2626" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }}>
                 <LabelList dataKey="发现隐患数" position="top" style={{ fontSize: 9, fill: '#DC2626' }} />
