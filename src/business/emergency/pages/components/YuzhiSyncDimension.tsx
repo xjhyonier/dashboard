@@ -1320,13 +1320,13 @@ export function YuzhiSyncDimension() {
                   )}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: 11, color: '#374151' }}>
-                  <span style={{ color: '#6B7280' }}>任务总数</span>
+                  <span style={{ color: '#6B7280' }}>总任务数</span>
                   <span style={{ fontWeight: 700, textAlign: 'right' }}>{card.total.toLocaleString()}</span>
-                  <span style={{ color: '#6B7280' }}>完成率</span>
+                  <span style={{ color: '#6B7280' }}>总完成率</span>
                   <span style={{ fontWeight: 700, textAlign: 'right', color: rateColor(card.doneRate) }}>{card.doneRate}</span>
-                  <span style={{ color: '#6B7280' }}>查出隐患数</span>
+                  <span style={{ color: '#6B7280' }}>总隐患数</span>
                   <span style={{ fontWeight: 700, textAlign: 'right', color: '#DC2626' }}>{card.hazard.toLocaleString()}</span>
-                  <span style={{ color: '#6B7280' }}>隐患整改完成率</span>
+                  <span style={{ color: '#6B7280' }}>整改完成率</span>
                   <span style={{ fontWeight: 700, textAlign: 'right', color: rateColor(card.rectRate) }}>{card.rectRate}</span>
                 </div>
               </div>
