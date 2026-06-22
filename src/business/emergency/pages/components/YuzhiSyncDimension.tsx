@@ -793,10 +793,10 @@ export function YuzhiSyncDimension() {
     { name: '新增任务数', definition: '查询期间新增的任务数' },
     { name: '新增完成数', definition: '查询期间完成的任务数' },
     { name: '累计未完成任务数', definition: '截止查询时间，累计未完成的任务总数' },
-    { name: '累计完成率', definition: '截止查询时间，总完成任务数/总任务数' },
-    { name: '发现隐患数', definition: '查询期间发现的隐患数' },
-    { name: '整改隐患数', definition: '查询期间整改的隐患数' },
-    { name: '累计整改率', definition: '截止查询时间，总整改隐患数/总隐患数' },
+    { name: '总完成率', definition: '截止查询时间，总已完成任务数/总任务数' },
+    { name: '确认隐患数', definition: '查询期间新增的隐患数' },
+    { name: '已整改隐患数', definition: '查询期间已整改的隐患数' },
+    { name: '整改完成率', definition: '截止查询时间，已整改的隐患数/总隐患数' },
   ] as const
 
   // 生成任务统计数据（昨日 + 上周）
