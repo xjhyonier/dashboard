@@ -47,6 +47,7 @@ interface TaskSub {
   newTasks: number   // 新增任务数
   newDone: number    // 新增完成数
   newHazard: number  // 确认隐患数（查询期间新增）
+  newRectified: number // 已整改隐患数（查询期间已整改）
 }
 
 interface VillageRow {
@@ -61,8 +62,42 @@ interface VillageRow {
   rentalCount: number
 }
 
+// ─── 基于村社名称生成确定性哈希（用于生成独立模拟值）────────────────────
+function hashVillage(name: string): number {
+  let h = 0
+  for (let i = 0; i < name.length; i++) {
+    h = ((h << 5) - h + name.charCodeAt(i)) | 0
+  }
+  return Math.abs(h)
+}
+
+// ─── 企业/场所/出租房：独立模拟值（不依赖任务数）────────────────────────────
+// 每个村社的独立模拟值 = 基础值 + 哈希偏移，确保不同村社有不同数值且刷新不变
+function mockEnt(name: string): number {
+  const h = hashVillage(name)
+  return 8 + (h % 35)          // 8~42家
+}
+function mockVenue(name: string): number {
+  const h = hashVillage(name + '_v')
+  return 25 + (h % 90)         // 25~114家
+}
+function mockRental(name: string): number {
+  const h = hashVillage(name + '_r')
+  return 40 + (h % 220)        // 40~259家
+}
+
+// ─── 确认隐患数（期间）：基于时间周期的独立模拟 ─────────────────────────────
+// 逻辑：每个村社有固定的"日均新发现隐患数"，期间隐患数 = 日均数 × 期间天数
+// 用村社名称哈希生成固定的日均数，避免与总隐患数产生推导关系
+function mockNewHazard(name: string, periodDays: number): number {
+  const h = hashVillage(name + '_hz')
+  const dailyNew = 0.3 + (h % 10) / 10   // 0.3~1.2 个/天（确定性）
+  return Math.max(1, Math.round(dailyNew * periodDays))
+}
+
 // 生成模拟数据：根据原 total/done 拆分到三类任务
-function genMock(total: number, done: number): Pick<VillageRow, 'fzjz' | 'rcjc' | 'sync141'> {
+// villageName：用于生成确定性的期间隐患数（不依赖 total/done）
+function genMock(total: number, done: number, villageName: string): Pick<VillageRow, 'fzjz' | 'rcjc' | 'sync141'> {
   // 按大约 3:4:3 比例拆分
   const t1 = Math.round(total * 0.3)
   const t2 = Math.round(total * 0.4)
@@ -75,11 +110,17 @@ function genMock(total: number, done: number): Pick<VillageRow, 'fzjz' | 'rcjc' 
     const hazard = Math.max(0, Math.round((t - d) * 0.6))
     const rectified = Math.max(0, Math.round(hazard * 0.7))
     const rectifying = hazard - rectified
-    // 查询期间数据（模拟：新增任务数约10-20% of total，新增完成数约10-20% of done）
-    const newTasks = Math.round(t * (0.1 + Math.random() * 0.1))
-    const newDone = Math.round(d * (0.1 + Math.random() * 0.1))
-    const newHazard = Math.round(hazard * (0.1 + Math.random() * 0.1))
-    return { total: t, done: d, hazard, rectified, rectifying, newTasks, newDone, newHazard }
+    // 查询期间数据（模拟）
+    // 新增任务数：期间新建的任务，与任务规模成正比
+    const newTasks = Math.max(1, Math.round(t * 0.12 + hashVillage(villageName) % 5))
+    // 新增完成数：期间完成的任务，与完成规模成正比
+    const newDone  = Math.max(1, Math.round(d * 0.12 + hashVillage(villageName + '_d') % 5))
+    // 确认隐患数（期间）：基于时间周期的独立模拟，不依赖 hazard（总隐患数）
+    // 用村社名称哈希生成固定的"日均新发现隐患数"，再乘以模拟的期间天数（取7天）
+    const newHazard = mockNewHazard(villageName, 7)
+    // 已整改隐患数（期间）：期间确认的隐患中，有一定比例在期间内完成整改（55%~74%）
+    const newRectified = Math.min(newHazard, Math.round(newHazard * (0.55 + (hashVillage(villageName + '_rz') % 20) / 100)))
+    return { total: t, done: d, hazard, rectified, rectifying, newTasks, newDone, newHazard, newRectified }
   }
 
   return {
@@ -142,19 +183,14 @@ const VILLAGE_RAW: { village: string; date: string; total: number; done: number 
   { village: '小洋坝村', date: '2026-05-22', total: 2, done: 2 },
 ]
 
-// 按任务数比例分配企业/场所/出租房总数（保持原硬编码总量大致不变）
-const TOTAL_TASKS = VILLAGE_RAW.reduce((sum, r) => sum + r.total, 0)
-const R_ENT = 1286 / TOTAL_TASKS
-const R_VENUE = 3452 / TOTAL_TASKS
-const R_RENTAL = 876 / TOTAL_TASKS
-
 const VILLAGE_ROWS: VillageRow[] = VILLAGE_RAW.map(r => ({
   village: r.village,
   date: r.date,
-  ...genMock(r.total, r.done),
-  enterpriseCount: Math.max(0, Math.round(r.total * R_ENT)),
-  venueCount: Math.max(0, Math.round(r.total * R_VENUE)),
-  rentalCount: Math.max(0, Math.round(r.total * R_RENTAL)),
+  ...genMock(r.total, r.done, r.village),
+  // 企业/场所/出租房：独立模拟值，不依赖任务数
+  enterpriseCount: mockEnt(r.village),
+  venueCount: mockVenue(r.village),
+  rentalCount: mockRental(r.village),
 }))
 
 // ─── 村社近期检查数据变化折线图数据 ────────────────────────────────────────────
@@ -641,13 +677,13 @@ export function YuzhiSyncDimension() {
         <td style={td({ textAlign: 'center', color: sub.newHazard > 0 ? '#F59E0B' : '#9CA3AF', fontWeight: sub.newHazard > 0 ? 600 : 400, background: subBg })}>
           {sub.newHazard.toLocaleString()}
         </td>
-        {/* 8.已整改 */}
-        <td style={td({ textAlign: 'center', color: sub.rectified > 0 ? '#059669' : '#9CA3AF', fontWeight: sub.rectified > 0 ? 600 : 400, background: subBg })}>
-          {sub.rectified.toLocaleString()}
+        {/* 8.已整改（期间） */}
+        <td style={{ ...td({ textAlign: 'center', background: subBg }), color: sub.newRectified > 0 ? '#059669' : '#9CA3AF', fontWeight: sub.newRectified > 0 ? 600 : 400 }}>
+          {sub.newRectified.toLocaleString()}
         </td>
-        {/* 9.整改中 */}
-        <td style={td({ textAlign: 'center', color: sub.rectifying > 0 ? '#F59E0B' : '#9CA3AF', fontWeight: sub.rectifying > 0 ? 600 : 400, background: subBg, ...lastStyle })}>
-          {sub.rectifying.toLocaleString()}
+        {/* 9.整改中（期间） */}
+        <td style={{ ...td({ textAlign: 'center', background: subBg, ...lastStyle }), color: (sub.newHazard - sub.newRectified) > 0 ? '#F59E0B' : '#9CA3AF', fontWeight: (sub.newHazard - sub.newRectified) > 0 ? 600 : 400 }}>
+          {Math.max(0, sub.newHazard - sub.newRectified).toLocaleString()}
         </td>
       </>
     )
@@ -769,32 +805,39 @@ export function YuzhiSyncDimension() {
   // 生成任务统计数据（昨日 + 上周）
   const generateTaskStats = () => {
     const data = selectedVillages.length > 0 ? filteredVillages : allVillages
-    const totalTasks = data.reduce((sum, r) => sum + r.fzjz.total + r.rcjc.total + r.sync141.total, 0)
-    const totalHazards = data.reduce((sum, r) => sum + r.fzjz.hazard + r.rcjc.hazard + r.sync141.hazard, 0)
-    const totalDone = data.reduce((sum, r) => sum + r.fzjz.done + r.rcjc.done + r.sync141.done, 0)
+    const totalTasks    = data.reduce((sum, r) => sum + r.fzjz.total + r.rcjc.total + r.sync141.total, 0)
+    const totalHazards  = data.reduce((sum, r) => sum + r.fzjz.hazard + r.rcjc.hazard + r.sync141.hazard, 0)
+    const totalDone     = data.reduce((sum, r) => sum + r.fzjz.done + r.rcjc.done + r.sync141.done, 0)
     const totalRectified = data.reduce((sum, r) => sum + r.fzjz.rectified + r.rcjc.rectified + r.sync141.rectified, 0)
 
-    // 昨日数据（模拟）
-    const yesterdayNew = Math.round(totalTasks * 0.03 + Math.random() * 50)
-    const yesterdayDone = Math.round(totalDone * 0.03 + Math.random() * 40)
-    const yesterdayPending = Math.round(totalTasks * 0.97 - yesterdayDone) // 模拟未完成任务
-    const yesterdayHazard = Math.round(totalHazards * 0.03 + Math.random() * 20)
-    const yesterdayRectified = Math.round(yesterdayHazard * 0.7)
+    // 期间数据：直接从数据的 newTasks/newDone/newHazard/newRectified 汇总
+    // 注：newHazard/newRectified 在 genMock 中已按 ~7天期间计算
+    const periodNewTasks     = data.reduce((sum, r) => sum + r.fzjz.newTasks      + r.rcjc.newTasks      + r.sync141.newTasks, 0)
+    const periodNewDone      = data.reduce((sum, r) => sum + r.fzjz.newDone       + r.rcjc.newDone       + r.sync141.newDone, 0)
+    const periodNewHazard   = data.reduce((sum, r) => sum + r.fzjz.newHazard    + r.rcjc.newHazard    + r.sync141.newHazard, 0)
+    const periodNewRectified = data.reduce((sum, r) => sum + r.fzjz.newRectified + r.rcjc.newRectified + r.sync141.newRectified, 0)
+
+    // 昨日数据（模拟1天）：期间数据 ÷ 7 取日均值
+    const yesterdayNew       = Math.max(1, Math.round(periodNewTasks / 7))
+    const yesterdayDone      = Math.max(1, Math.round(periodNewDone / 7))
+    const yesterdayHazard   = Math.max(1, Math.round(periodNewHazard / 7))
+    const yesterdayRectified = Math.max(0, Math.round(periodNewRectified / 7))
+    const yesterdayPending   = Math.max(0, totalTasks - totalDone)
     const yesterdayCumulativeRate = totalTasks > 0 ? Math.round((totalDone / totalTasks) * 100) : 0
     const yesterdayHazardRate = totalHazards > 0 ? Math.round((totalRectified / totalHazards) * 100) : 0
 
-    // 上周数据（模拟）
-    const lastWeekNew = Math.round(totalTasks * 0.21 + Math.random() * 200)
-    const lastWeekDone = Math.round(totalDone * 0.21 + Math.random() * 150)
-    const lastWeekPending = Math.round(totalTasks * 0.79 - lastWeekDone) // 模拟未完成任务
-    const lastWeekHazard = Math.round(totalHazards * 0.21 + Math.random() * 80)
-    const lastWeekRectified = Math.round(lastWeekHazard * 0.7)
-    const lastWeekCumulativeRate = yesterdayCumulativeRate // 累计率随时间变化不大
+    // 上周数据（模拟7天）：直接用期间数据
+    const lastWeekNew       = periodNewTasks
+    const lastWeekDone      = periodNewDone
+    const lastWeekHazard   = periodNewHazard
+    const lastWeekRectified = periodNewRectified
+    const lastWeekPending   = yesterdayPending
+    const lastWeekCumulativeRate = yesterdayCumulativeRate
     const lastWeekHazardRate = yesterdayHazardRate
 
     return {
       yesterday: [yesterdayNew, yesterdayDone, yesterdayPending, yesterdayCumulativeRate, yesterdayHazard, yesterdayRectified, yesterdayHazardRate],
-      lastWeek: [lastWeekNew, lastWeekDone, lastWeekPending, lastWeekCumulativeRate, lastWeekHazard, lastWeekRectified, lastWeekHazardRate],
+      lastWeek:  [lastWeekNew,  lastWeekDone,  lastWeekPending,  lastWeekCumulativeRate,  lastWeekHazard,  lastWeekRectified,  lastWeekHazardRate],
     }
   }
 
