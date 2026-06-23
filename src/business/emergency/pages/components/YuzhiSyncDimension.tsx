@@ -417,6 +417,24 @@ export function YuzhiSyncDimension() {
     return sorted
   }, [allVillages, selectedVillages, sortBy, sortDir, dateFrom, dateTo])
 
+  // 截止日期：取筛选区间的最大值
+  const displayDate = useMemo(() => {
+    const today = (() => {
+      const d = new Date()
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    })()
+    if (dateTo) {
+      const [y, m] = dateTo.split('-').map(Number)
+      const lastDay = new Date(y, m, 0).getDate()
+      return `${dateTo}-${String(lastDay).padStart(2, '0')}`
+    }
+    if (dateFrom) {
+      // 区间起点为 dateFrom，终点为今天，最大值为今天
+      return today
+    }
+    return today
+  }, [dateFrom, dateTo])
+
   // 分页
   const totalPages = Math.max(1, Math.ceil(filteredVillages.length / pageSize))
   const pagedVillages = useMemo(() => {
@@ -1159,7 +1177,7 @@ export function YuzhiSyncDimension() {
         {/* 统计分析 - 卡片式 */}
         <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6', background: '#FAFBFC' }}>
           <div style={{ fontWeight: 600, color: '#111827', marginBottom: 10, fontSize: 13 }}>
-            截止{new Date().toISOString().slice(0, 10)}，良渚街道{filteredVillages.length}个村社任务检查情况如下：
+            截止{displayDate}，良渚街道{filteredVillages.length}个村社任务检查情况如下：
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
             {([
