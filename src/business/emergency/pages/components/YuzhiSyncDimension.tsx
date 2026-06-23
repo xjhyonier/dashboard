@@ -1247,12 +1247,12 @@ export function YuzhiSyncDimension() {
         </div>
 
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1400, tableLayout: 'fixed' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1600 }}>
             <thead>
               {/* 第一级表头：类别分组 */}
               <tr>
-                <th rowSpan={2} style={{ ...th, width: 44, position: 'sticky', left: 0, background: '#F9FAFB', zIndex: 3, boxSizing: 'border-box' }}>#</th>
-                <th rowSpan={2} style={{ ...th, textAlign: 'left', minWidth: 110, position: 'sticky', left: 45, background: '#F9FAFB', zIndex: 3 }}>村社</th>
+                <th rowSpan={2} style={{ ...th, width: 48, position: 'sticky', left: 0, background: '#F9FAFB', zIndex: 3 }}>#</th>
+                <th rowSpan={2} style={{ ...th, textAlign: 'left', minWidth: 120, position: 'sticky', left: 49, background: '#F9FAFB', zIndex: 3 }}>村社</th>
                 <GroupTh label="日常检查任务" colSpan={9} bg="#F0FDF4" />
                 <GroupTh label="141同步任务" colSpan={9} bg="#FAF5FF" />
                 <GroupTh label="防灾减灾任务" colSpan={9} bg="#EFF6FF" />
@@ -1294,8 +1294,8 @@ export function YuzhiSyncDimension() {
             <tbody>
               {pagedVillages.map((row, i) => (
                 <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#FAFAFA' }}>
-                  <td style={{ ...td({ textAlign: 'center', color: '#9CA3AF', fontSize: 11, fontWeight: 500 }), position: 'sticky', left: 0, background: i % 2 === 0 ? 'white' : '#FAFAFA', zIndex: 2, boxSizing: 'border-box' }}>{(page - 1) * pageSize + i + 1}</td>
-                  <td style={{ ...td({ fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' }), position: 'sticky', left: 45, background: i % 2 === 0 ? 'white' : '#FAFAFA', zIndex: 2, boxShadow: '-1px 0 3px rgba(0,0,0,0.08)', boxSizing: 'border-box' }}>{row.village}</td>
+                  <td style={{ ...td({ textAlign: 'center', color: '#9CA3AF', fontSize: 11, fontWeight: 500 }), position: 'sticky', left: 0, background: i % 2 === 0 ? 'white' : '#FAFAFA', zIndex: 2 }}>{(page - 1) * pageSize + i + 1}</td>
+                  <td style={{ ...td({ fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' }), position: 'sticky', left: 49, background: i % 2 === 0 ? 'white' : '#FAFAFA', zIndex: 2 }}>{row.village}</td>
                   {/* 日常检查 */}
                   {renderSubCols(row.rcjc, '#FAFFFC')}
                   {/* 141同步 */}
