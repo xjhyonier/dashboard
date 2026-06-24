@@ -1063,9 +1063,48 @@ export function YuzhiSyncDimension() {
     )
     })()}
 
-        {/* ─── 本周工作量统计 + 本月任务整体进度 ──────────────────────── */}
+        {/* ─── 工作量统计 + 本月进度 ──────────────────────── */}
         <div style={{ display: 'flex', gap: 12 }}>
-          {/* 本周工作量统计 */}
+          {/* 昨日工作量统计 */}
+          {(() => {
+            const data = selectedVillages.length > 0 ? filteredVillages : allVillages
+            const periodNewTasks      = data.reduce((sum, r) => sum + r.fzjz.newTasks       + r.rcjc.newTasks       + r.sync141.newTasks, 0)
+            const periodNewDone       = data.reduce((sum, r) => sum + r.fzjz.newDone        + r.rcjc.newDone        + r.sync141.newDone, 0)
+            const periodNewHazard    = data.reduce((sum, r) => sum + r.fzjz.newHazard     + r.rcjc.newHazard     + r.sync141.newHazard, 0)
+            const periodMajorHazard  = data.reduce((sum, r) => sum + r.fzjz.majorHazard   + r.rcjc.majorHazard   + r.sync141.majorHazard, 0)
+            const periodNewRectified = data.reduce((sum, r) => sum + r.fzjz.newRectified  + r.rcjc.newRectified  + r.sync141.newRectified, 0)
+            const yesterdayDate = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getMonth()+1}/${d.getDate()}` })()
+            return (
+              <div style={{ flex: 1, background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>昨日工作量统计</span>
+                  <span style={{ fontSize: 11, color: '#9CA3AF' }}>{yesterdayDate}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontSize: 11, color: '#6B7280' }}>任务数</span>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: '#7C3AED', lineHeight: 1.1 }}>{Math.max(1, Math.round(periodNewTasks / 7)).toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontSize: 11, color: '#6B7280' }}>完成数</span>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: '#4F46E5', lineHeight: 1.1 }}>{Math.max(1, Math.round(periodNewDone / 7)).toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontSize: 11, color: '#6B7280' }}>确认隐患数</span>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: '#DC2626', lineHeight: 1.1 }}>{Math.max(1, Math.round(periodNewHazard / 7)).toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontSize: 11, color: '#6B7280' }}>重大事故隐患数</span>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: '#B91C1C', lineHeight: 1.1 }}>{Math.max(0, Math.round(periodMajorHazard / 7)).toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontSize: 11, color: '#6B7280' }}>已整改</span>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: '#059669', lineHeight: 1.1 }}>{Math.max(0, Math.round(periodNewRectified / 7)).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
           {(() => {
             const now = new Date()
             const todayDay = now.getDay() === 0 ? 6 : now.getDay() - 1
@@ -1086,26 +1125,30 @@ export function YuzhiSyncDimension() {
             const thisWeekTasks = sumField(thisWeekRows, 'newTasks')
             const thisWeekDone = sumField(thisWeekRows, 'newDone')
             const thisWeekHazard = sumField(thisWeekRows, 'newHazard')
+            const thisWeekMajor = sumField(thisWeekRows, 'majorHazard')
             const thisWeekRectified = sumField(thisWeekRows, 'newRectified')
             const prevWeekTasks = sumField(prevWeekRows, 'newTasks')
             const prevWeekDone = sumField(prevWeekRows, 'newDone')
             const prevWeekHazard = sumField(prevWeekRows, 'newHazard')
+            const prevWeekMajor = sumField(prevWeekRows, 'majorHazard')
             const prevWeekRectified = sumField(prevWeekRows, 'newRectified')
 
             const wows = {
               tasks: prevWeekTasks > 0 ? `${(((thisWeekTasks-prevWeekTasks)/prevWeekTasks)*100).toFixed(1)}%` : '--',
               done: prevWeekDone > 0 ? `${(((thisWeekDone-prevWeekDone)/prevWeekDone)*100).toFixed(1)}%` : '--',
               hazard: prevWeekHazard > 0 ? `${(((thisWeekHazard-prevWeekHazard)/prevWeekHazard)*100).toFixed(1)}%` : '--',
+              major: prevWeekMajor > 0 ? `${(((thisWeekMajor-prevWeekMajor)/prevWeekMajor)*100).toFixed(1)}%` : '--',
               rectified: prevWeekRectified > 0 ? `${(((thisWeekRectified-prevWeekRectified)/prevWeekRectified)*100).toFixed(1)}%` : '--',
             }
             const wowArrow = (cur: number, prev: number) => prev > 0 ? (cur >= prev ? '↑' : '↓') : ''
             const wowColor = (cur: number, prev: number) => prev > 0 ? (cur >= prev ? '#DC2626' : '#059669') : '#9CA3AF'
 
             const weekMetrics = [
-              { label: '新增检查任务', value: thisWeekTasks, wow: wows.tasks, arrow: wowArrow(thisWeekTasks, prevWeekTasks), wc: wowColor(thisWeekTasks, prevWeekTasks), color: '#7C3AED' },
-              { label: '完成检查任务', value: thisWeekDone, wow: wows.done, arrow: wowArrow(thisWeekDone, prevWeekDone), wc: wowColor(thisWeekDone, prevWeekDone), color: '#4F46E5' },
-              { label: '发现隐患', value: thisWeekHazard, wow: wows.hazard, arrow: wowArrow(thisWeekHazard, prevWeekHazard), wc: wowColor(thisWeekHazard, prevWeekHazard), color: '#DC2626' },
-              { label: '整改完成隐患', value: thisWeekRectified, wow: wows.rectified, arrow: wowArrow(thisWeekRectified, prevWeekRectified), wc: wowColor(thisWeekRectified, prevWeekRectified), color: '#059669' },
+              { label: '任务数', value: thisWeekTasks, color: '#7C3AED' },
+              { label: '完成数', value: thisWeekDone, color: '#4F46E5' },
+              { label: '确认隐患数', value: thisWeekHazard, color: '#DC2626' },
+              { label: '重大事故隐患数', value: thisWeekMajor, color: '#B91C1C' },
+              { label: '已整改', value: thisWeekRectified, color: '#059669' },
             ]
 
             return (
@@ -1118,13 +1161,55 @@ export function YuzhiSyncDimension() {
                   {weekMetrics.map(m => (
                     <div key={m.label} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <span style={{ fontSize: 11, color: '#6B7280' }}>{m.label}</span>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                        <span style={{ fontSize: 24, fontWeight: 700, color: m.color, lineHeight: 1.1 }}>{m.value.toLocaleString()}</span>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: m.wc }}>{m.arrow}{m.wow}</span>
-                        <span style={{ fontSize: 10, color: '#9CA3AF' }}>较上周</span>
-                      </div>
+                      <span style={{ fontSize: 24, fontWeight: 700, color: m.color, lineHeight: 1.1 }}>{m.value.toLocaleString()}</span>
                     </div>
                   ))}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* 上周工作量统计 */}
+          {(() => {
+            const data = selectedVillages.length > 0 ? filteredVillages : allVillages
+            const periodNewTasks      = data.reduce((sum, r) => sum + r.fzjz.newTasks       + r.rcjc.newTasks       + r.sync141.newTasks, 0)
+            const periodNewDone       = data.reduce((sum, r) => sum + r.fzjz.newDone        + r.rcjc.newDone        + r.sync141.newDone, 0)
+            const periodNewHazard    = data.reduce((sum, r) => sum + r.fzjz.newHazard     + r.rcjc.newHazard     + r.sync141.newHazard, 0)
+            const periodMajorHazard  = data.reduce((sum, r) => sum + r.fzjz.majorHazard   + r.rcjc.majorHazard   + r.sync141.majorHazard, 0)
+            const periodNewRectified = data.reduce((sum, r) => sum + r.fzjz.newRectified  + r.rcjc.newRectified  + r.sync141.newRectified, 0)
+            const now = new Date()
+            const todayDay = now.getDay() === 0 ? 6 : now.getDay() - 1
+            const prevStart = new Date(now); prevStart.setDate(now.getDate() - todayDay - 7)
+            const prevEnd = new Date(prevStart); prevEnd.setDate(prevStart.getDate() + 6)
+            const fmt = (d: Date) => `${d.getMonth()+1}/${d.getDate()}`
+            const prevWeekRange = `${fmt(prevStart)}-${fmt(prevEnd)}`
+            return (
+              <div style={{ flex: 1, background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>上周工作量统计</span>
+                  <span style={{ fontSize: 11, color: '#9CA3AF' }}>{prevWeekRange}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontSize: 11, color: '#6B7280' }}>任务数</span>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: '#7C3AED', lineHeight: 1.1 }}>{periodNewTasks.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontSize: 11, color: '#6B7280' }}>完成数</span>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: '#4F46E5', lineHeight: 1.1 }}>{periodNewDone.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontSize: 11, color: '#6B7280' }}>确认隐患数</span>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: '#DC2626', lineHeight: 1.1 }}>{periodNewHazard.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontSize: 11, color: '#6B7280' }}>重大事故隐患数</span>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: '#B91C1C', lineHeight: 1.1 }}>{periodMajorHazard.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontSize: 11, color: '#6B7280' }}>已整改</span>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: '#059669', lineHeight: 1.1 }}>{periodNewRectified.toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
             )
@@ -1145,7 +1230,8 @@ export function YuzhiSyncDimension() {
             const monthTaskRate = monthTasks > 0 ? Math.round((monthDone / monthTasks) * 100) : 0
             const monthHazards = sumF(curMonthRows, 'newHazard')
             const monthRectified = sumF(curMonthRows, 'newRectified')
-            const monthPendingHazard = Math.max(0, monthHazards - monthRectified)
+            const monthMajorHazard = sumF(curMonthRows, 'majorHazard')
+            const monthRectifying = Math.max(0, monthHazards - monthRectified)
             const monthRectifyRate = monthHazards > 0 ? Math.round((monthRectified / monthHazards) * 100) : 0
 
             const ringRadius = 50; const strokeW = 8; const cx = 58; const cy = 58
@@ -1160,7 +1246,6 @@ export function YuzhiSyncDimension() {
                   <span style={{ fontSize: 11, color: '#9CA3AF' }}>{curYm}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 40 }}>
-                  {/* 任务完成率 */}
                   <div style={{ textAlign: 'center' }}>
                     <svg width={120} height={120}>
                       <circle cx={cx} cy={cy} r={ringRadius} fill="none" stroke="#F3F4F6" strokeWidth={strokeW} />
@@ -1170,13 +1255,14 @@ export function YuzhiSyncDimension() {
                       <text x={cx} y={cy-4} textAnchor="middle" fontSize={22} fontWeight={700} fill="#4F46E5">{monthTaskRate}%</text>
                       <text x={cx} y={cy+14} textAnchor="middle" fontSize={10} fill="#6B7280">任务完成率</text>
                     </svg>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: 12, fontSize: 11, color: '#6B7280', marginTop: 4 }}>
-                      <span>总数 <b style={{ color: '#111827' }}>{monthTasks.toLocaleString()}</b></span>
-                      <span>已完成 <b style={{ color: '#059669' }}>{monthDone.toLocaleString()}</b></span>
-                      <span>待完成 <b style={{ color: '#F59E0B' }}>{monthPending.toLocaleString()}</b></span>
+                    <div style={{ fontSize: 11, color: '#6B7280', marginTop: 4, textAlign: 'center' }}>
+                      <div style={{ marginBottom: 2 }}>总数 <b style={{ color: '#111827' }}>{monthTasks.toLocaleString()}</b></div>
+                      <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                        <span>已完成 <b style={{ color: '#059669' }}>{monthDone.toLocaleString()}</b></span>
+                        <span>待完成 <b style={{ color: '#F59E0B' }}>{monthPending.toLocaleString()}</b></span>
+                      </div>
                     </div>
                   </div>
-                  {/* 隐患整改率 */}
                   <div style={{ textAlign: 'center' }}>
                     <svg width={120} height={120}>
                       <circle cx={cx} cy={cy} r={ringRadius} fill="none" stroke="#F3F4F6" strokeWidth={strokeW} />
@@ -1186,85 +1272,16 @@ export function YuzhiSyncDimension() {
                       <text x={cx} y={cy-4} textAnchor="middle" fontSize={22} fontWeight={700} fill="#059669">{monthRectifyRate}%</text>
                       <text x={cx} y={cy+14} textAnchor="middle" fontSize={10} fill="#6B7280">隐患整改率</text>
                     </svg>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: 12, fontSize: 11, color: '#6B7280', marginTop: 4 }}>
-                      <span>总数 <b style={{ color: '#111827' }}>{monthHazards.toLocaleString()}</b></span>
-                      <span>已整改 <b style={{ color: '#059669' }}>{monthRectified.toLocaleString()}</b></span>
-                      <span>待整改 <b style={{ color: '#F59E0B' }}>{monthPendingHazard.toLocaleString()}</b></span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          })()}
-
-          {/* 任务统计（昨日 · 上周） */}
-          {(() => {
-            const data = selectedVillages.length > 0 ? filteredVillages : allVillages
-            const periodNewTasks      = data.reduce((sum, r) => sum + r.fzjz.newTasks       + r.rcjc.newTasks       + r.sync141.newTasks, 0)
-            const periodNewDone       = data.reduce((sum, r) => sum + r.fzjz.newDone        + r.rcjc.newDone        + r.sync141.newDone, 0)
-            const periodNewHazard    = data.reduce((sum, r) => sum + r.fzjz.newHazard     + r.rcjc.newHazard     + r.sync141.newHazard, 0)
-            const periodMajorHazard  = data.reduce((sum, r) => sum + r.fzjz.majorHazard   + r.rcjc.majorHazard   + r.sync141.majorHazard, 0)
-            const periodNewRectified = data.reduce((sum, r) => sum + r.fzjz.newRectified  + r.rcjc.newRectified  + r.sync141.newRectified, 0)
-            const yesterdayNew      = Math.max(1, Math.round(periodNewTasks / 7))
-            const yesterdayDone     = Math.max(1, Math.round(periodNewDone / 7))
-            const yesterdayHazard   = Math.max(1, Math.round(periodNewHazard / 7))
-            const yesterdayMajor    = Math.max(0, Math.round(periodMajorHazard / 7))
-            const yesterdayRectified = Math.max(0, Math.round(periodNewRectified / 7))
-            const yesterdayTaskRate   = periodNewTasks > 0 ? Math.round((periodNewDone / periodNewTasks) * 100) : 0
-            const yesterdayHazardRate = periodNewHazard > 0 ? Math.round((periodNewRectified / periodNewHazard) * 100) : 0
-            const yesterday = [yesterdayNew, yesterdayTaskRate, yesterdayHazard, yesterdayMajor, yesterdayHazardRate]
-            const lastWeek = [periodNewTasks, yesterdayTaskRate, periodNewHazard, periodMajorHazard, yesterdayHazardRate]
-            const metrics = [
-              { name: '任务数', definition: '查询期间创建的任务数量' },
-              { name: '任务完成率', definition: '查询期间创建的任务中，完成数/任务数' },
-              { name: '确认隐患数', definition: '查询期间创建的任务中，发现的隐患数量' },
-              { name: '重大事故隐患', definition: '查询期间创建的任务中，发现的隐患中属重大事故隐患的数量' },
-              { name: '整改完成率', definition: '查询期间创建的任务中，已整改隐患数/确认隐患数' },
-            ] as const
-            return (
-              <div style={{
-                flex: 1, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8,
-                padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ fontSize: 22 }}>📊</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>任务统计</div>
-                    <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 1 }}>昨日 · 上周</div>
-                  </div>
-                  <div style={{ position: 'relative' }}>
-                    <span
-                      onMouseEnter={() => setHoveredMetric(-1)}
-                      onMouseLeave={() => setHoveredMetric(null)}
-                      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14, borderRadius: '50%', border: '1px solid #9CA3AF', fontSize: 9, color: '#9CA3AF', cursor: 'help', fontWeight: 600, lineHeight: 1 }}
-                    >?</span>
-                    {hoveredMetric === -1 && (
-                      <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', padding: '8px 12px', zIndex: 1000, minWidth: 240 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: '#111827', marginBottom: 6 }}>指标解释</div>
-                        {metrics.map((m, i) => (
-                          <div key={i} style={{ fontSize: 10, color: '#6B7280', marginBottom: 2 }}>
-                            <span style={{ fontWeight: 600, color: '#374151' }}>{m.name}：</span>{m.definition}
-                          </div>
-                        ))}
+                    <div style={{ fontSize: 11, color: '#6B7280', marginTop: 4, textAlign: 'center' }}>
+                      <div style={{ marginBottom: 2 }}>
+                        <span>总数 <b style={{ color: '#111827' }}>{monthHazards.toLocaleString()}</b></span>
+                        <span style={{ marginLeft: 12 }}>重大 <b style={{ color: '#B91C1C' }}>{monthMajorHazard.toLocaleString()}</b></span>
                       </div>
-                    )}
-                  </div>
-                </div>
-                <div style={{ borderTop: '1px dashed #FECACA', paddingTop: 6, flex: 1 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px 70px', gap: '0 8px', fontSize: 10 }}>
-                    <div style={{ fontWeight: 600, color: '#9CA3AF', paddingBottom: 3, borderBottom: '1px solid #FECACA' }}></div>
-                    <div style={{ fontWeight: 600, color: '#DC2626', textAlign: 'right', paddingBottom: 3, borderBottom: '1px solid #FECACA' }}>昨日</div>
-                    <div style={{ fontWeight: 600, color: '#059669', textAlign: 'right', paddingBottom: 3, borderBottom: '1px solid #FECACA' }}>上周</div>
-                    {metrics.map((metric, i) => {
-                      const isRate = metric.name.includes('率')
-                      return (
-                        <React.Fragment key={metric.name}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '1.5px 0', color: '#4B5563', fontSize: 10 }}>{metric.name}</div>
-                          <div style={{ textAlign: 'right', fontWeight: 600, color: '#DC2626', padding: '1.5px 0', fontSize: 11 }}>{isRate ? `${yesterday[i]}%` : yesterday[i].toLocaleString()}</div>
-                          <div style={{ textAlign: 'right', fontWeight: 600, color: '#059669', padding: '1.5px 0', fontSize: 11 }}>{isRate ? `${lastWeek[i]}%` : lastWeek[i].toLocaleString()}</div>
-                        </React.Fragment>
-                      )
-                    })}
+                      <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                        <span>已整改 <b style={{ color: '#059669' }}>{monthRectified.toLocaleString()}</b></span>
+                        <span>整改中 <b style={{ color: '#F59E0B' }}>{monthRectifying.toLocaleString()}</b></span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
