@@ -38,16 +38,17 @@ const SYNC_ROWS: SyncRow[] = [
 
 // ─── 表1数据：村社检查任务统计 ────────────────────────────────────────────
 interface TaskSub {
-  total: number     // 总任务数
-  done: number      // 已完成（用于计算总完成率）
-  hazard: number    // 总隐患数
-  rectified: number // 已整改
-  rectifying: number // 整改中
-  // 查询期间新增字段
-  newTasks: number   // 新增任务数
-  newDone: number    // 新增完成数
-  newHazard: number  // 确认隐患数（查询期间新增）
-  newRectified: number // 已整改隐患数（查询期间已整改）
+  total: number     // 总任务数（累计）
+  done: number      // 已完成（累计，用于计算总完成率）
+  hazard: number    // 总隐患数（累计）
+  rectified: number // 已整改（累计）
+  rectifying: number // 整改中（累计）
+  // 查询期间字段（以任务创建时间为准）
+  newTasks: number   // 任务数：查询期间创建的任务数量
+  newDone: number    // 完成数：查询期间创建的任务中，已完成的数量
+  newHazard: number  // 确认隐患数：查询期间创建的任务中，发现的隐患数量
+  newRectified: number // 已整改：查询期间创建的任务中，已整改的隐患数量
+  majorHazard: number  // 重大事故隐患数：查询期间创建的任务中，发现的隐患中属重大事故隐患的数量
 }
 
 interface VillageRow {
@@ -95,6 +96,14 @@ function mockNewHazard(name: string, periodDays: number): number {
   return Math.max(1, Math.round(dailyNew * periodDays))
 }
 
+// ─── 重大事故隐患数（期间）：基于确认隐患数的确定性比例 ───────────────────────
+// 逻辑：重大事故隐患是确认隐患中的一个子集，比例由村社名称哈希决定（30%~55%）
+function mockMajorHazard(name: string, newHazard: number): number {
+  const h = hashVillage(name + '_mj')
+  const ratio = 0.30 + (h % 26) / 100   // 0.30~0.55（确定性）
+  return Math.max(0, Math.round(newHazard * ratio))
+}
+
 // 生成模拟数据：根据原 total/done 拆分到三类任务
 // villageName：用于生成确定性的期间隐患数（不依赖 total/done）
 function genMock(total: number, done: number, villageName: string): Pick<VillageRow, 'fzjz' | 'rcjc' | 'sync141'> {
@@ -110,17 +119,18 @@ function genMock(total: number, done: number, villageName: string): Pick<Village
     const hazard = Math.max(0, Math.round((t - d) * 0.6))
     const rectified = Math.max(0, Math.round(hazard * 0.7))
     const rectifying = hazard - rectified
-    // 查询期间数据（模拟）
-    // 新增任务数：期间新建的任务，与任务规模成正比
+    // 查询期间数据（以任务创建时间为准）
+    // 任务数：期间创建的任务数，与任务规模成正比
     const newTasks = Math.max(1, Math.round(t * 0.12 + hashVillage(villageName) % 5))
-    // 新增完成数：期间完成的任务，与完成规模成正比
+    // 完成数：期间创建的任务中，已完成的数量，与完成规模成正比
     const newDone  = Math.max(1, Math.round(d * 0.12 + hashVillage(villageName + '_d') % 5))
     // 确认隐患数（期间）：基于时间周期的独立模拟，不依赖 hazard（总隐患数）
-    // 用村社名称哈希生成固定的"日均新发现隐患数"，再乘以模拟的期间天数（取7天）
     const newHazard = mockNewHazard(villageName, 7)
-    // 已整改隐患数（期间）：期间确认的隐患中，有一定比例在期间内完成整改（55%~74%）
+    // 已整改：期间确认的隐患中，有一定比例在期间内完成整改（55%~74%）
     const newRectified = Math.min(newHazard, Math.round(newHazard * (0.55 + (hashVillage(villageName + '_rz') % 20) / 100)))
-    return { total: t, done: d, hazard, rectified, rectifying, newTasks, newDone, newHazard, newRectified }
+    // 重大事故隐患数：确认隐患中的一个子集（30%~55%）
+    const majorHazard = mockMajorHazard(villageName, newHazard)
+    return { total: t, done: d, hazard, rectified, rectifying, newTasks, newDone, newHazard, newRectified, majorHazard }
   }
 
   return {
@@ -351,11 +361,9 @@ function RateText({ rate }: { rate: string }) {
 
 // ─── 排序列类型 ───────────────────────────────────────────────────────────
 type SortCol = 'village' |
-  'fzjz_total' | 'fzjz_done' | 'fzjz_newTasks' | 'fzjz_newDone' | 'fzjz_hazard' | 'fzjz_newHazard' | 'fzjz_rectified' | 'fzjz_rectifying' |
-  'rcjc_total' | 'rcjc_done' | 'rcjc_newTasks' | 'rcjc_newDone' | 'rcjc_hazard' | 'rcjc_newHazard' | 'rcjc_rectified' | 'rcjc_rectifying' |
-  'sync141_total' | 'sync141_done' | 'sync141_newTasks' | 'sync141_newDone' | 'sync141_hazard' | 'sync141_newHazard' | 'sync141_rectified' | 'sync141_rectifying'
-  | 'rcjc_total' | 'rcjc_done' | 'rcjc_hazard' | 'rcjc_rectified' | 'rcjc_rectifying'
-  | 'sync141_total' | 'sync141_done' | 'sync141_hazard' | 'sync141_rectified' | 'sync141_rectifying'
+  'fzjz_total' | 'fzjz_done' | 'fzjz_newTasks' | 'fzjz_newDone' | 'fzjz_hazard' | 'fzjz_newHazard' | 'fzjz_rectified' | 'fzjz_rectifying' | 'fzjz_majorHazard' | 'fzjz_newRectified' |
+  'rcjc_total' | 'rcjc_done' | 'rcjc_newTasks' | 'rcjc_newDone' | 'rcjc_hazard' | 'rcjc_newHazard' | 'rcjc_rectified' | 'rcjc_rectifying' | 'rcjc_majorHazard' | 'rcjc_newRectified' |
+  'sync141_total' | 'sync141_done' | 'sync141_newTasks' | 'sync141_newDone' | 'sync141_hazard' | 'sync141_newHazard' | 'sync141_rectified' | 'sync141_rectifying' | 'sync141_majorHazard' | 'sync141_newRectified'
 
 function getSortValue(row: VillageRow, col: SortCol): number {
   switch (col) {
@@ -369,6 +377,8 @@ function getSortValue(row: VillageRow, col: SortCol): number {
     case 'fzjz_newHazard': return row.fzjz.newHazard
     case 'fzjz_rectified': return row.fzjz.rectified
     case 'fzjz_rectifying': return row.fzjz.rectifying
+    case 'fzjz_majorHazard': return row.fzjz.majorHazard
+    case 'fzjz_newRectified': return row.fzjz.newRectified
     // 日常检查
     case 'rcjc_total': return row.rcjc.total
     case 'rcjc_done': return row.rcjc.done
@@ -378,6 +388,8 @@ function getSortValue(row: VillageRow, col: SortCol): number {
     case 'rcjc_newHazard': return row.rcjc.newHazard
     case 'rcjc_rectified': return row.rcjc.rectified
     case 'rcjc_rectifying': return row.rcjc.rectifying
+    case 'rcjc_majorHazard': return row.rcjc.majorHazard
+    case 'rcjc_newRectified': return row.rcjc.newRectified
     // 141同步
     case 'sync141_total': return row.sync141.total
     case 'sync141_done': return row.sync141.done
@@ -387,6 +399,8 @@ function getSortValue(row: VillageRow, col: SortCol): number {
     case 'sync141_newHazard': return row.sync141.newHazard
     case 'sync141_rectified': return row.sync141.rectified
     case 'sync141_rectifying': return row.sync141.rectifying
+    case 'sync141_majorHazard': return row.sync141.majorHazard
+    case 'sync141_newRectified': return row.sync141.newRectified
   }
 }
 
@@ -563,7 +577,7 @@ export function YuzhiSyncDimension() {
 
   // 全量汇总统计（用于表1顶部统计行 - 基于筛选后的数据）
   const overallStats = useMemo(() => {
-    const zero: TaskSub = { total: 0, done: 0, hazard: 0, rectified: 0, rectifying: 0, newTasks: 0, newDone: 0, newHazard: 0 }
+    const zero: TaskSub = { total: 0, done: 0, hazard: 0, rectified: 0, rectifying: 0, newTasks: 0, newDone: 0, newHazard: 0, newRectified: 0, majorHazard: 0 }
     const data = filteredVillages // 使用筛选后的数据
     const sum = data.reduce((acc, r) => ({
       fzjz: {
@@ -575,6 +589,8 @@ export function YuzhiSyncDimension() {
         newTasks: acc.fzjz.newTasks + r.fzjz.newTasks,
         newDone: acc.fzjz.newDone + r.fzjz.newDone,
         newHazard: acc.fzjz.newHazard + r.fzjz.newHazard,
+        newRectified: acc.fzjz.newRectified + r.fzjz.newRectified,
+        majorHazard: acc.fzjz.majorHazard + r.fzjz.majorHazard,
       },
       rcjc: {
         total: acc.rcjc.total + r.rcjc.total,
@@ -585,6 +601,8 @@ export function YuzhiSyncDimension() {
         newTasks: acc.rcjc.newTasks + r.rcjc.newTasks,
         newDone: acc.rcjc.newDone + r.rcjc.newDone,
         newHazard: acc.rcjc.newHazard + r.rcjc.newHazard,
+        newRectified: acc.rcjc.newRectified + r.rcjc.newRectified,
+        majorHazard: acc.rcjc.majorHazard + r.rcjc.majorHazard,
       },
       sync141: {
         total: acc.sync141.total + r.sync141.total,
@@ -595,6 +613,8 @@ export function YuzhiSyncDimension() {
         newTasks: acc.sync141.newTasks + r.sync141.newTasks,
         newDone: acc.sync141.newDone + r.sync141.newDone,
         newHazard: acc.sync141.newHazard + r.sync141.newHazard,
+        newRectified: acc.sync141.newRectified + r.sync141.newRectified,
+        majorHazard: acc.sync141.majorHazard + r.sync141.majorHazard,
       },
     }), { fzjz: zero, rcjc: zero, sync141: zero })
     return sum
@@ -629,67 +649,65 @@ export function YuzhiSyncDimension() {
     </th>
   )
 
-  // 表1列定义（9个指标）
-  const subCols = ['总任务数', '总完成率', '新增任务数', '新增完成数', '总隐患数', '整改完成率', '确认隐患数', '已整改', '整改中'] as const
-  // 指标说明
+  // 表1列定义（8个指标，全部以任务创建时间为准）
+  const subCols = ['任务数', '完成数', '任务完成率', '确认隐患数', '重大事故隐患数', '已整改', '整改中', '整改完成率'] as const
+  // 指标说明（悬浮备注）
   const tableMetrics = [
-    { name: '总任务数', definition: '截止查询时间，共有多少任务数' },
-    { name: '总完成率', definition: '截止查询时间，总已完成任务数/总任务数' },
-    { name: '新增任务数', definition: '查询期间新增的任务数' },
-    { name: '新增完成数', definition: '查询期间完成的任务数' },
-    { name: '总隐患数', definition: '截止查询时间，共有多少隐患数' },
-    { name: '整改完成率', definition: '截止查询时间，已整改的隐患数/总隐患数' },
-    { name: '确认隐患数', definition: '查询期间新增的隐患数' },
-    { name: '已整改', definition: '查询期间已整改的隐患数' },
-    { name: '整改中', definition: '查询期间整改中的隐患数' },
+    { name: '任务数', definition: '查询期间创建的任务数量' },
+    { name: '完成数', definition: '查询期间创建的任务中，已完成的数量' },
+    { name: '任务完成率', definition: '查询期间创建的任务中，完成数/任务数' },
+    { name: '确认隐患数', definition: '查询期间创建的任务中，发现的隐患数量' },
+    { name: '重大事故隐患数', definition: '查询期间创建的任务中，发现的隐患中属重大事故隐患的数量' },
+    { name: '已整改', definition: '查询期间创建的任务中，已整改的隐患数量' },
+    { name: '整改中', definition: '查询期间创建的任务中，整改中的隐患数量' },
+    { name: '整改完成率', definition: '查询期间创建的任务中，已整改隐患数/确认隐患数' },
   ] as const
 
-  // 渲染某个 TaskSub 的子列（9个指标），isLast 表示是否最后一类（不需要右侧粗分隔线）
+  // 渲染某个 TaskSub 的子列（8个指标，全部以任务创建时间为准），isLast 表示是否最后一类
   function renderSubCols(sub: TaskSub, subBg?: string, isLast = false) {
-    const totalRate = rateStr(sub.newDone, sub.newTasks)
-    const hazardRate = rateStr(sub.newRectified, sub.newHazard)
+    const taskRate    = rateStr(sub.newDone, sub.newTasks)
+    const hazardRate  = rateStr(sub.newRectified, sub.newHazard)
     const lastStyle: React.CSSProperties = isLast ? {} : { borderRight: '2px solid #D1D5DB' }
+    const pendingHazard = Math.max(0, sub.newHazard - sub.newRectified)
     return (
       <>
-        {/* 1.总任务数 */}
-        <td style={td({ textAlign: 'center', fontWeight: 600, background: subBg })}>{sub.newTasks.toLocaleString()}</td>
-        {/* 2.总完成率 */}
-        <td style={td({ textAlign: 'center', background: subBg })}>
-          <RateText rate={totalRate} />
-        </td>
-        {/* 3.新增任务数 */}
-        <td style={td({ textAlign: 'center', color: sub.newTasks > 0 ? '#7C3AED' : '#9CA3AF', fontWeight: sub.newTasks > 0 ? 600 : 400, background: subBg })}>
+        {/* 1.任务数 */}
+        <td style={td({ textAlign: 'center', fontWeight: 600, color: '#111827', background: subBg })}>
           {sub.newTasks.toLocaleString()}
         </td>
-        {/* 4.新增完成数 */}
-        <td style={td({ textAlign: 'center', color: sub.newDone > 0 ? '#4F46E5' : '#9CA3AF', fontWeight: sub.newDone > 0 ? 600 : 400, background: subBg })}>
+        {/* 2.完成数 */}
+        <td style={td({ textAlign: 'center', fontWeight: 600, color: sub.newDone > 0 ? '#4F46E5' : '#9CA3AF', background: subBg })}>
           {sub.newDone.toLocaleString()}
         </td>
-        {/* 5.总隐患数 */}
+        {/* 3.任务完成率 */}
+        <td style={td({ textAlign: 'center', background: subBg })}>
+          <RateText rate={taskRate} />
+        </td>
+        {/* 4.确认隐患数 */}
         <td style={td({ textAlign: 'center', color: sub.newHazard > 0 ? '#DC2626' : '#9CA3AF', fontWeight: sub.newHazard > 0 ? 600 : 400, background: subBg })}>
           {sub.newHazard.toLocaleString()}
         </td>
-        {/* 6.整改完成率 */}
-        <td style={td({ textAlign: 'center', background: subBg })}>
-          <RateText rate={hazardRate} />
+        {/* 5.重大事故隐患数 */}
+        <td style={td({ textAlign: 'center', color: sub.majorHazard > 0 ? '#B91C1C' : '#9CA3AF', fontWeight: sub.majorHazard > 0 ? 600 : 400, background: subBg })}>
+          {sub.majorHazard.toLocaleString()}
         </td>
-        {/* 7.确认隐患数 */}
-        <td style={td({ textAlign: 'center', color: sub.newHazard > 0 ? '#F59E0B' : '#9CA3AF', fontWeight: sub.newHazard > 0 ? 600 : 400, background: subBg })}>
-          {sub.newHazard.toLocaleString()}
-        </td>
-        {/* 8.已整改（期间） */}
+        {/* 6.已整改 */}
         <td style={{ ...td({ textAlign: 'center', background: subBg }), color: sub.newRectified > 0 ? '#059669' : '#9CA3AF', fontWeight: sub.newRectified > 0 ? 600 : 400 }}>
           {sub.newRectified.toLocaleString()}
         </td>
-        {/* 9.整改中（期间） */}
-        <td style={{ ...td({ textAlign: 'center', background: subBg, ...lastStyle }), color: (sub.newHazard - sub.newRectified) > 0 ? '#F59E0B' : '#9CA3AF', fontWeight: (sub.newHazard - sub.newRectified) > 0 ? 600 : 400 }}>
-          {Math.max(0, sub.newHazard - sub.newRectified).toLocaleString()}
+        {/* 7.整改中 */}
+        <td style={{ ...td({ textAlign: 'center', background: subBg }), color: pendingHazard > 0 ? '#F59E0B' : '#9CA3AF', fontWeight: pendingHazard > 0 ? 600 : 400 }}>
+          {pendingHazard.toLocaleString()}
+        </td>
+        {/* 8.整改完成率 */}
+        <td style={{ ...td({ textAlign: 'center', background: subBg, ...lastStyle }) }}>
+          <RateText rate={hazardRate} />
         </td>
       </>
     )
   }
 
-  const totalColSpan = 1 + 1 + 3 * 9 // # + 村社 + 3类 × 9子列 = 29
+  const totalColSpan = 1 + 1 + 3 * 8 // # + 村社 + 3类 × 8子列 = 26
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -793,51 +811,45 @@ export function YuzhiSyncDimension() {
 
         // 任务统计指标定义（用于第4个指标卡）—— 全部以任务创建时间为准
   const taskStatMetrics = [
-    { name: '新增任务数', definition: '查询期间创建的任务总数' },
-    { name: '新增完成数', definition: '查询期间创建的任务中，已完成的数量' },
-    { name: '累计未完成任务数', definition: '查询期间创建的任务中，未完成的数量' },
-    { name: '总完成率', definition: '查询期间创建的任务中，已完成数/创建任务总数' },
-    { name: '确认隐患数', definition: '查询期间创建的任务中，新发现的隐患数' },
-    { name: '已整改隐患数', definition: '查询期间创建的任务中，已整改的隐患数' },
-    { name: '整改完成率', definition: '查询期间创建的任务中，已整改隐患数/确认隐患总数' },
+    { name: '任务数', definition: '查询期间创建的任务数量' },
+    { name: '任务完成率', definition: '查询期间创建的任务中，完成数/任务数' },
+    { name: '确认隐患数', definition: '查询期间创建的任务中，发现的隐患数量' },
+    { name: '重大事故隐患', definition: '查询期间创建的任务中，发现的隐患中属重大事故隐患的数量' },
+    { name: '整改完成率', definition: '查询期间创建的任务中，已整改隐患数/确认隐患数' },
   ] as const
 
-  // 生成任务统计数据（昨日 + 上周）
+  // 生成任务统计数据（昨日 + 上周）—— 全部以任务创建时间为准
   const generateTaskStats = () => {
     const data = selectedVillages.length > 0 ? filteredVillages : allVillages
-    const totalTasks    = data.reduce((sum, r) => sum + r.fzjz.total + r.rcjc.total + r.sync141.total, 0)
-    const totalHazards  = data.reduce((sum, r) => sum + r.fzjz.hazard + r.rcjc.hazard + r.sync141.hazard, 0)
-    const totalDone     = data.reduce((sum, r) => sum + r.fzjz.done + r.rcjc.done + r.sync141.done, 0)
-    const totalRectified = data.reduce((sum, r) => sum + r.fzjz.rectified + r.rcjc.rectified + r.sync141.rectified, 0)
 
-    // 期间数据：直接从数据的 newTasks/newDone/newHazard/newRectified 汇总
-    // 注：newHazard/newRectified 在 genMock 中已按 ~7天期间计算
-    const periodNewTasks     = data.reduce((sum, r) => sum + r.fzjz.newTasks      + r.rcjc.newTasks      + r.sync141.newTasks, 0)
-    const periodNewDone      = data.reduce((sum, r) => sum + r.fzjz.newDone       + r.rcjc.newDone       + r.sync141.newDone, 0)
-    const periodNewHazard   = data.reduce((sum, r) => sum + r.fzjz.newHazard    + r.rcjc.newHazard    + r.sync141.newHazard, 0)
-    const periodNewRectified = data.reduce((sum, r) => sum + r.fzjz.newRectified + r.rcjc.newRectified + r.sync141.newRectified, 0)
+    // 期间数据：直接从数据的 newTasks/newDone/newHazard/newRectified/majorHazard 汇总
+    const periodNewTasks      = data.reduce((sum, r) => sum + r.fzjz.newTasks       + r.rcjc.newTasks       + r.sync141.newTasks, 0)
+    const periodNewDone       = data.reduce((sum, r) => sum + r.fzjz.newDone        + r.rcjc.newDone        + r.sync141.newDone, 0)
+    const periodNewHazard    = data.reduce((sum, r) => sum + r.fzjz.newHazard     + r.rcjc.newHazard     + r.sync141.newHazard, 0)
+    const periodMajorHazard  = data.reduce((sum, r) => sum + r.fzjz.majorHazard   + r.rcjc.majorHazard   + r.sync141.majorHazard, 0)
+    const periodNewRectified = data.reduce((sum, r) => sum + r.fzjz.newRectified  + r.rcjc.newRectified  + r.sync141.newRectified, 0)
 
     // 昨日数据（模拟1天）：期间数据 ÷ 7 取日均值
-    const yesterdayNew       = Math.max(1, Math.round(periodNewTasks / 7))
-    const yesterdayDone      = Math.max(1, Math.round(periodNewDone / 7))
+    const yesterdayNew      = Math.max(1, Math.round(periodNewTasks / 7))
+    const yesterdayDone     = Math.max(1, Math.round(periodNewDone / 7))
     const yesterdayHazard   = Math.max(1, Math.round(periodNewHazard / 7))
+    const yesterdayMajor    = Math.max(0, Math.round(periodMajorHazard / 7))
     const yesterdayRectified = Math.max(0, Math.round(periodNewRectified / 7))
-    const yesterdayPending   = Math.max(0, periodNewTasks - periodNewDone)
-    const yesterdayCumulativeRate = periodNewTasks > 0 ? Math.round((periodNewDone / periodNewTasks) * 100) : 0
+    const yesterdayTaskRate   = periodNewTasks > 0 ? Math.round((periodNewDone / periodNewTasks) * 100) : 0
     const yesterdayHazardRate = periodNewHazard > 0 ? Math.round((periodNewRectified / periodNewHazard) * 100) : 0
 
     // 上周数据（模拟7天）：直接用期间数据
-    const lastWeekNew       = periodNewTasks
-    const lastWeekDone      = periodNewDone
+    const lastWeekNew      = periodNewTasks
+    const lastWeekDone     = periodNewDone
     const lastWeekHazard   = periodNewHazard
+    const lastWeekMajor    = periodMajorHazard
     const lastWeekRectified = periodNewRectified
-    const lastWeekPending   = yesterdayPending
-    const lastWeekCumulativeRate = yesterdayCumulativeRate
+    const lastWeekTaskRate   = yesterdayTaskRate
     const lastWeekHazardRate = yesterdayHazardRate
 
     return {
-      yesterday: [yesterdayNew, yesterdayDone, yesterdayPending, yesterdayCumulativeRate, yesterdayHazard, yesterdayRectified, yesterdayHazardRate],
-      lastWeek:  [lastWeekNew,  lastWeekDone,  lastWeekPending,  lastWeekCumulativeRate,  lastWeekHazard,  lastWeekRectified,  lastWeekHazardRate],
+      yesterday: [yesterdayNew, yesterdayTaskRate, yesterdayHazard, yesterdayMajor, yesterdayHazardRate],
+      lastWeek:  [lastWeekNew,  lastWeekTaskRate,  lastWeekHazard,  lastWeekMajor,  lastWeekHazardRate],
     }
   }
 
@@ -1314,42 +1326,39 @@ export function YuzhiSyncDimension() {
               <tr>
                 <th rowSpan={2} style={{ ...th, width: 48, position: 'sticky', left: 0, background: '#F9FAFB', zIndex: 3, boxSizing: 'border-box' }}>#</th>
                 <th rowSpan={2} style={{ ...th, textAlign: 'left', minWidth: 120, position: 'sticky', left: 49, background: '#F9FAFB', zIndex: 3, boxSizing: 'border-box' }}>村社</th>
-                <GroupTh label="日常检查任务" colSpan={9} bg="#F0FDF4" />
-                <GroupTh label="141同步任务" colSpan={9} bg="#FAF5FF" />
-                <GroupTh label="防灾减灾任务" colSpan={9} bg="#EFF6FF" />
+                <GroupTh label="日常检查任务" colSpan={8} bg="#F0FDF4" />
+                <GroupTh label="141同步任务" colSpan={8} bg="#FAF5FF" />
+                <GroupTh label="防灾减灾任务" colSpan={8} bg="#EFF6FF" />
               </tr>
-              {/* 第二级表头：9个子列 */}
+              {/* 第二级表头：8个子列（以任务创建时间为准） */}
               <tr>
-                {/* 日常检查 - 9个指标 */}
-                <SortTh col="rcjc_total" label="总任务数" extraStyle={{ background: '#F0FDF4' }} />
-                <th style={{ ...th, background: '#F0FDF4', width: 64 }}>总完成率</th>
-                <SortTh col="rcjc_newTasks" label="新增任务数" extraStyle={{ background: '#F0FDF4' }} />
-                <SortTh col="rcjc_newDone" label="新增完成数" extraStyle={{ background: '#F0FDF4' }} />
-                <SortTh col="rcjc_hazard" label="总隐患数" extraStyle={{ background: '#F0FDF4' }} />
-                <th style={{ ...th, background: '#F0FDF4', width: 76 }}>整改完成率</th>
+                {/* 日常检查 - 8个指标 */}
+                <SortTh col="rcjc_newTasks" label="任务数" extraStyle={{ background: '#F0FDF4' }} />
+                <SortTh col="rcjc_newDone" label="完成数" extraStyle={{ background: '#F0FDF4' }} />
+                <th style={{ ...th, background: '#F0FDF4', minWidth: 56 }}>任务完成率</th>
                 <SortTh col="rcjc_newHazard" label="确认隐患数" extraStyle={{ background: '#F0FDF4' }} />
-                <SortTh col="rcjc_rectified" label="已整改" extraStyle={{ background: '#F0FDF4' }} />
-                <SortTh col="rcjc_rectifying" label="整改中" extraStyle={{ background: '#F0FDF4', borderRight: '2px solid #D1D5DB' }} />
-                {/* 141同步 - 9个指标 */}
-                <SortTh col="sync141_total" label="总任务数" extraStyle={{ background: '#FAF5FF' }} />
-                <th style={{ ...th, background: '#FAF5FF', width: 64 }}>总完成率</th>
-                <SortTh col="sync141_newTasks" label="新增任务数" extraStyle={{ background: '#FAF5FF' }} />
-                <SortTh col="sync141_newDone" label="新增完成数" extraStyle={{ background: '#FAF5FF' }} />
-                <SortTh col="sync141_hazard" label="总隐患数" extraStyle={{ background: '#FAF5FF' }} />
-                <th style={{ ...th, background: '#FAF5FF', width: 76 }}>整改完成率</th>
+                <SortTh col="rcjc_majorHazard" label="重大事故隐患数" extraStyle={{ background: '#F0FDF4' }} />
+                <SortTh col="rcjc_newRectified" label="已整改" extraStyle={{ background: '#F0FDF4' }} />
+                <th style={{ ...th, background: '#F0FDF4', minWidth: 48 }}>整改中</th>
+                <th style={{ ...th, background: '#F0FDF4', minWidth: 56, borderRight: '2px solid #D1D5DB' }}>整改完成率</th>
+                {/* 141同步 - 8个指标 */}
+                <SortTh col="sync141_newTasks" label="任务数" extraStyle={{ background: '#FAF5FF' }} />
+                <SortTh col="sync141_newDone" label="完成数" extraStyle={{ background: '#FAF5FF' }} />
+                <th style={{ ...th, background: '#FAF5FF', minWidth: 56 }}>任务完成率</th>
                 <SortTh col="sync141_newHazard" label="确认隐患数" extraStyle={{ background: '#FAF5FF' }} />
-                <SortTh col="sync141_rectified" label="已整改" extraStyle={{ background: '#FAF5FF' }} />
-                <SortTh col="sync141_rectifying" label="整改中" extraStyle={{ background: '#FAF5FF', borderRight: '2px solid #D1D5DB' }} />
-                {/* 防灾减灾 - 9个指标 */}
-                <SortTh col="fzjz_total" label="总任务数" extraStyle={{ background: '#EFF6FF' }} />
-                <th style={{ ...th, background: '#EFF6FF', width: 64 }}>总完成率</th>
-                <SortTh col="fzjz_newTasks" label="新增任务数" extraStyle={{ background: '#EFF6FF' }} />
-                <SortTh col="fzjz_newDone" label="新增完成数" extraStyle={{ background: '#EFF6FF' }} />
-                <SortTh col="fzjz_hazard" label="总隐患数" extraStyle={{ background: '#EFF6FF' }} />
-                <th style={{ ...th, background: '#EFF6FF', width: 76 }}>整改完成率</th>
+                <SortTh col="sync141_majorHazard" label="重大事故隐患数" extraStyle={{ background: '#FAF5FF' }} />
+                <SortTh col="sync141_newRectified" label="已整改" extraStyle={{ background: '#FAF5FF' }} />
+                <th style={{ ...th, background: '#FAF5FF', minWidth: 48 }}>整改中</th>
+                <th style={{ ...th, background: '#FAF5FF', minWidth: 56, borderRight: '2px solid #D1D5DB' }}>整改完成率</th>
+                {/* 防灾减灾 - 8个指标 */}
+                <SortTh col="fzjz_newTasks" label="任务数" extraStyle={{ background: '#EFF6FF' }} />
+                <SortTh col="fzjz_newDone" label="完成数" extraStyle={{ background: '#EFF6FF' }} />
+                <th style={{ ...th, background: '#EFF6FF', minWidth: 56 }}>任务完成率</th>
                 <SortTh col="fzjz_newHazard" label="确认隐患数" extraStyle={{ background: '#EFF6FF' }} />
-                <SortTh col="fzjz_rectified" label="已整改" extraStyle={{ background: '#EFF6FF' }} />
-                <SortTh col="fzjz_rectifying" label="整改中" extraStyle={{ background: '#EFF6FF', borderRight: 'none' }} />
+                <SortTh col="fzjz_majorHazard" label="重大事故隐患数" extraStyle={{ background: '#EFF6FF' }} />
+                <SortTh col="fzjz_newRectified" label="已整改" extraStyle={{ background: '#EFF6FF' }} />
+                <th style={{ ...th, background: '#EFF6FF', minWidth: 48 }}>整改中</th>
+                <th style={{ ...th, background: '#EFF6FF', minWidth: 56, borderRight: 'none' }}>整改完成率</th>
               </tr>
             </thead>
             <tbody>
