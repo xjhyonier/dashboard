@@ -646,13 +646,13 @@ export function YuzhiSyncDimension() {
 
   // 渲染某个 TaskSub 的子列（9个指标），isLast 表示是否最后一类（不需要右侧粗分隔线）
   function renderSubCols(sub: TaskSub, subBg?: string, isLast = false) {
-    const totalRate = rateStr(sub.done, sub.total)
-    const hazardRate = rateStr(sub.rectified, sub.hazard)
+    const totalRate = rateStr(sub.newDone, sub.newTasks)
+    const hazardRate = rateStr(sub.newRectified, sub.newHazard)
     const lastStyle: React.CSSProperties = isLast ? {} : { borderRight: '2px solid #D1D5DB' }
     return (
       <>
         {/* 1.总任务数 */}
-        <td style={td({ textAlign: 'center', fontWeight: 600, background: subBg })}>{sub.total.toLocaleString()}</td>
+        <td style={td({ textAlign: 'center', fontWeight: 600, background: subBg })}>{sub.newTasks.toLocaleString()}</td>
         {/* 2.总完成率 */}
         <td style={td({ textAlign: 'center', background: subBg })}>
           <RateText rate={totalRate} />
@@ -666,8 +666,8 @@ export function YuzhiSyncDimension() {
           {sub.newDone.toLocaleString()}
         </td>
         {/* 5.总隐患数 */}
-        <td style={td({ textAlign: 'center', color: sub.hazard > 0 ? '#DC2626' : '#9CA3AF', fontWeight: sub.hazard > 0 ? 600 : 400, background: subBg })}>
-          {sub.hazard.toLocaleString()}
+        <td style={td({ textAlign: 'center', color: sub.newHazard > 0 ? '#DC2626' : '#9CA3AF', fontWeight: sub.newHazard > 0 ? 600 : 400, background: subBg })}>
+          {sub.newHazard.toLocaleString()}
         </td>
         {/* 6.整改完成率 */}
         <td style={td({ textAlign: 'center', background: subBg })}>
@@ -791,15 +791,15 @@ export function YuzhiSyncDimension() {
         const rentReg = Math.round(rent * 0.82)
         const rate = (v: number, base: number) => base > 0 ? `${((v / base) * 100).toFixed(2)}%` : '-'
 
-        // 任务统计指标定义（用于第4个指标卡）
+        // 任务统计指标定义（用于第4个指标卡）—— 全部以任务创建时间为准
   const taskStatMetrics = [
-    { name: '新增任务数', definition: '查询期间新增的任务数' },
-    { name: '新增完成数', definition: '查询期间完成的任务数' },
-    { name: '累计未完成任务数', definition: '截止查询时间，累计未完成的任务总数' },
-    { name: '总完成率', definition: '截止查询时间，总已完成任务数/总任务数' },
-    { name: '确认隐患数', definition: '查询期间新增的隐患数' },
-    { name: '已整改隐患数', definition: '查询期间已整改的隐患数' },
-    { name: '整改完成率', definition: '截止查询时间，已整改的隐患数/总隐患数' },
+    { name: '新增任务数', definition: '查询期间创建的任务总数' },
+    { name: '新增完成数', definition: '查询期间创建的任务中，已完成的数量' },
+    { name: '累计未完成任务数', definition: '查询期间创建的任务中，未完成的数量' },
+    { name: '总完成率', definition: '查询期间创建的任务中，已完成数/创建任务总数' },
+    { name: '确认隐患数', definition: '查询期间创建的任务中，新发现的隐患数' },
+    { name: '已整改隐患数', definition: '查询期间创建的任务中，已整改的隐患数' },
+    { name: '整改完成率', definition: '查询期间创建的任务中，已整改隐患数/确认隐患总数' },
   ] as const
 
   // 生成任务统计数据（昨日 + 上周）
@@ -822,9 +822,9 @@ export function YuzhiSyncDimension() {
     const yesterdayDone      = Math.max(1, Math.round(periodNewDone / 7))
     const yesterdayHazard   = Math.max(1, Math.round(periodNewHazard / 7))
     const yesterdayRectified = Math.max(0, Math.round(periodNewRectified / 7))
-    const yesterdayPending   = Math.max(0, totalTasks - totalDone)
-    const yesterdayCumulativeRate = totalTasks > 0 ? Math.round((totalDone / totalTasks) * 100) : 0
-    const yesterdayHazardRate = totalHazards > 0 ? Math.round((totalRectified / totalHazards) * 100) : 0
+    const yesterdayPending   = Math.max(0, periodNewTasks - periodNewDone)
+    const yesterdayCumulativeRate = periodNewTasks > 0 ? Math.round((periodNewDone / periodNewTasks) * 100) : 0
+    const yesterdayHazardRate = periodNewHazard > 0 ? Math.round((periodNewRectified / periodNewHazard) * 100) : 0
 
     // 上周数据（模拟7天）：直接用期间数据
     const lastWeekNew       = periodNewTasks
