@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import {
-  ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList,
+  ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList,
 } from 'recharts'
 
 // ─── 表2数据：14项已同步任务分析 ────────────────────────────────────────
@@ -106,7 +106,8 @@ function mockMajorHazard(name: string, newHazard: number): number {
 
 // 生成模拟数据：根据原 total/done 拆分到三类任务
 // villageName：用于生成确定性的期间隐患数（不依赖 total/done）
-function genMock(total: number, done: number, villageName: string): Pick<VillageRow, 'fzjz' | 'rcjc' | 'sync141'> {
+function genMock(total: number, done: number, villageName: string, monthIdx: number = 0): Pick<VillageRow, 'fzjz' | 'rcjc' | 'sync141'> {
+  const seed = villageName + '_m' + monthIdx  // 每月不同的随机种子
   // 按大约 3:4:3 比例拆分
   const t1 = Math.round(total * 0.3)
   const t2 = Math.round(total * 0.4)
@@ -115,127 +116,178 @@ function genMock(total: number, done: number, villageName: string): Pick<Village
   const d2 = Math.round(done * 0.4)
   const d3 = done - d1 - d2
 
-  const sub = (t: number, d: number): TaskSub => {
+  const sub = (t: number, d: number, suffix: string): TaskSub => {
     const hazard = Math.max(0, Math.round((t - d) * 0.6))
     const rectified = Math.max(0, Math.round(hazard * 0.7))
     const rectifying = hazard - rectified
     // 查询期间数据（以任务创建时间为准）
-    // 任务数：期间创建的任务数，与任务规模成正比
-    const newTasks = Math.max(1, Math.round(t * 0.12 + hashVillage(villageName) % 5))
-    // 完成数：期间创建的任务中，已完成的数量，与完成规模成正比
-    const newDone  = Math.max(1, Math.round(d * 0.12 + hashVillage(villageName + '_d') % 5))
-    // 确认隐患数（期间）：基于时间周期的独立模拟，不依赖 hazard（总隐患数）
-    const newHazard = mockNewHazard(villageName, 7)
-    // 已整改：期间确认的隐患中，有一定比例在期间内完成整改（55%~74%）
-    const newRectified = Math.min(newHazard, Math.round(newHazard * (0.55 + (hashVillage(villageName + '_rz') % 20) / 100)))
+    // 任务数：期间创建的任务数，与任务规模成正比（5~25条）
+    const newTasks = Math.max(1, Math.round(t * 0.12 + hashVillage(seed + suffix + '_nt') % 10 + 3))
+    // 完成数：严格小于任务数（0.3~0.8倍任务数，保证完工数 < 任务数）
+    const doneRatio = 0.30 + (hashVillage(seed + suffix + '_dr') % 51) / 100  // 0.30~0.80
+    const newDone  = Math.min(newTasks - 1, Math.max(0, Math.round(newTasks * doneRatio)))
+    // 确认隐患数（期间）：基于时间周期的独立模拟
+    const newHazard = mockNewHazard(seed, 7)
+    // 已整改：期间确认的隐患中，有一定比例在期间内完成整改
+    const rectRatio = 0.30 + (hashVillage(seed + '_rc') % 41) / 100  // 0.30~0.70
+    const newRectified = Math.round(newHazard * rectRatio)
     // 重大事故隐患数：确认隐患中的一个子集（30%~55%）
-    const majorHazard = mockMajorHazard(villageName, newHazard)
+    const majorHazard = mockMajorHazard(seed, newHazard)
     return { total: t, done: d, hazard, rectified, rectifying, newTasks, newDone, newHazard, newRectified, majorHazard }
   }
 
   return {
-    fzjz: sub(t1, d1),
-    rcjc: sub(t2, d2),
-    sync141: sub(t3, d3),
+    fzjz: sub(t1, d1, '_fzjz'),
+    rcjc: sub(t2, d2, '_rcjc'),
+    sync141: sub(t3, d3, '_sync'),
   }
 }
 
-const VILLAGE_RAW: { village: string; date: string; total: number; done: number }[] = [
-  { village: '安溪村', date: '2026-05-01', total: 31, done: 4 },
-  { village: '白洋里社区', date: '2026-05-02', total: 9, done: 0 },
-  { village: '北宸社区', date: '2026-05-03', total: 434, done: 151 },
-  { village: '北秀社区', date: '2026-05-04', total: 48, done: 0 },
-  { village: '博园社区', date: '2026-05-05', total: 61, done: 3 },
-  { village: '昌运社区', date: '2026-05-06', total: 55, done: 12 },
-  { village: '崇福社区', date: '2026-05-07', total: 73, done: 0 },
-  { village: '杜城村', date: '2026-05-08', total: 65, done: 0 },
-  { village: '杜甫村', date: '2026-05-09', total: 31, done: 0 },
-  { village: '港南村', date: '2026-05-10', total: 13, done: 12 },
-  { village: '勾庄村', date: '2026-05-11', total: 96, done: 0 },
-  { village: '管家塘社区', date: '2026-05-12', total: 105, done: 36 },
-  { village: '杭运社区', date: '2026-05-13', total: 16, done: 8 },
-  { village: '金家渡社区', date: '2026-05-14', total: 439, done: 0 },
-  { village: '聚贤社区', date: '2026-05-15', total: 162, done: 133 },
-  { village: '良港村', date: '2026-05-16', total: 54, done: 40 },
-  { village: '良渚文化村社区', date: '2026-05-17', total: 317, done: 225 },
-  { village: '米行桥社区', date: '2026-05-18', total: 81, done: 56 },
-  { village: '铭雅社区', date: '2026-05-19', total: 395, done: 106 },
-  { village: '南庄兜村', date: '2026-05-20', total: 15, done: 4 },
-  { village: '七贤桥村', date: '2026-05-21', total: 142, done: 38 },
-  { village: '亲亲家园社区', date: '2026-05-22', total: 87, done: 1 },
-  { village: '施家湾社区', date: '2026-05-23', total: 147, done: 56 },
-  { village: '石桥村', date: '2026-05-24', total: 35, done: 9 },
-  { village: '通运社区', date: '2026-05-25', total: 105, done: 30 },
-  { village: '万年桥社区', date: '2026-05-26', total: 59, done: 0 },
-  { village: '吴家厍社区', date: '2026-05-27', total: 56, done: 49 },
-  { village: '西塘河村', date: '2026-05-28', total: 26, done: 0 },
-  { village: '西塘雅苑社区', date: '2026-05-01', total: 26, done: 25 },
-  { village: '小洋坝社区', date: '2026-05-02', total: 55, done: 52 },
-  { village: '新港村', date: '2026-05-03', total: 13, done: 9 },
-  { village: '新桥社区', date: '2026-05-04', total: 22, done: 0 },
-  { village: '新溪社区', date: '2026-05-05', total: 34, done: 5 },
-  { village: '行宫塘村', date: '2026-05-06', total: 75, done: 4 },
-  { village: '荀山村', date: '2026-05-07', total: 147, done: 31 },
-  { village: '逸居城社区', date: '2026-05-08', total: 30, done: 7 },
-  { village: '玉创社区', date: '2026-05-09', total: 121, done: 114 },
-  { village: '玉鸟社区', date: '2026-05-10', total: 8, done: 6 },
-  { village: '玉泽社区', date: '2026-05-11', total: 73, done: 26 },
-  { village: '越秀社区', date: '2026-05-12', total: 134, done: 46 },
-  { village: '运河村', date: '2026-05-13', total: 54, done: 19 },
-  { village: '长桥社区', date: '2026-05-14', total: 77, done: 62 },
-  { village: '棕榈湾社区', date: '2026-05-15', total: 85, done: 68 },
-  { village: '大陆村', date: '2026-05-16', total: 13, done: 13 },
-  { village: '东莲村', date: '2026-05-17', total: 49, done: 49 },
-  { village: '东塘河村', date: '2026-05-18', total: 20, done: 20 },
-  { village: '勾庄治理中心', date: '2026-05-19', total: 440, done: 440 },
-  { village: '良渚治理中心', date: '2026-05-20', total: 360, done: 360 },
-  { village: '纤石村', date: '2026-05-21', total: 48, done: 48 },
-  { village: '小洋坝村', date: '2026-05-22', total: 2, done: 2 },
+// ─── 月份系数：12个月的业务增长模式（与趋势图一致） ──────────────────────────
+const MONTHLY_GROWTH: number[] = [
+  0.58, 0.63, 0.68, 0.73, 0.78, 0.83,  // 2025-07 ~ 2025-12
+  0.88, 0.90, 0.93, 0.96, 0.98, 1.00,  // 2026-01 ~ 2026-06
 ]
 
-const VILLAGE_ROWS: VillageRow[] = VILLAGE_RAW.map(r => ({
-  village: r.village,
-  date: r.date,
-  ...genMock(r.total, r.done, r.village),
-  // 企业/场所/出租房：独立模拟值，不依赖任务数
-  enterpriseCount: mockEnt(r.village),
-  venueCount: mockVenue(r.village),
-  rentalCount: mockRental(r.village),
-}))
-
-// ─── 村社近期检查数据变化折线图数据 ────────────────────────────────────────────
-// 支持近12周、近30天两种维度
-interface TrendDataPoint {
-  period: string      // 时间周期（周数或日期）
-  // 近12周、近30天维度
-  新增任务数?: number
-  新增完成数?: number
-  确认隐患数?: number
-  已整改隐患数?: number
+// 近12月的月份标签（2025-07 ~ 2026-06）
+const MONTH_LABELS: string[] = []
+for (let m = 0; m < 12; m++) {
+  const d = new Date(2026, 5 - (11 - m), 1)
+  MONTH_LABELS.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
 }
 
-// 生成近30天的趋势数据（使用绝对数值维度）
+const VILLAGE_RAW: { village: string; total: number; done: number }[] = [
+  { village: '安溪村', total: 31, done: 4 },
+  { village: '白洋里社区', total: 9, done: 0 },
+  { village: '北宸社区', total: 434, done: 151 },
+  { village: '北秀社区', total: 48, done: 0 },
+  { village: '博园社区', total: 61, done: 3 },
+  { village: '昌运社区', total: 55, done: 12 },
+  { village: '崇福社区', total: 73, done: 0 },
+  { village: '杜城村', total: 65, done: 0 },
+  { village: '杜甫村', total: 31, done: 0 },
+  { village: '港南村', total: 13, done: 12 },
+  { village: '勾庄村', total: 96, done: 0 },
+  { village: '管家塘社区', total: 105, done: 36 },
+  { village: '杭运社区', total: 16, done: 8 },
+  { village: '金家渡社区', total: 439, done: 0 },
+  { village: '聚贤社区', total: 162, done: 133 },
+  { village: '良港村', total: 54, done: 40 },
+  { village: '良渚文化村社区', total: 317, done: 225 },
+  { village: '米行桥社区', total: 81, done: 56 },
+  { village: '铭雅社区', total: 395, done: 106 },
+  { village: '南庄兜村', total: 15, done: 4 },
+  { village: '七贤桥村', total: 142, done: 38 },
+  { village: '亲亲家园社区', total: 87, done: 1 },
+  { village: '施家湾社区', total: 147, done: 56 },
+  { village: '石桥村', total: 35, done: 9 },
+  { village: '通运社区', total: 105, done: 30 },
+  { village: '万年桥社区', total: 59, done: 0 },
+  { village: '吴家厍社区', total: 56, done: 49 },
+  { village: '西塘河村', total: 26, done: 0 },
+  { village: '西塘雅苑社区', total: 26, done: 25 },
+  { village: '小洋坝社区', total: 55, done: 52 },
+  { village: '新港村', total: 13, done: 9 },
+  { village: '新桥社区', total: 22, done: 0 },
+  { village: '新溪社区', total: 34, done: 5 },
+  { village: '行宫塘村', total: 75, done: 4 },
+  { village: '荀山村', total: 147, done: 31 },
+  { village: '逸居城社区', total: 30, done: 7 },
+  { village: '玉创社区', total: 121, done: 114 },
+  { village: '玉鸟社区', total: 8, done: 6 },
+  { village: '玉泽社区', total: 73, done: 26 },
+  { village: '越秀社区', total: 134, done: 46 },
+  { village: '运河村', total: 54, done: 19 },
+  { village: '长桥社区', total: 77, done: 62 },
+  { village: '棕榈湾社区', total: 85, done: 68 },
+  { village: '大陆村', total: 13, done: 13 },
+  { village: '东莲村', total: 49, done: 49 },
+  { village: '东塘河村', total: 20, done: 20 },
+  { village: '勾庄治理中心', total: 440, done: 440 },
+  { village: '良渚治理中心', total: 360, done: 360 },
+  { village: '纤石村', total: 48, done: 48 },
+  { village: '小洋坝村', total: 2, done: 2 },
+]
+
+// 展开为12个月数据：每个村社 × 12个月
+const VILLAGE_ROWS: VillageRow[] = VILLAGE_RAW.flatMap(r =>
+  MONTHLY_GROWTH.map((mult, monthIdx) => {
+    const monthTasks = Math.max(1, Math.round(r.total * mult))
+    const monthDone = Math.max(0, Math.min(monthTasks - 1, Math.round(r.done * mult)))
+    return {
+      village: r.village,
+      date: MONTH_LABELS[monthIdx],
+      ...genMock(monthTasks, monthDone, r.village, monthIdx),
+      enterpriseCount: mockEnt(r.village),
+      venueCount: mockVenue(r.village),
+      rentalCount: mockRental(r.village),
+    }
+  })
+)
+
+// ─── 村社近期检查数据变化折线图数据 ────────────────────────────────────────────
+// 支持近12月、近30天两种维度
+interface TrendDataPoint {
+  period: string      // 时间周期（月份或日期）
+  // 通用维度
+  任务数?: number
+  完成数?: number
+  任务完成率?: number   // 百分比，用于折线图
+  确认隐患数?: number
+  已整改?: number
+  整改完成率?: number   // 百分比，用于折线图
+}
+
+// 生成近12月的趋势数据（基于表1 VILLAGE_ROWS 同源数据，按月汇总）
+const generateMonthlyTrendData = (): TrendDataPoint[] => {
+  const months: TrendDataPoint[] = []
+
+  // 从 VILLAGE_ROWS 按月汇总（每个月份汇总50个村社的数据）
+  const monthSums = new Map<string, { tasks: number; done: number; hazards: number; rectified: number }>()
+  for (const r of VILLAGE_ROWS) {
+    const ym = r.date.substring(0, 7) // YYYY-MM
+    const curr = monthSums.get(ym) || { tasks: 0, done: 0, hazards: 0, rectified: 0 }
+    curr.tasks += r.fzjz.newTasks + r.rcjc.newTasks + r.sync141.newTasks
+    curr.done += r.fzjz.newDone + r.rcjc.newDone + r.sync141.newDone
+    curr.hazards += r.fzjz.newHazard + r.rcjc.newHazard + r.sync141.newHazard
+    curr.rectified += r.fzjz.newRectified + r.rcjc.newRectified + r.sync141.newRectified
+    monthSums.set(ym, curr)
+  }
+
+  // 按月份排序输出
+  const sortedMonths = [...monthSums.entries()].sort(([a], [b]) => a.localeCompare(b))
+  for (const [period, sum] of sortedMonths) {
+    const doneRate = sum.tasks > 0 ? parseFloat(((sum.done / sum.tasks) * 100).toFixed(1)) : 0
+    const rectifyRate = sum.hazards > 0 ? parseFloat(((sum.rectified / sum.hazards) * 100).toFixed(1)) : 0
+    months.push({
+      period,
+      任务数: sum.tasks,
+      完成数: sum.done,
+      任务完成率: doneRate,
+      确认隐患数: sum.hazards,
+      已整改: sum.rectified,
+      整改完成率: rectifyRate,
+    })
+  }
+
+  return months
+}
+
+// 生成近30天的趋势数据（使用确定性数据）
 const generateDailyTrendData = (): TrendDataPoint[] => {
   const days: TrendDataPoint[] = []
   const now = new Date(2026, 5, 15) // 2026-06-15
 
-  // 基于现有数据计算基准值
-  const totalTasks = VILLAGE_ROWS.reduce((sum, r) => sum + r.fzjz.total + r.rcjc.total + r.sync141.total, 0)
-  const totalHazards = VILLAGE_ROWS.reduce((sum, r) => sum + r.fzjz.hazard + r.rcjc.hazard + r.sync141.hazard, 0)
-  const totalDone = VILLAGE_ROWS.reduce((sum, r) => sum + r.fzjz.done + r.rcjc.done + r.sync141.done, 0)
-  const totalRectified = VILLAGE_ROWS.reduce((sum, r) => sum + r.fzjz.rectified + r.rcjc.rectified + r.sync141.rectified, 0)
+  // 从 VILLAGE_ROWS 汇总当前月数据（与表1同源，仅2026-06）
+  const currentMonth = VILLAGE_ROWS.filter(r => r.date.startsWith('2026-06'))
+  const currentDone = currentMonth.reduce((s, r) => s + r.fzjz.newDone + r.rcjc.newDone + r.sync141.newDone, 0)
+  const currentHazards = currentMonth.reduce((s, r) => s + r.fzjz.newHazard + r.rcjc.newHazard + r.sync141.newHazard, 0)
+  const currentRectified = currentMonth.reduce((s, r) => s + r.fzjz.newRectified + r.rcjc.newRectified + r.sync141.newRectified, 0)
 
-  // 每日平均值
-  const dailyTasks = Math.round(totalTasks * 0.03)
-  const dailyHazards = Math.round(totalHazards * 0.03)
-  const dailyDoneRate = totalTasks > 0 ? totalDone / totalTasks : 0.8
-  const dailyRectifyRate = totalHazards > 0 ? totalRectified / totalHazards : 0.7
-
-  // 生成每日数据（带趋势变化）
-  let baseNewTasks = Math.round(dailyTasks * 1.1) // 新增任务数（略多于完成任务数）
-  let baseDone = Math.round(dailyTasks * dailyDoneRate * 0.9)
-  let baseHazards = Math.round(dailyHazards * 0.9)
-  let baseRectified = Math.round(baseHazards * dailyRectifyRate * 0.9)
+  // 日均值
+  const dailyAvgDone = Math.round(currentDone / 30)
+  const dailyAvgHazards = Math.round(currentHazards / 30)
+  const dailyAvgRectified = Math.round(currentRectified / 30)
 
   for (let i = 0; i < 30; i++) {
     const date = new Date(now)
@@ -244,78 +296,22 @@ const generateDailyTrendData = (): TrendDataPoint[] => {
     const day = date.getDate()
     const period = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
-    // 模拟每日波动
-    const dayVariation = 0.7 + Math.random() * 0.6 // 0.7-1.3的随机系数
-    const newTasks = Math.round(baseNewTasks * dayVariation)
-    const done = Math.round(baseDone * dayVariation)
-    const hazards = Math.round(baseHazards * dayVariation)
-    const rectified = Math.round(hazards * dailyRectifyRate * (0.85 + i * 0.005) + Math.random() * 5)
+    // 模拟每日波动（周末偏低）
+    const weekDay = (29 - i) % 7
+    const dayMult = weekDay >= 5 ? 0.5 : (0.8 + Math.sin(i * 0.5) * 0.2)
+    const done = Math.max(1, Math.round(dailyAvgDone * dayMult))
+    const hazards = Math.max(1, Math.round(dailyAvgHazards * dayMult))
+    const rectified = Math.max(0, Math.min(hazards - 1, Math.round(dailyAvgRectified * dayMult)))
 
     days.push({
       period,
-      新增任务数: newTasks,
-      新增完成数: done,
+      完成数: done,
       确认隐患数: hazards,
-      已整改隐患数: Math.min(rectified, hazards),
+      已整改: rectified,
     })
-
-    // 更新基准值
-    baseDone = done
-    baseHazards = hazards
-    baseRectified = rectified
   }
 
   return days
-}
-
-// 生成近12周的趋势数据（使用绝对数值维度）
-const generateWeeklyTrendData = (): TrendDataPoint[] => {
-  const weeks: TrendDataPoint[] = []
-  const now = new Date(2026, 5, 15) // 2026-06-15
-
-  // 基于现有数据计算基准值
-  const totalTasks = VILLAGE_ROWS.reduce((sum, r) => sum + r.fzjz.total + r.rcjc.total + r.sync141.total, 0)
-  const totalHazards = VILLAGE_ROWS.reduce((sum, r) => sum + r.fzjz.hazard + r.rcjc.hazard + r.sync141.hazard, 0)
-  const totalDone = VILLAGE_ROWS.reduce((sum, r) => sum + r.fzjz.done + r.rcjc.done + r.sync141.done, 0)
-  const totalRectified = VILLAGE_ROWS.reduce((sum, r) => sum + r.fzjz.rectified + r.rcjc.rectified + r.sync141.rectified, 0)
-
-  // 每周平均值
-  const weeklyTasks = Math.round(totalTasks * 0.1)
-  const weeklyHazards = Math.round(totalHazards * 0.1)
-  const weeklyDoneRate = totalTasks > 0 ? totalDone / totalTasks : 0.8
-  const weeklyRectifyRate = totalHazards > 0 ? totalRectified / totalHazards : 0.7
-
-  // 生成每周数据（带趋势变化）
-  let baseNewTasks = Math.round(weeklyTasks * 1.1) // 新增任务数（略多于完成任务数）
-  let baseDone = Math.round(weeklyTasks * weeklyDoneRate * 0.9) // 起始值
-  let baseHazards = Math.round(weeklyHazards * 0.9)
-  let baseRectified = Math.round(baseHazards * weeklyRectifyRate * 0.9)
-
-  for (let i = 0; i < 12; i++) {
-    const period = `W${i + 1}` // W1, W2, ..., W12
-
-    // 模拟每周波动（逐渐提高完成率和整改率）
-    const weekVariation = 0.85 + Math.random() * 0.3 // 0.85-1.15的随机系数
-    const newTasks = Math.round(baseNewTasks * weekVariation)
-    const done = Math.round(baseDone * weekVariation)
-    const hazards = Math.round(baseHazards * weekVariation)
-    const rectified = Math.round(hazards * weeklyRectifyRate * (0.9 + i * 0.01) + Math.random() * 20)
-
-    weeks.push({
-      period,
-      新增任务数: newTasks,
-      新增完成数: done,
-      确认隐患数: hazards,
-      已整改隐患数: Math.min(rectified, hazards), // 整改数不超过隐患数
-    })
-
-    // 更新基准值（逐渐提高）
-    baseDone = done
-    baseHazards = hazards
-    baseRectified = rectified
-  }
-
-  return weeks
 }
 
 // ─── 通用样式 ─────────────────────────────────────────────────────────────
@@ -404,9 +400,88 @@ function getSortValue(row: VillageRow, col: SortCol): number {
   }
 }
 
+// 合并两个 TaskSub（用于多月聚合）
+function mergeSub(a: TaskSub, b: TaskSub): TaskSub {
+  return {
+    total: a.total + b.total,
+    done: a.done + b.done,
+    hazard: a.hazard + b.hazard,
+    rectified: a.rectified + b.rectified,
+    rectifying: a.rectifying + b.rectifying,
+    newTasks: a.newTasks + b.newTasks,
+    newDone: a.newDone + b.newDone,
+    newHazard: a.newHazard + b.newHazard,
+    newRectified: a.newRectified + b.newRectified,
+    majorHazard: a.majorHazard + b.majorHazard,
+  }
+}
+
 function rateStr(done: number, total: number): string {
   if (total === 0) return '0.00%'
   return ((done / total) * 100).toFixed(2) + '%'
+}
+
+// ─── 自定义Tooltip：近12月（按Legend顺序展示，百分比加%） ─────────────────
+const MONTHLY_TOOLTIP_ORDER = [
+  { key: '任务数', label: '任务数', unit: '', color: '#7C3AED' },
+  { key: '完成数', label: '完成数', unit: '', color: '#4F46E5' },
+  { key: '确认隐患数', label: '确认隐患数', unit: '', color: '#DC2626' },
+  { key: '已整改', label: '已整改', unit: '', color: '#059669' },
+  { key: '任务完成率', label: '任务完成率', unit: '%', color: '#F59E0B' },
+  { key: '整改完成率', label: '整改完成率', unit: '%', color: '#EC4899' },
+]
+
+const MonthlyTooltip: React.FC<any> = ({ active, payload, label }) => {
+  if (!active || !payload || !payload.length) return null
+  const data = payload[0]?.payload || {}
+  return (
+    <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, padding: '10px 14px', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+      <div style={{ fontWeight: 600, color: '#374151', marginBottom: 6, paddingBottom: 4, borderBottom: '1px solid #F3F4F6' }}>{label}</div>
+      {MONTHLY_TOOLTIP_ORDER.map(({ key, label: itemLabel, unit, color }) => {
+        const val = data[key]
+        if (val == null) return null
+        return (
+          <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20, padding: '2px 0' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#6B7280' }}>
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: color, display: 'inline-block', flexShrink: 0 }} />
+              {itemLabel}
+            </span>
+            <span style={{ fontWeight: 600, color: '#111827' }}>{val}{unit}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── 自定义Tooltip：近30天（按Legend顺序展示） ─────────────────
+const DAILY_TOOLTIP_ORDER = [
+  { key: '完成数', label: '完成数', unit: '', color: '#4F46E5' },
+  { key: '确认隐患数', label: '确认隐患数', unit: '', color: '#DC2626' },
+  { key: '已整改', label: '已整改', unit: '', color: '#059669' },
+]
+
+const DailyTooltip: React.FC<any> = ({ active, payload, label }) => {
+  if (!active || !payload || !payload.length) return null
+  const data = payload[0]?.payload || {}
+  return (
+    <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, padding: '10px 14px', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+      <div style={{ fontWeight: 600, color: '#374151', marginBottom: 6, paddingBottom: 4, borderBottom: '1px solid #F3F4F6' }}>{label}</div>
+      {DAILY_TOOLTIP_ORDER.map(({ key, label: itemLabel, unit, color }) => {
+        const val = data[key]
+        if (val == null) return null
+        return (
+          <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20, padding: '2px 0' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#6B7280' }}>
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: color, display: 'inline-block', flexShrink: 0 }} />
+              {itemLabel}
+            </span>
+            <span style={{ fontWeight: 600, color: '#111827' }}>{val}{unit}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 export function YuzhiSyncDimension() {
@@ -418,13 +493,14 @@ export function YuzhiSyncDimension() {
   const [page, setPage] = useState(1)
   const pageSize = 10
   // 时间筛选
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
-  const [quickRange, setQuickRange] = useState<'month' | 'lastMonth' | 'quarter' | 'year' | ''>('')
+  const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` })
+  const [dateTo, setDateTo] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` })
+  const [quickRange, setQuickRange] = useState<'month' | 'lastMonth' | 'quarter' | 'year' | ''>('month')
   const [showNote, setShowNote] = useState(false)
-  const [timeDimension, setTimeDimension] = useState<'12weeks' | '30days'>('12weeks')
+  const [timeDimension, setTimeDimension] = useState<'12months' | '30days'>('12months')
   const [hoveredMetric, setHoveredMetric] = useState<number | null>(null)
   const [showTableHelp, setShowTableHelp] = useState(false) // 表1指标说明悬浮框
+  const [selectedCard, setSelectedCard] = useState<'all' | 'rcjc' | 'sync141' | 'fzjz'>('all') // 卡片联动：总计/日常检查/141同步/防灾减灾
   const dropdownRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
@@ -455,6 +531,24 @@ export function YuzhiSyncDimension() {
     // 村社筛选
     if (selectedVillages.length > 0) {
       matched = matched.filter(r => selectedVillages.includes(r.village))
+    }
+    // 多月筛选时，聚合相同村社的数据（本季/本年）
+    const needsAggregation = dateFrom && dateTo && dateFrom !== dateTo
+    if (needsAggregation) {
+      const merged = new Map<string, VillageRow>()
+      for (const r of matched) {
+        const existing = merged.get(r.village)
+        if (existing) {
+          existing.fzjz = mergeSub(existing.fzjz, r.fzjz)
+          existing.rcjc = mergeSub(existing.rcjc, r.rcjc)
+          existing.sync141 = mergeSub(existing.sync141, r.sync141)
+          // 保留最新的 date
+          if (r.date > existing.date) existing.date = r.date
+        } else {
+          merged.set(r.village, { ...r, fzjz: { ...r.fzjz }, rcjc: { ...r.rcjc }, sync141: { ...r.sync141 } })
+        }
+      }
+      matched = [...merged.values()]
     }
     const sorted = [...matched].sort((a, b) => {
       if (sortBy === 'village') {
@@ -707,7 +801,7 @@ export function YuzhiSyncDimension() {
     )
   }
 
-  const totalColSpan = 1 + 1 + 3 * 8 // # + 村社 + 3类 × 8子列 = 26
+  const totalColSpan = selectedCard === 'all' ? (1 + 1 + 3 * 8) : (1 + 1 + 8) // 全部: #+村社+3类×8=26, 单个: #+村社+8=10
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -1038,7 +1132,7 @@ export function YuzhiSyncDimension() {
           <div style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>村社近期检查及隐患数据趋势</div>
           <div style={{ display: 'flex', gap: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #D1D5DB' }}>
             {([
-              { key: '12weeks', label: '近12周' },
+              { key: '12months', label: '近12月' },
               { key: '30days', label: '近30天' },
             ] as const).map(opt => {
               const isActive = timeDimension === opt.key
@@ -1063,56 +1157,98 @@ export function YuzhiSyncDimension() {
             })}
           </div>
         </div>
-        {/* 折线图：近12周、近30天 */}
-        <ResponsiveContainer width="100%" height={320}>
-          <ComposedChart
-            data={
-              timeDimension === '12weeks' ? generateWeeklyTrendData() :
-              generateDailyTrendData()
-            }
-            margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-            <XAxis
-              dataKey="period"
-              tick={{ fontSize: 11, fill: '#9CA3AF' }}
-              axisLine={{ stroke: '#E5E7EB' }}
-              tickLine={{ stroke: '#E5E7EB' }}
-              interval={timeDimension === '30days' ? 4 : 1}
-            />
-            <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
-            <Tooltip contentStyle={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, fontSize: 12 }} />
-            <Legend
-              content={() => (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 20, paddingTop: 12, fontSize: 12 }}>
-                  {[
-                    { name: '新增任务数', color: '#7C3AED' },
-                    { name: '新增完成数', color: '#4F46E5' },
-                    { name: '确认隐患数', color: '#DC2626' },
-                    { name: '已整改隐患数', color: '#059669' },
-                  ].map(item => (
-                    <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 12, height: 3, background: item.color, display: 'inline-block', borderRadius: 2 }} />
-                      <span style={{ color: '#374151' }}>{item.name}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            />
-            <Line yAxisId="left" type="monotone" dataKey="新增任务数" stroke="#7C3AED" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }}>
-              <LabelList dataKey="新增任务数" position="top" style={{ fontSize: 9, fill: '#7C3AED' }} />
-            </Line>
-            <Line yAxisId="left" type="monotone" dataKey="新增完成数" stroke="#4F46E5" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }}>
-              <LabelList dataKey="新增完成数" position="top" style={{ fontSize: 9, fill: '#4F46E5' }} />
-            </Line>
-            <Line yAxisId="left" type="monotone" dataKey="确认隐患数" stroke="#DC2626" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }}>
-              <LabelList dataKey="确认隐患数" position="top" style={{ fontSize: 9, fill: '#DC2626' }} />
-            </Line>
-            <Line yAxisId="left" type="monotone" dataKey="已整改隐患数" stroke="#059669" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }}>
-              <LabelList dataKey="已整改隐患数" position="top" style={{ fontSize: 9, fill: '#059669' }} />
-            </Line>
-          </ComposedChart>
-        </ResponsiveContainer>
+        {/* 图表：近12月（柱状图+折线图混合）、近30天（仅柱状图） */}
+        {timeDimension === '12months' ? (
+          <ResponsiveContainer width="100%" height={360}>
+            <ComposedChart
+              data={generateMonthlyTrendData()}
+              margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <XAxis
+                dataKey="period"
+                tick={{ fontSize: 11, fill: '#9CA3AF' }}
+                axisLine={{ stroke: '#E5E7EB' }}
+                tickLine={{ stroke: '#E5E7EB' }}
+              />
+              <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+              <YAxis yAxisId="right" orientation="right" unit="%" domain={[0, 100]} tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+              <Tooltip content={<MonthlyTooltip />} />
+              <Legend
+                content={() => (
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 20, paddingTop: 12, fontSize: 12, flexWrap: 'wrap' }}>
+                    {[
+                      { name: '任务数', color: '#7C3AED', type: 'bar' },
+                      { name: '完成数', color: '#4F46E5', type: 'bar' },
+                      { name: '确认隐患数', color: '#DC2626', type: 'bar' },
+                      { name: '已整改', color: '#059669', type: 'bar' },
+                      { name: '任务完成率', color: '#F59E0B', type: 'line' },
+                      { name: '整改完成率', color: '#EC4899', type: 'line' },
+                    ].map(item => (
+                      <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{
+                          width: item.type === 'bar' ? 12 : 16,
+                          height: item.type === 'bar' ? 3 : 2,
+                          background: item.color,
+                          display: 'inline-block',
+                          borderRadius: 2,
+                          ...(item.type === 'line' ? { borderTop: `2px dashed ${item.color}` } : {}),
+                        }} />
+                        <span style={{ color: '#374151' }}>{item.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              />
+              {/* 柱状图：4个Bar时声明顺序=视觉顺序 */}
+              <Bar yAxisId="left" dataKey="任务数" fill="#7C3AED" radius={[3, 3, 0, 0]} barSize={8} />
+              <Bar yAxisId="left" dataKey="完成数" fill="#4F46E5" radius={[3, 3, 0, 0]} barSize={8} />
+              <Bar yAxisId="left" dataKey="确认隐患数" fill="#DC2626" radius={[3, 3, 0, 0]} barSize={8} />
+              <Bar yAxisId="left" dataKey="已整改" fill="#059669" radius={[3, 3, 0, 0]} barSize={8} />
+              {/* 折线图：任务完成率、整改完成率（右轴，百分比） */}
+              <Line yAxisId="right" type="monotone" dataKey="任务完成率" stroke="#F59E0B" strokeWidth={2.5} strokeDasharray="6 3" dot={{ r: 4, fill: '#F59E0B', strokeWidth: 0 }} />
+              <Line yAxisId="right" type="monotone" dataKey="整改完成率" stroke="#EC4899" strokeWidth={2.5} strokeDasharray="6 3" dot={{ r: 4, fill: '#EC4899', strokeWidth: 0 }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <ResponsiveContainer width="100%" height={320}>
+            <ComposedChart
+              data={generateDailyTrendData()}
+              margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <XAxis
+                dataKey="period"
+                tick={{ fontSize: 11, fill: '#9CA3AF' }}
+                axisLine={{ stroke: '#E5E7EB' }}
+                tickLine={{ stroke: '#E5E7EB' }}
+                interval={4}
+              />
+              <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickLine={{ stroke: '#E5E7EB' }} />
+              <Tooltip content={<DailyTooltip />} />
+              <Legend
+                content={() => (
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 20, paddingTop: 12, fontSize: 12 }}>
+                    {[
+                      { name: '完成数', color: '#4F46E5' },
+                      { name: '确认隐患数', color: '#DC2626' },
+                      { name: '已整改', color: '#059669' },
+                    ].map(item => (
+                      <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 12, height: 3, background: item.color, display: 'inline-block', borderRadius: 2 }} />
+                        <span style={{ color: '#374151' }}>{item.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              />
+              {/* Bar顺序已验证：声明[已整改,完成数,确认隐患数] → 视觉[完成数,确认隐患数,已整改] */}
+              <Bar dataKey="已整改" fill="#059669" radius={[3, 3, 0, 0]} barSize={12} />
+              <Bar dataKey="完成数" fill="#4F46E5" radius={[3, 3, 0, 0]} barSize={12} />
+              <Bar dataKey="确认隐患数" fill="#DC2626" radius={[3, 3, 0, 0]} barSize={12} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       {/* ─── 表1：村社检查任务统计 ─────────────────────────────── */}
@@ -1232,63 +1368,77 @@ export function YuzhiSyncDimension() {
         {/* 统计分析 - 卡片式 */}
         <div style={{ padding: '12px 16px', borderBottom: '1px solid #F3F4F6', background: '#FAFBFC' }}>
           <div style={{ fontWeight: 600, color: '#111827', marginBottom: 10, fontSize: 13 }}>
-            截止{displayDate}，良渚街道{filteredVillages.length}个村社任务检查情况如下：
+            查询期间，良渚街道{filteredVillages.length}个村社任务检查数据如下：
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
             {([
               {
+                key: 'all' as const,
                 label: '总计',
                 color: '#111827',
                 bg: '#F9FAFB',
                 border: '#D1D5DB',
                 note: '总计=日常检查+141同步+防灾减灾',
-                total: overallStats.rcjc.total + overallStats.sync141.total + overallStats.fzjz.total,
-                doneRate: rateStr(overallStats.rcjc.done + overallStats.sync141.done + overallStats.fzjz.done, overallStats.rcjc.total + overallStats.sync141.total + overallStats.fzjz.total),
-                hazard: overallStats.rcjc.hazard + overallStats.sync141.hazard + overallStats.fzjz.hazard,
-                rectRate: rateStr(overallStats.rcjc.rectified + overallStats.sync141.rectified + overallStats.fzjz.rectified, overallStats.rcjc.hazard + overallStats.sync141.hazard + overallStats.fzjz.hazard),
+                newTasks: overallStats.rcjc.newTasks + overallStats.sync141.newTasks + overallStats.fzjz.newTasks,
+                newDoneRate: rateStr(overallStats.rcjc.newDone + overallStats.sync141.newDone + overallStats.fzjz.newDone, overallStats.rcjc.newTasks + overallStats.sync141.newTasks + overallStats.fzjz.newTasks),
+                newHazard: overallStats.rcjc.newHazard + overallStats.sync141.newHazard + overallStats.fzjz.newHazard,
+                majorHazard: overallStats.rcjc.majorHazard + overallStats.sync141.majorHazard + overallStats.fzjz.majorHazard,
+                newRectifiedRate: rateStr(overallStats.rcjc.newRectified + overallStats.sync141.newRectified + overallStats.fzjz.newRectified, overallStats.rcjc.newHazard + overallStats.sync141.newHazard + overallStats.fzjz.newHazard),
               },
               {
+                key: 'rcjc' as const,
                 label: '日常检查',
                 color: '#059669',
                 bg: '#F0FDF4',
                 border: '#A7F3D0',
                 note: '包含自身安全检查和村社创建的监管对象检查',
-                total: overallStats.rcjc.total,
-                doneRate: rateStr(overallStats.rcjc.done, overallStats.rcjc.total),
-                hazard: overallStats.rcjc.hazard,
-                rectRate: rateStr(overallStats.rcjc.rectified, overallStats.rcjc.hazard),
+                newTasks: overallStats.rcjc.newTasks,
+                newDoneRate: rateStr(overallStats.rcjc.newDone, overallStats.rcjc.newTasks),
+                newHazard: overallStats.rcjc.newHazard,
+                majorHazard: overallStats.rcjc.majorHazard,
+                newRectifiedRate: rateStr(overallStats.rcjc.newRectified, overallStats.rcjc.newHazard),
               },
               {
+                key: 'sync141' as const,
                 label: '141同步',
                 color: '#7C3AED',
                 bg: '#FAF5FF',
                 border: '#DDD6FE',
-                total: overallStats.sync141.total,
-                doneRate: rateStr(overallStats.sync141.done, overallStats.sync141.total),
-                hazard: overallStats.sync141.hazard,
-                rectRate: rateStr(overallStats.sync141.rectified, overallStats.sync141.hazard),
+                newTasks: overallStats.sync141.newTasks,
+                newDoneRate: rateStr(overallStats.sync141.newDone, overallStats.sync141.newTasks),
+                newHazard: overallStats.sync141.newHazard,
+                majorHazard: overallStats.sync141.majorHazard,
+                newRectifiedRate: rateStr(overallStats.sync141.newRectified, overallStats.sync141.newHazard),
               },
               {
+                key: 'fzjz' as const,
                 label: '防灾减灾',
                 color: '#1E40AF',
                 bg: '#EFF6FF',
                 border: '#BFDBFE',
-                total: overallStats.fzjz.total,
-                doneRate: rateStr(overallStats.fzjz.done, overallStats.fzjz.total),
-                hazard: overallStats.fzjz.hazard,
-                rectRate: rateStr(overallStats.fzjz.rectified, overallStats.fzjz.hazard),
+                newTasks: overallStats.fzjz.newTasks,
+                newDoneRate: rateStr(overallStats.fzjz.newDone, overallStats.fzjz.newTasks),
+                newHazard: overallStats.fzjz.newHazard,
+                majorHazard: overallStats.fzjz.majorHazard,
+                newRectifiedRate: rateStr(overallStats.fzjz.newRectified, overallStats.fzjz.newHazard),
               },
-            ] as const).map(card => (
+            ] as const).map(card => {
+              const isActive = selectedCard === card.key
+              return (
               <div
                 key={card.label}
+                onClick={() => setSelectedCard(isActive ? 'all' : card.key)}
                 style={{
-                  background: card.bg,
-                  border: `1px solid ${card.border}`,
+                  background: isActive ? card.bg : '#FFFFFF',
+                  border: `2px solid ${isActive ? card.color : card.border}`,
                   borderRadius: 8,
                   padding: '10px 12px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 6,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  boxShadow: isActive ? `0 0 0 1px ${card.color}` : 'none',
                 }}
               >
                 <div style={{ fontSize: 13, fontWeight: 700, color: card.color, display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -1298,82 +1448,131 @@ export function YuzhiSyncDimension() {
                   )}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: 11, color: '#374151' }}>
-                  <span style={{ color: '#6B7280' }}>总任务数</span>
-                  <span style={{ fontWeight: 700, textAlign: 'right' }}>{card.total.toLocaleString()}</span>
-                  <span style={{ color: '#6B7280' }}>总完成率</span>
-                  <span style={{ fontWeight: 700, textAlign: 'right', color: rateColor(card.doneRate) }}>{card.doneRate}</span>
-                  <span style={{ color: '#6B7280' }}>总隐患数</span>
-                  <span style={{ fontWeight: 700, textAlign: 'right', color: '#DC2626' }}>{card.hazard.toLocaleString()}</span>
+                  <span style={{ color: '#6B7280' }}>任务数</span>
+                  <span style={{ fontWeight: 700, textAlign: 'right' }}>{card.newTasks.toLocaleString()}</span>
+                  <span style={{ color: '#6B7280' }}>任务完成率</span>
+                  <span style={{ fontWeight: 700, textAlign: 'right', color: rateColor(card.newDoneRate) }}>{card.newDoneRate}</span>
+                  <span style={{ color: '#6B7280' }}>确认隐患数</span>
+                  <span style={{ fontWeight: 700, textAlign: 'right', color: '#DC2626' }}>{card.newHazard.toLocaleString()}</span>
+                  <span style={{ color: '#6B7280' }}>重大事故隐患数</span>
+                  <span style={{ fontWeight: 700, textAlign: 'right', color: '#B91C1C' }}>{card.majorHazard.toLocaleString()}</span>
                   <span style={{ color: '#6B7280' }}>整改完成率</span>
-                  <span style={{ fontWeight: 700, textAlign: 'right', color: rateColor(card.rectRate) }}>{card.rectRate}</span>
+                  <span style={{ fontWeight: 700, textAlign: 'right', color: rateColor(card.newRectifiedRate) }}>{card.newRectifiedRate}</span>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
 
         {/* 图例 */}
         <div style={{ padding: '8px 16px', display: 'flex', gap: 16, fontSize: 11, color: '#6B7280', borderBottom: '1px solid #F3F4F6' }}>
-          <span>📋 <b>日常检查</b>（绿色列）</span>
-          <span>🔄 <b>141同步</b>（紫色列）</span>
-          <span>📊 <b>防灾减灾</b>（蓝色列）</span>
+          {selectedCard === 'all' ? (
+            <span>📊 <b>总计任务</b> = 日常检查 + 141同步 + 防灾减灾（三个维度汇总）</span>
+          ) : (
+            <span style={{ color: '#4F46E5' }}>当前高亮：<b>{
+              selectedCard === 'rcjc' ? '日常检查' : selectedCard === 'sync141' ? '141同步' : '防灾减灾'
+            }</b> 维度数据 （点击"总计"恢复全部视图）</span>
+          )}
         </div>
 
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 2000, tableLayout: 'fixed' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: selectedCard === 'all' ? 1000 : 1200, tableLayout: 'fixed' }}>
             <thead>
               {/* 第一级表头：类别分组 */}
               <tr>
                 <th rowSpan={2} style={{ ...th, width: 48, position: 'sticky', left: 0, background: '#F9FAFB', zIndex: 3, boxSizing: 'border-box' }}>#</th>
-                <th rowSpan={2} style={{ ...th, textAlign: 'left', minWidth: 120, position: 'sticky', left: 49, background: '#F9FAFB', zIndex: 3, boxSizing: 'border-box' }}>村社</th>
-                <GroupTh label="日常检查任务" colSpan={8} bg="#F0FDF4" />
-                <GroupTh label="141同步任务" colSpan={8} bg="#FAF5FF" />
-                <GroupTh label="防灾减灾任务" colSpan={8} bg="#EFF6FF" />
+                <th rowSpan={2} style={{ ...th, textAlign: 'left', minWidth: 160, position: 'sticky', left: 49, background: '#F9FAFB', zIndex: 3, boxSizing: 'border-box' }}>村社</th>
+                {selectedCard === 'all' ? (
+                  <GroupTh label="总计任务" colSpan={8} bg="#F9FAFB" />
+                ) : (<>
+                {(selectedCard === 'rcjc') && <GroupTh label="日常检查任务" colSpan={8} bg="#F0FDF4" />}
+                {(selectedCard === 'sync141') && <GroupTh label="141同步任务" colSpan={8} bg="#FAF5FF" />}
+                {(selectedCard === 'fzjz') && <GroupTh label="防灾减灾任务" colSpan={8} bg="#EFF6FF" />}
+                </>)}
               </tr>
               {/* 第二级表头：8个子列（以任务创建时间为准） */}
               <tr>
+                {selectedCard === 'all' ? (<>
+                {/* 总计 - 8个指标（三个维度汇总） */}
+                <th style={{ ...th, background: '#F9FAFB', minWidth: 72 }}>任务数</th>
+                <th style={{ ...th, background: '#F9FAFB', minWidth: 72 }}>完成数</th>
+                <th style={{ ...th, background: '#F9FAFB', minWidth: 80 }}>任务完成率</th>
+                <th style={{ ...th, background: '#F9FAFB', minWidth: 88 }}>确认隐患数</th>
+                <th style={{ ...th, background: '#F9FAFB', minWidth: 120 }}>重大事故隐患数</th>
+                <th style={{ ...th, background: '#F9FAFB', minWidth: 72 }}>已整改</th>
+                <th style={{ ...th, background: '#F9FAFB', minWidth: 72 }}>整改中</th>
+                <th style={{ ...th, background: '#F9FAFB', minWidth: 80, borderRight: 'none' }}>整改完成率</th>
+                </>) : (<>
                 {/* 日常检查 - 8个指标 */}
-                <SortTh col="rcjc_newTasks" label="任务数" extraStyle={{ background: '#F0FDF4' }} />
-                <SortTh col="rcjc_newDone" label="完成数" extraStyle={{ background: '#F0FDF4' }} />
-                <th style={{ ...th, background: '#F0FDF4', minWidth: 56 }}>任务完成率</th>
-                <SortTh col="rcjc_newHazard" label="确认隐患数" extraStyle={{ background: '#F0FDF4' }} />
-                <SortTh col="rcjc_majorHazard" label="重大事故隐患数" extraStyle={{ background: '#F0FDF4' }} />
-                <SortTh col="rcjc_newRectified" label="已整改" extraStyle={{ background: '#F0FDF4' }} />
-                <th style={{ ...th, background: '#F0FDF4', minWidth: 48 }}>整改中</th>
-                <th style={{ ...th, background: '#F0FDF4', minWidth: 56, borderRight: '2px solid #D1D5DB' }}>整改完成率</th>
+                {(selectedCard === 'rcjc') && (<>
+                <SortTh col="rcjc_newTasks" label="任务数" extraStyle={{ background: '#F0FDF4', minWidth: 64 }} />
+                <SortTh col="rcjc_newDone" label="完成数" extraStyle={{ background: '#F0FDF4', minWidth: 64 }} />
+                <th style={{ ...th, background: '#F0FDF4', minWidth: 72 }}>任务完成率</th>
+                <SortTh col="rcjc_newHazard" label="确认隐患数" extraStyle={{ background: '#F0FDF4', minWidth: 80 }} />
+                <SortTh col="rcjc_majorHazard" label="重大事故隐患数" extraStyle={{ background: '#F0FDF4', minWidth: 110 }} />
+                <SortTh col="rcjc_newRectified" label="已整改" extraStyle={{ background: '#F0FDF4', minWidth: 64 }} />
+                <th style={{ ...th, background: '#F0FDF4', minWidth: 64 }}>整改中</th>
+                <th style={{ ...th, background: '#F0FDF4', minWidth: 72, borderRight: 'none' }}>整改完成率</th>
+                </>)}
                 {/* 141同步 - 8个指标 */}
-                <SortTh col="sync141_newTasks" label="任务数" extraStyle={{ background: '#FAF5FF' }} />
-                <SortTh col="sync141_newDone" label="完成数" extraStyle={{ background: '#FAF5FF' }} />
-                <th style={{ ...th, background: '#FAF5FF', minWidth: 56 }}>任务完成率</th>
-                <SortTh col="sync141_newHazard" label="确认隐患数" extraStyle={{ background: '#FAF5FF' }} />
-                <SortTh col="sync141_majorHazard" label="重大事故隐患数" extraStyle={{ background: '#FAF5FF' }} />
-                <SortTh col="sync141_newRectified" label="已整改" extraStyle={{ background: '#FAF5FF' }} />
-                <th style={{ ...th, background: '#FAF5FF', minWidth: 48 }}>整改中</th>
-                <th style={{ ...th, background: '#FAF5FF', minWidth: 56, borderRight: '2px solid #D1D5DB' }}>整改完成率</th>
+                {(selectedCard === 'sync141') && (<>
+                <SortTh col="sync141_newTasks" label="任务数" extraStyle={{ background: '#FAF5FF', minWidth: 64 }} />
+                <SortTh col="sync141_newDone" label="完成数" extraStyle={{ background: '#FAF5FF', minWidth: 64 }} />
+                <th style={{ ...th, background: '#FAF5FF', minWidth: 72 }}>任务完成率</th>
+                <SortTh col="sync141_newHazard" label="确认隐患数" extraStyle={{ background: '#FAF5FF', minWidth: 80 }} />
+                <SortTh col="sync141_majorHazard" label="重大事故隐患数" extraStyle={{ background: '#FAF5FF', minWidth: 110 }} />
+                <SortTh col="sync141_newRectified" label="已整改" extraStyle={{ background: '#FAF5FF', minWidth: 64 }} />
+                <th style={{ ...th, background: '#FAF5FF', minWidth: 64 }}>整改中</th>
+                <th style={{ ...th, background: '#FAF5FF', minWidth: 72, borderRight: 'none' }}>整改完成率</th>
+                </>)}
                 {/* 防灾减灾 - 8个指标 */}
-                <SortTh col="fzjz_newTasks" label="任务数" extraStyle={{ background: '#EFF6FF' }} />
-                <SortTh col="fzjz_newDone" label="完成数" extraStyle={{ background: '#EFF6FF' }} />
-                <th style={{ ...th, background: '#EFF6FF', minWidth: 56 }}>任务完成率</th>
-                <SortTh col="fzjz_newHazard" label="确认隐患数" extraStyle={{ background: '#EFF6FF' }} />
-                <SortTh col="fzjz_majorHazard" label="重大事故隐患数" extraStyle={{ background: '#EFF6FF' }} />
-                <SortTh col="fzjz_newRectified" label="已整改" extraStyle={{ background: '#EFF6FF' }} />
-                <th style={{ ...th, background: '#EFF6FF', minWidth: 48 }}>整改中</th>
-                <th style={{ ...th, background: '#EFF6FF', minWidth: 56, borderRight: 'none' }}>整改完成率</th>
+                {(selectedCard === 'fzjz') && (<>
+                <SortTh col="fzjz_newTasks" label="任务数" extraStyle={{ background: '#EFF6FF', minWidth: 64 }} />
+                <SortTh col="fzjz_newDone" label="完成数" extraStyle={{ background: '#EFF6FF', minWidth: 64 }} />
+                <th style={{ ...th, background: '#EFF6FF', minWidth: 72 }}>任务完成率</th>
+                <SortTh col="fzjz_newHazard" label="确认隐患数" extraStyle={{ background: '#EFF6FF', minWidth: 80 }} />
+                <SortTh col="fzjz_majorHazard" label="重大事故隐患数" extraStyle={{ background: '#EFF6FF', minWidth: 110 }} />
+                <SortTh col="fzjz_newRectified" label="已整改" extraStyle={{ background: '#EFF6FF', minWidth: 64 }} />
+                <th style={{ ...th, background: '#EFF6FF', minWidth: 64 }}>整改中</th>
+                <th style={{ ...th, background: '#EFF6FF', minWidth: 72, borderRight: 'none' }}>整改完成率</th>
+                </>)}
+                </>)}
               </tr>
             </thead>
             <tbody>
-              {pagedVillages.map((row, i) => (
+              {pagedVillages.map((row, i) => {
+                // 总计视图：合并三个维度的数据
+                const mergedTotal: TaskSub = {
+                  total: row.rcjc.total + row.sync141.total + row.fzjz.total,
+                  done: row.rcjc.done + row.sync141.done + row.fzjz.done,
+                  hazard: row.rcjc.hazard + row.sync141.hazard + row.fzjz.hazard,
+                  rectified: row.rcjc.rectified + row.sync141.rectified + row.fzjz.rectified,
+                  rectifying: row.rcjc.rectifying + row.sync141.rectifying + row.fzjz.rectifying,
+                  newTasks: row.rcjc.newTasks + row.sync141.newTasks + row.fzjz.newTasks,
+                  newDone: row.rcjc.newDone + row.sync141.newDone + row.fzjz.newDone,
+                  newHazard: row.rcjc.newHazard + row.sync141.newHazard + row.fzjz.newHazard,
+                  newRectified: row.rcjc.newRectified + row.sync141.newRectified + row.fzjz.newRectified,
+                  majorHazard: row.rcjc.majorHazard + row.sync141.majorHazard + row.fzjz.majorHazard,
+                }
+                return (
                 <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#FAFAFA' }}>
                   <td style={{ ...td({ textAlign: 'center', color: '#9CA3AF', fontSize: 11, fontWeight: 500 }), position: 'sticky', left: 0, background: i % 2 === 0 ? 'white' : '#FAFAFA', zIndex: 2, boxSizing: 'border-box' }}>{(page - 1) * pageSize + i + 1}</td>
                   <td style={{ ...td({ fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' }), position: 'sticky', left: 49, background: i % 2 === 0 ? 'white' : '#FAFAFA', zIndex: 2, boxSizing: 'border-box' }}>{row.village}</td>
-                  {/* 日常检查 */}
-                  {renderSubCols(row.rcjc, '#FAFFFC')}
-                  {/* 141同步 */}
-                  {renderSubCols(row.sync141, '#FDFAFF')}
-                  {/* 防灾减灾 */}
-                  {renderSubCols(row.fzjz, '#FAFCFF', true)}
+                  {selectedCard === 'all' ? (
+                    // 总计：展示三个维度汇总数据
+                    renderSubCols(mergedTotal, '#FAFBFC', true)
+                  ) : (<>
+                    {/* 日常检查 */}
+                    {selectedCard === 'rcjc' && renderSubCols(row.rcjc, '#FAFFFC', true)}
+                    {/* 141同步 */}
+                    {selectedCard === 'sync141' && renderSubCols(row.sync141, '#FDFAFF', true)}
+                    {/* 防灾减灾 */}
+                    {selectedCard === 'fzjz' && renderSubCols(row.fzjz, '#FAFCFF', true)}
+                  </>)}
                 </tr>
-              ))}
+                )
+              })}
               {pagedVillages.length === 0 && (
                 <tr>
                   <td colSpan={totalColSpan} style={{ textAlign: 'center', padding: '24px', color: '#9CA3AF', fontSize: 13 }}>
