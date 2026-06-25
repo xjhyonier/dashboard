@@ -1406,10 +1406,10 @@ export function YuzhiSyncDimension() {
                   </div>
                 )}
               />
-              {/* Bar顺序已验证：声明[已整改,完成数,确认隐患数] → 视觉[完成数,确认隐患数,已整改] */}
-              <Bar dataKey="已整改" fill="#059669" radius={[3, 3, 0, 0]} barSize={12} />
-              <Bar dataKey="完成数" fill="#4F46E5" radius={[3, 3, 0, 0]} barSize={12} />
-              <Bar dataKey="确认隐患数" fill="#DC2626" radius={[3, 3, 0, 0]} barSize={12} />
+              {/* 近30天柱状图：细柱+圆角，视觉更精致 */}
+              <Bar dataKey="已整改" fill="#059669" radius={[2, 2, 0, 0]} barSize={5} />
+              <Bar dataKey="完成数" fill="#4F46E5" radius={[2, 2, 0, 0]} barSize={5} />
+              <Bar dataKey="确认隐患数" fill="#DC2626" radius={[2, 2, 0, 0]} barSize={5} />
             </ComposedChart>
           </ResponsiveContainer>
         )}
