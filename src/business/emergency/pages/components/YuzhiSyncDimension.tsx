@@ -280,11 +280,13 @@ const generateDailyTrendData = (): TrendDataPoint[] => {
 
   // 从 VILLAGE_ROWS 汇总当前月数据（与表1同源，仅2026-06）
   const currentMonth = VILLAGE_ROWS.filter(r => r.date.startsWith('2026-06'))
+  const currentTasks = currentMonth.reduce((s, r) => s + r.fzjz.newTasks + r.rcjc.newTasks + r.sync141.newTasks, 0)
   const currentDone = currentMonth.reduce((s, r) => s + r.fzjz.newDone + r.rcjc.newDone + r.sync141.newDone, 0)
   const currentHazards = currentMonth.reduce((s, r) => s + r.fzjz.newHazard + r.rcjc.newHazard + r.sync141.newHazard, 0)
   const currentRectified = currentMonth.reduce((s, r) => s + r.fzjz.newRectified + r.rcjc.newRectified + r.sync141.newRectified, 0)
 
   // 日均值
+  const dailyAvgTasks = Math.round(currentTasks / 30)
   const dailyAvgDone = Math.round(currentDone / 30)
   const dailyAvgHazards = Math.round(currentHazards / 30)
   const dailyAvgRectified = Math.round(currentRectified / 30)
@@ -299,15 +301,17 @@ const generateDailyTrendData = (): TrendDataPoint[] => {
     // 模拟每日波动（周末偏低）
     const weekDay = (29 - i) % 7
     const dayMult = weekDay >= 5 ? 0.5 : (0.8 + Math.sin(i * 0.5) * 0.2)
+    const tasks = Math.max(1, Math.round(dailyAvgTasks * dayMult))
     const done = Math.max(1, Math.round(dailyAvgDone * dayMult))
     const hazards = Math.max(1, Math.round(dailyAvgHazards * dayMult))
     const rectified = Math.max(0, Math.min(hazards - 1, Math.round(dailyAvgRectified * dayMult)))
 
     days.push({
       period,
-      完成数: done,
-      确认隐患数: hazards,
-      已整改: rectified,
+      每日新增任务数: tasks,
+      每日完成任务数: done,
+      每日确认隐患数: hazards,
+      每日整改隐患数: rectified,
     })
   }
 
@@ -355,9 +359,11 @@ function RateText({ rate }: { rate: string }) {
 
 // ─── 排序列类型 ───────────────────────────────────────────────────────────
 type SortCol = 'village' |
-  'fzjz_total' | 'fzjz_done' | 'fzjz_newTasks' | 'fzjz_newDone' | 'fzjz_hazard' | 'fzjz_newHazard' | 'fzjz_rectified' | 'fzjz_rectifying' | 'fzjz_majorHazard' | 'fzjz_newRectified' |
-  'rcjc_total' | 'rcjc_done' | 'rcjc_newTasks' | 'rcjc_newDone' | 'rcjc_hazard' | 'rcjc_newHazard' | 'rcjc_rectified' | 'rcjc_rectifying' | 'rcjc_majorHazard' | 'rcjc_newRectified' |
-  'sync141_total' | 'sync141_done' | 'sync141_newTasks' | 'sync141_newDone' | 'sync141_hazard' | 'sync141_newHazard' | 'sync141_rectified' | 'sync141_rectifying' | 'sync141_majorHazard' | 'sync141_newRectified'
+  'fzjz_total' | 'fzjz_done' | 'fzjz_newTasks' | 'fzjz_newDone' | 'fzjz_doneRate' | 'fzjz_hazard' | 'fzjz_newHazard' | 'fzjz_rectified' | 'fzjz_rectifying' | 'fzjz_majorHazard' | 'fzjz_newRectified' | 'fzjz_rectifiedRate' |
+  'rcjc_total' | 'rcjc_done' | 'rcjc_newTasks' | 'rcjc_newDone' | 'rcjc_doneRate' | 'rcjc_hazard' | 'rcjc_newHazard' | 'rcjc_rectified' | 'rcjc_rectifying' | 'rcjc_majorHazard' | 'rcjc_newRectified' | 'rcjc_rectifiedRate' |
+  'sync141_total' | 'sync141_done' | 'sync141_newTasks' | 'sync141_newDone' | 'sync141_doneRate' | 'sync141_hazard' | 'sync141_newHazard' | 'sync141_rectified' | 'sync141_rectifying' | 'sync141_majorHazard' | 'sync141_newRectified' | 'sync141_rectifiedRate' |
+  // 总计视图（合并三个维度）
+  'all_newTasks' | 'all_newDone' | 'all_doneRate' | 'all_newHazard' | 'all_majorHazard' | 'all_newRectified' | 'all_rectifying' | 'all_rectifiedRate'
 
 function getSortValue(row: VillageRow, col: SortCol): number {
   switch (col) {
@@ -373,6 +379,8 @@ function getSortValue(row: VillageRow, col: SortCol): number {
     case 'fzjz_rectifying': return row.fzjz.rectifying
     case 'fzjz_majorHazard': return row.fzjz.majorHazard
     case 'fzjz_newRectified': return row.fzjz.newRectified
+    case 'fzjz_doneRate': return row.fzjz.newTasks > 0 ? row.fzjz.newDone / row.fzjz.newTasks : 0
+    case 'fzjz_rectifiedRate': return row.fzjz.newHazard > 0 ? row.fzjz.newRectified / row.fzjz.newHazard : 0
     // 日常检查
     case 'rcjc_total': return row.rcjc.total
     case 'rcjc_done': return row.rcjc.done
@@ -384,6 +392,8 @@ function getSortValue(row: VillageRow, col: SortCol): number {
     case 'rcjc_rectifying': return row.rcjc.rectifying
     case 'rcjc_majorHazard': return row.rcjc.majorHazard
     case 'rcjc_newRectified': return row.rcjc.newRectified
+    case 'rcjc_doneRate': return row.rcjc.newTasks > 0 ? row.rcjc.newDone / row.rcjc.newTasks : 0
+    case 'rcjc_rectifiedRate': return row.rcjc.newHazard > 0 ? row.rcjc.newRectified / row.rcjc.newHazard : 0
     // 141同步
     case 'sync141_total': return row.sync141.total
     case 'sync141_done': return row.sync141.done
@@ -395,6 +405,17 @@ function getSortValue(row: VillageRow, col: SortCol): number {
     case 'sync141_rectifying': return row.sync141.rectifying
     case 'sync141_majorHazard': return row.sync141.majorHazard
     case 'sync141_newRectified': return row.sync141.newRectified
+    case 'sync141_doneRate': return row.sync141.newTasks > 0 ? row.sync141.newDone / row.sync141.newTasks : 0
+    case 'sync141_rectifiedRate': return row.sync141.newHazard > 0 ? row.sync141.newRectified / row.sync141.newHazard : 0
+    // 总计视图（合并三个维度）
+    case 'all_newTasks': return row.rcjc.newTasks + row.sync141.newTasks + row.fzjz.newTasks
+    case 'all_newDone': return row.rcjc.newDone + row.sync141.newDone + row.fzjz.newDone
+    case 'all_doneRate': { const t = row.rcjc.newTasks + row.sync141.newTasks + row.fzjz.newTasks; return t > 0 ? (row.rcjc.newDone + row.sync141.newDone + row.fzjz.newDone) / t : 0 }
+    case 'all_newHazard': return row.rcjc.newHazard + row.sync141.newHazard + row.fzjz.newHazard
+    case 'all_majorHazard': return row.rcjc.majorHazard + row.sync141.majorHazard + row.fzjz.majorHazard
+    case 'all_newRectified': return row.rcjc.newRectified + row.sync141.newRectified + row.fzjz.newRectified
+    case 'all_rectifying': { const h = row.rcjc.newHazard + row.sync141.newHazard + row.fzjz.newHazard; const r = row.rcjc.newRectified + row.sync141.newRectified + row.fzjz.newRectified; return Math.max(0, h - r) }
+    case 'all_rectifiedRate': { const h = row.rcjc.newHazard + row.sync141.newHazard + row.fzjz.newHazard; const r = row.rcjc.newRectified + row.sync141.newRectified + row.fzjz.newRectified; return h > 0 ? r / h : 0 }
   }
 }
 
@@ -454,9 +475,10 @@ const MonthlyTooltip: React.FC<any> = ({ active, payload, label }) => {
 
 // ─── 自定义Tooltip：近30天（按Legend顺序展示） ─────────────────
 const DAILY_TOOLTIP_ORDER = [
-  { key: '完成数', label: '完成数', unit: '', color: '#4F46E5' },
-  { key: '确认隐患数', label: '确认隐患数', unit: '', color: '#DC2626' },
-  { key: '已整改', label: '已整改', unit: '', color: '#059669' },
+  { key: '每日新增任务数', label: '每日新增任务数', unit: '', color: '#7C3AED' },
+  { key: '每日完成任务数', label: '每日完成任务数', unit: '', color: '#4F46E5' },
+  { key: '每日确认隐患数', label: '每日确认隐患数', unit: '', color: '#DC2626' },
+  { key: '每日整改隐患数', label: '每日整改隐患数', unit: '', color: '#059669' },
 ]
 
 const DailyTooltip: React.FC<any> = ({ active, payload, label }) => {
@@ -487,7 +509,7 @@ export function YuzhiSyncDimension() {
   const [draftSelected, setDraftSelected] = useState<string[]>([])
   const [showVillageDropdown, setShowVillageDropdown] = useState(false)
   const [workloadDimension, setWorkloadDimension] = useState<'yesterday' | 'week' | 'lastWeek' | 'month' | 'lastMonth'>('yesterday')
-  const [progressDimension, setProgressDimension] = useState<'month' | 'year'>('month')
+  const [progressDimension, setProgressDimension] = useState<'month' | 'lastMonth' | 'year' | 'lastYear'>('month')
   const [sortBy, setSortBy] = useState<SortCol>('fzjz_done')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
@@ -1244,13 +1266,19 @@ export function YuzhiSyncDimension() {
             const now = new Date()
             const curYm = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`
             const curYear = `${now.getFullYear()}`
+            const lastM = now.getMonth() === 0 ? 11 : now.getMonth() - 1
+            const lastMY = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
+            const lastYm = `${lastMY}-${String(lastM+1).padStart(2,'0')}`
+            const lastYear = `${now.getFullYear() - 1}`
             const curMonthRows = allVillages.filter(r => r.date.startsWith(curYm))
+            const lastMonthRows = allVillages.filter(r => r.date.startsWith(lastYm))
             const curYearRows = allVillages.filter(r => r.date.startsWith(curYear))
+            const lastYearRows = allVillages.filter(r => r.date.startsWith(lastYear))
 
             const sumF = (rows: VillageRow[], field: keyof TaskSub) =>
               rows.reduce((s,r) => s + r.fzjz[field] + r.rcjc[field] + r.sync141[field], 0)
 
-            const rows = progressDimension === 'month' ? curMonthRows : curYearRows
+            const rows = progressDimension === 'month' ? curMonthRows : progressDimension === 'lastMonth' ? lastMonthRows : progressDimension === 'year' ? curYearRows : lastYearRows
             const tasks = sumF(rows, 'newTasks')
             const done = sumF(rows, 'newDone')
             const pending = Math.max(0, tasks - done)
@@ -1268,8 +1296,12 @@ export function YuzhiSyncDimension() {
 
             const progressTabs: { key: typeof progressDimension; label: string }[] = [
               { key: 'month', label: '本月' },
+              { key: 'lastMonth', label: '上月' },
               { key: 'year', label: '本年' },
+              { key: 'lastYear', label: '去年' },
             ]
+
+            const dimLabel = progressDimension === 'month' ? curYm : progressDimension === 'lastMonth' ? lastYm : progressDimension === 'year' ? curYear : lastYear
 
             return (
               <div style={{ flex: 1, background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1284,12 +1316,12 @@ export function YuzhiSyncDimension() {
                           padding: '2px 10px', fontSize: 11, fontWeight: progressDimension === t.key ? 600 : 400,
                           color: progressDimension === t.key ? '#111827' : '#9CA3AF',
                           background: progressDimension === t.key ? '#F3F4F6' : 'white',
-                          border: 'none', cursor: 'pointer', borderRight: t.key === 'month' ? '1px solid #D1D5DB' : 'none',
+                          border: 'none', cursor: 'pointer', borderRight: t.key !== 'lastYear' ? '1px solid #D1D5DB' : 'none',
                         }}
                       >{t.label}</button>
                     ))}
                   </div>
-                  <span style={{ fontSize: 11, color: '#9CA3AF' }}>{progressDimension === 'month' ? curYm : curYear}</span>
+                  <span style={{ fontSize: 11, color: '#9CA3AF' }}>{dimLabel}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 40 }}>
                   <div style={{ textAlign: 'center' }}>
@@ -1340,7 +1372,7 @@ export function YuzhiSyncDimension() {
         {/* 标题栏 + 维度切换 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>
-            村社每月任务数据统计--截止{(() => { const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}` })()}数据
+            村社任务数据统计--截止{(() => { const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}` })()}数据
           </div>
           <div style={{ display: 'flex', gap: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #D1D5DB' }}>
             {([
@@ -1442,9 +1474,10 @@ export function YuzhiSyncDimension() {
                 content={() => (
                   <div style={{ display: 'flex', justifyContent: 'center', gap: 20, paddingTop: 12, fontSize: 12 }}>
                     {[
-                      { name: '完成数', color: '#4F46E5' },
-                      { name: '确认隐患数', color: '#DC2626' },
-                      { name: '已整改', color: '#059669' },
+                      { name: '每日新增任务数', color: '#7C3AED' },
+                      { name: '每日完成任务数', color: '#4F46E5' },
+                      { name: '每日确认隐患数', color: '#DC2626' },
+                      { name: '每日整改隐患数', color: '#059669' },
                     ].map(item => (
                       <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ width: 12, height: 3, background: item.color, display: 'inline-block', borderRadius: 2 }} />
@@ -1454,10 +1487,11 @@ export function YuzhiSyncDimension() {
                   </div>
                 )}
               />
-              {/* 近30天柱状图：细柱+圆角，视觉更精致 */}
-              <Bar dataKey="已整改" fill="#059669" radius={[2, 2, 0, 0]} barSize={5} />
-              <Bar dataKey="完成数" fill="#4F46E5" radius={[2, 2, 0, 0]} barSize={5} />
-              <Bar dataKey="确认隐患数" fill="#DC2626" radius={[2, 2, 0, 0]} barSize={5} />
+              {/* 近30天柱状图：recharts左旋渲染，声明顺序=最终左移1位 */}
+              <Bar dataKey="每日整改隐患数" fill="#059669" radius={[2, 2, 0, 0]} barSize={4} />
+              <Bar dataKey="每日新增任务数" fill="#7C3AED" radius={[2, 2, 0, 0]} barSize={4} />
+              <Bar dataKey="每日完成任务数" fill="#4F46E5" radius={[2, 2, 0, 0]} barSize={4} />
+              <Bar dataKey="每日确认隐患数" fill="#DC2626" radius={[2, 2, 0, 0]} barSize={4} />
             </ComposedChart>
           </ResponsiveContainer>
         )}
@@ -1469,9 +1503,6 @@ export function YuzhiSyncDimension() {
         <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>表1：村社检查任务统计</span>
-            <span style={{ fontSize: 12, color: '#6B7280' }}>
-              共 {filteredVillages.length} 条
-            </span>
             {/* 指标说明图标：悬浮显示所有指标解释 */}
             <div style={{ position: 'relative' }}>
               <span
@@ -1707,47 +1738,47 @@ export function YuzhiSyncDimension() {
               <tr>
                 {selectedCard === 'all' ? (<>
                 {/* 总计 - 8个指标（三个维度汇总） */}
-                <th style={{ ...th, background: '#F9FAFB', minWidth: 72 }}>任务数</th>
-                <th style={{ ...th, background: '#F9FAFB', minWidth: 72 }}>完成数</th>
-                <th style={{ ...th, background: '#F9FAFB', minWidth: 80 }}>任务完成率</th>
-                <th style={{ ...th, background: '#F9FAFB', minWidth: 88 }}>确认隐患数</th>
-                <th style={{ ...th, background: '#F9FAFB', minWidth: 120 }}>重大事故隐患数</th>
-                <th style={{ ...th, background: '#F9FAFB', minWidth: 72 }}>已整改</th>
-                <th style={{ ...th, background: '#F9FAFB', minWidth: 72 }}>整改中</th>
-                <th style={{ ...th, background: '#F9FAFB', minWidth: 80, borderRight: 'none' }}>整改完成率</th>
+                <SortTh col="all_newTasks" label="任务数" extraStyle={{ background: '#F9FAFB', minWidth: 72 }} />
+                <SortTh col="all_newDone" label="完成数" extraStyle={{ background: '#F9FAFB', minWidth: 72 }} />
+                <SortTh col="all_doneRate" label="任务完成率" extraStyle={{ background: '#F9FAFB', minWidth: 80 }} />
+                <SortTh col="all_newHazard" label="确认隐患数" extraStyle={{ background: '#F9FAFB', minWidth: 88 }} />
+                <SortTh col="all_majorHazard" label="重大事故隐患数" extraStyle={{ background: '#F9FAFB', minWidth: 120 }} />
+                <SortTh col="all_newRectified" label="已整改" extraStyle={{ background: '#F9FAFB', minWidth: 72 }} />
+                <SortTh col="all_rectifying" label="整改中" extraStyle={{ background: '#F9FAFB', minWidth: 72 }} />
+                <SortTh col="all_rectifiedRate" label="整改完成率" extraStyle={{ background: '#F9FAFB', minWidth: 80, borderRight: 'none' }} />
                 </>) : (<>
                 {/* 日常检查 - 8个指标 */}
                 {(selectedCard === 'rcjc') && (<>
                 <SortTh col="rcjc_newTasks" label="任务数" extraStyle={{ background: '#F0FDF4', minWidth: 64 }} />
                 <SortTh col="rcjc_newDone" label="完成数" extraStyle={{ background: '#F0FDF4', minWidth: 64 }} />
-                <th style={{ ...th, background: '#F0FDF4', minWidth: 72 }}>任务完成率</th>
+                <SortTh col="rcjc_doneRate" label="任务完成率" extraStyle={{ background: '#F0FDF4', minWidth: 72 }} />
                 <SortTh col="rcjc_newHazard" label="确认隐患数" extraStyle={{ background: '#F0FDF4', minWidth: 80 }} />
                 <SortTh col="rcjc_majorHazard" label="重大事故隐患数" extraStyle={{ background: '#F0FDF4', minWidth: 110 }} />
                 <SortTh col="rcjc_newRectified" label="已整改" extraStyle={{ background: '#F0FDF4', minWidth: 64 }} />
-                <th style={{ ...th, background: '#F0FDF4', minWidth: 64 }}>整改中</th>
-                <th style={{ ...th, background: '#F0FDF4', minWidth: 72, borderRight: 'none' }}>整改完成率</th>
+                <SortTh col="rcjc_rectifying" label="整改中" extraStyle={{ background: '#F0FDF4', minWidth: 64 }} />
+                <SortTh col="rcjc_rectifiedRate" label="整改完成率" extraStyle={{ background: '#F0FDF4', minWidth: 72, borderRight: 'none' }} />
                 </>)}
                 {/* 141同步 - 8个指标 */}
                 {(selectedCard === 'sync141') && (<>
                 <SortTh col="sync141_newTasks" label="任务数" extraStyle={{ background: '#FAF5FF', minWidth: 64 }} />
                 <SortTh col="sync141_newDone" label="完成数" extraStyle={{ background: '#FAF5FF', minWidth: 64 }} />
-                <th style={{ ...th, background: '#FAF5FF', minWidth: 72 }}>任务完成率</th>
+                <SortTh col="sync141_doneRate" label="任务完成率" extraStyle={{ background: '#FAF5FF', minWidth: 72 }} />
                 <SortTh col="sync141_newHazard" label="确认隐患数" extraStyle={{ background: '#FAF5FF', minWidth: 80 }} />
                 <SortTh col="sync141_majorHazard" label="重大事故隐患数" extraStyle={{ background: '#FAF5FF', minWidth: 110 }} />
                 <SortTh col="sync141_newRectified" label="已整改" extraStyle={{ background: '#FAF5FF', minWidth: 64 }} />
-                <th style={{ ...th, background: '#FAF5FF', minWidth: 64 }}>整改中</th>
-                <th style={{ ...th, background: '#FAF5FF', minWidth: 72, borderRight: 'none' }}>整改完成率</th>
+                <SortTh col="sync141_rectifying" label="整改中" extraStyle={{ background: '#FAF5FF', minWidth: 64 }} />
+                <SortTh col="sync141_rectifiedRate" label="整改完成率" extraStyle={{ background: '#FAF5FF', minWidth: 72, borderRight: 'none' }} />
                 </>)}
                 {/* 防灾减灾 - 8个指标 */}
                 {(selectedCard === 'fzjz') && (<>
                 <SortTh col="fzjz_newTasks" label="任务数" extraStyle={{ background: '#EFF6FF', minWidth: 64 }} />
                 <SortTh col="fzjz_newDone" label="完成数" extraStyle={{ background: '#EFF6FF', minWidth: 64 }} />
-                <th style={{ ...th, background: '#EFF6FF', minWidth: 72 }}>任务完成率</th>
+                <SortTh col="fzjz_doneRate" label="任务完成率" extraStyle={{ background: '#EFF6FF', minWidth: 72 }} />
                 <SortTh col="fzjz_newHazard" label="确认隐患数" extraStyle={{ background: '#EFF6FF', minWidth: 80 }} />
                 <SortTh col="fzjz_majorHazard" label="重大事故隐患数" extraStyle={{ background: '#EFF6FF', minWidth: 110 }} />
                 <SortTh col="fzjz_newRectified" label="已整改" extraStyle={{ background: '#EFF6FF', minWidth: 64 }} />
-                <th style={{ ...th, background: '#EFF6FF', minWidth: 64 }}>整改中</th>
-                <th style={{ ...th, background: '#EFF6FF', minWidth: 72, borderRight: 'none' }}>整改完成率</th>
+                <SortTh col="fzjz_rectifying" label="整改中" extraStyle={{ background: '#EFF6FF', minWidth: 64 }} />
+                <SortTh col="fzjz_rectifiedRate" label="整改完成率" extraStyle={{ background: '#EFF6FF', minWidth: 72, borderRight: 'none' }} />
                 </>)}
                 </>)}
               </tr>
