@@ -975,7 +975,7 @@ export function YuzhiSyncDimension() {
           {
             label: '企业数',
             value: ent,
-            unit: '家',
+            unit: '户',
             color: '#111827',
             bg: '#EFF6FF',
             border: '#BFDBFE',
@@ -986,7 +986,7 @@ export function YuzhiSyncDimension() {
           {
             label: '场所数',
             value: ven,
-            unit: '处',
+            unit: '户',
             color: '#111827',
             bg: '#F0FDF4',
             border: '#A7F3D0',
@@ -997,7 +997,7 @@ export function YuzhiSyncDimension() {
           {
             label: '出租房数',
             value: rent,
-            unit: '套',
+            unit: '户',
             color: '#111827',
             bg: '#FAF5FF',
             border: '#DDD6FE',
@@ -1028,14 +1028,14 @@ export function YuzhiSyncDimension() {
               <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, marginBottom: 4 }}>责任主体总数</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                 <span style={{ fontSize: 28, fontWeight: 700, color: '#111827', lineHeight: 1 }}>{total.toLocaleString()}</span>
-                <span style={{ fontSize: 12, color: '#111827', fontWeight: 500 }}>个</span>
+                <span style={{ fontSize: 12, color: '#111827', fontWeight: 500 }}>户</span>
               </div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 16, borderTop: '1px dashed #FDE68A', paddingTop: 8 }}>
             <div>
               <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 2 }}>已注册数</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>{totalReg.toLocaleString()}<span style={{ fontSize: 10, fontWeight: 500, marginLeft: 2 }}>个</span></div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>{totalReg.toLocaleString()}<span style={{ fontSize: 10, fontWeight: 500, marginLeft: 2 }}>户</span></div>
             </div>
             <div>
               <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 2 }}>注册率</div>
