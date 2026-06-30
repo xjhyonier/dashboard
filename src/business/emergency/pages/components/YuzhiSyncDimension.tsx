@@ -539,6 +539,46 @@ export function YuzhiSyncDimension() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showVillageDropdown])
 
+  // ─── 导出 CSV ───────────────────────────────────────
+  const handleExport = () => {
+    const BOM = '\uFEFF'
+    const subHeaders = ['任务数', '完成数', '任务完成率', '确认隐患数', '重大事故隐患数', '已整改', '整改中', '整改完成率']
+    const csvRows: string[] = [
+      ['村社', ...subHeaders].join(','),
+    ]
+
+    const rows = filteredVillages
+    for (const row of rows) {
+      const getVal = (key: keyof TaskSub) => {
+        if (selectedCard === 'all') return row.rcjc[key] + row.sync141[key] + row.fzjz[key]
+        return row[selectedCard][key]
+      }
+      const tasks = getVal('newTasks')
+      const done = getVal('newDone')
+      const hazard = getVal('newHazard')
+      const major = getVal('majorHazard')
+      const rectified = getVal('newRectified')
+      const rectifying = Math.max(0, hazard - rectified)
+      const calcRate = (d: number, t: number) => t > 0 ? `${((d / t) * 100).toFixed(2)}%` : '0.00%'
+      csvRows.push([
+        `"${row.village}"`,
+        String(tasks), String(done), calcRate(done, tasks),
+        String(hazard), String(major), String(rectified), String(rectifying), calcRate(rectified, hazard),
+      ].join(','))
+    }
+
+    const csv = BOM + csvRows.join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const now = new Date()
+    const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`
+    a.download = `村社检查任务统计_${ts}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const allVillages = VILLAGE_ROWS
 
   const filteredVillages = useMemo(() => {
@@ -1606,6 +1646,17 @@ export function YuzhiSyncDimension() {
                 清除
               </button>
             )}
+            {/* 导出按钮 */}
+            <button
+              onClick={handleExport}
+              style={{
+                padding: '3px 10px', border: '1px solid #059669', borderRadius: 4,
+                background: '#F0FDF4', color: '#059669', fontSize: 11, cursor: 'pointer',
+                fontWeight: 500, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4,
+              }}
+            >
+              📥 导出
+            </button>
           </div>
         </div>
         {/* 统计分析 - 卡片式 */}
