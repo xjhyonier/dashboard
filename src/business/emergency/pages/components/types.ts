@@ -29,6 +29,8 @@ export interface HazardNavigateParams {
   status?: string         // 按状态筛选
 }
 
+export type EntityType = 'all' | 'production' | 'venue'
+
 export interface DutyDimensionProps {
   dateRange: { start: string; end: string }
   riskLevel: RiskLevel
@@ -37,6 +39,7 @@ export interface DutyDimensionProps {
   setSelectedKpi: (k: string | null) => void
   onNavigateToHazard?: (params: HazardNavigateParams) => void
   onNavigateToState?: (params: { teamName?: string; riskLevel?: RiskLevel }) => void
+  filterEntityType?: EntityType
 }
 
 export interface DimensionTableProps {
@@ -67,6 +70,7 @@ export interface StateDimensionProps {
     expertName?: string
     riskLevel?: RiskLevel
   }
+  filterEntityType?: EntityType
 }
 
 export interface HazardDimensionProps {
@@ -77,6 +81,7 @@ export interface HazardDimensionProps {
   setSelectedKpi: (k: string | null) => void
   // 导航参数（从其他维度跳转过来时携带的筛选条件）
   navigateParams?: HazardNavigateParams
+  filterEntityType?: EntityType
 }
 
 export interface IndustryDimensionProps {
@@ -84,6 +89,7 @@ export interface IndustryDimensionProps {
   riskLevel: RiskLevel
   timeRange: TimeRange
   selectedKpi: string | null
+  filterEntityType?: EntityType
 }
 
 export interface SpecialDimensionProps {
@@ -92,6 +98,7 @@ export interface SpecialDimensionProps {
   timeRange: TimeRange
   selectedKpi: string | null
   onNavigateToHazard?: (params: HazardNavigateParams) => void
+  filterEntityType?: EntityType
 }
 
 export type Dimension = 'duty' | 'industry' | 'special' | 'state' | 'hazard' | 'trend' | 'yuzhi'

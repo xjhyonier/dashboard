@@ -819,6 +819,7 @@ export function generateAllData(): GeneratedData {
     const completedCount = Math.floor(totalCount * (0.5 + Math.random() * 0.5))
     
     // 系统创建的日常检查
+    const dailyHazardCount = randomInt(10, 50)
     tasks.push({
       id: `task-daily-${level}`,
       name,
@@ -834,19 +835,19 @@ export function generateAllData(): GeneratedData {
       status: new Date() > new Date(endDate) ? '已完成' : '进行中',
       risk_level: level as RiskLevel,
       enterprise_ids: relatedEnterprises.map(e => e.id),
-      hazard_count: randomInt(10, 50),
+      hazard_count: dailyHazardCount,
       major_hazard_count: level === '重大' || level === '较大' ? randomInt(1, 5) : 0,
+      rectified_count: Math.round(dailyHazardCount * 0.65),
       created_at: startDate,
     })
   })
-  
-  // 日常检查 - 专家手动创建的任务
   const manualDailyTasks = [
     { name: '五一节前安全检查', month: 4 },
     { name: '夏季高温专项检查', month: 7 },
   ]
   manualDailyTasks.forEach((t, idx) => {
     const relatedEnterprises = enterprises.slice(0, 50)
+    const mdHazardCount = randomInt(5, 20)
     tasks.push({
       id: `task-daily-manual-${idx + 1}`,
       name: t.name,
@@ -861,8 +862,9 @@ export function generateAllData(): GeneratedData {
       end_date: `${new Date().getFullYear()}-0${t.month}-30`,
       status: new Date() > new Date(`${new Date().getFullYear()}-0${t.month}-30`) ? '已完成' : '进行中',
       enterprise_ids: relatedEnterprises.map(e => e.id),
-      hazard_count: randomInt(5, 20),
+      hazard_count: mdHazardCount,
       major_hazard_count: randomInt(0, 3),
+      rectified_count: Math.round(mdHazardCount * 0.65),
       created_at: `${new Date().getFullYear()}-0${t.month}-01`,
     })
   })
@@ -881,6 +883,7 @@ export function generateAllData(): GeneratedData {
     const endDate = `${period.year}-${String(period.endMonth).padStart(2, '0')}-28`
     const totalCount = randomInt(30, 80)
     const completedCount = Math.floor(totalCount * (0.1 + Math.random() * 0.5))
+    const spHazardCount = randomInt(20, 60)
     
     tasks.push({
       id: `task-special-${index + 1}`,
@@ -896,8 +899,9 @@ export function generateAllData(): GeneratedData {
       end_date: endDate,
       status: new Date() > new Date(endDate) ? '已完成' : '进行中',
       enterprise_ids: enterprises.slice(randomInt(0, 50), randomInt(30, 80)).map(e => e.id),
-      hazard_count: randomInt(20, 60),
+      hazard_count: spHazardCount,
       major_hazard_count: randomInt(1, 8),
+      rectified_count: Math.round(spHazardCount * 0.65),
       created_at: startDate,
     })
   })
@@ -914,6 +918,7 @@ export function generateAllData(): GeneratedData {
     const endDate = `${endYear}-${String(endMonthMod).padStart(2, '0')}-28`
     const totalCount = randomInt(10, 30)
     const completedCount = Math.floor(totalCount * (0.3 + Math.random() * 0.6))
+    const svHazardCount = randomInt(5, 25)
     
     tasks.push({
       id: `task-supervise-${index + 1}`,
@@ -929,8 +934,9 @@ export function generateAllData(): GeneratedData {
       end_date: endDate,
       status: new Date() > new Date(endDate) ? '已完成' : '进行中',
       enterprise_ids: enterprises.slice(randomInt(0, 30), randomInt(10, 30)).map(e => e.id),
-      hazard_count: randomInt(5, 25),
+      hazard_count: svHazardCount,
       major_hazard_count: randomInt(0, 4),
+      rectified_count: Math.round(svHazardCount * 0.65),
       created_at: startDate,
     })
   })
@@ -956,6 +962,7 @@ export function generateAllData(): GeneratedData {
     const sampleRate = 0.15 + Math.random() * 0.05 // 15%-20%
     const totalCount = Math.max(Math.floor(targetEnterprises.length * sampleRate), 3)
     const completedCount = Math.floor(totalCount * (0.4 + Math.random() * 0.5))
+    const spHazardCt = randomInt(2, 10)
     
     tasks.push({
       id: `task-sample-${index + 1}`,
@@ -971,8 +978,9 @@ export function generateAllData(): GeneratedData {
       end_date: endDate,
       status: new Date() > new Date(endDate) ? '已完成' : '进行中',
       enterprise_ids: targetEnterprises.slice(0, totalCount).map(e => e.id),
-      hazard_count: randomInt(2, 10),
+      hazard_count: spHazardCt,
       major_hazard_count: 0,
+      rectified_count: Math.round(spHazardCt * 0.65),
       created_at: startDate,
     })
   })

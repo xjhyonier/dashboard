@@ -34,6 +34,12 @@ export function useSortableTable<T>(data: T[], defaultSortKey?: keyof T, default
       if (typeof aVal === 'string' && typeof bVal === 'string') {
         return sort.direction === 'asc' ? aVal.localeCompare(bVal, 'zh-CN') : bVal.localeCompare(aVal, 'zh-CN')
       }
+      // 数组类型按 join 后字符串比较
+      if (Array.isArray(aVal) && Array.isArray(bVal)) {
+        const aStr = aVal.join('、')
+        const bStr = bVal.join('、')
+        return sort.direction === 'asc' ? aStr.localeCompare(bStr, 'zh-CN') : bStr.localeCompare(aStr, 'zh-CN')
+      }
       if (aVal < bVal) return sort.direction === 'asc' ? -1 : 1
       if (aVal > bVal) return sort.direction === 'asc' ? 1 : -1
       return 0

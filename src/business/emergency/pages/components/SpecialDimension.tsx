@@ -116,12 +116,15 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
   const totalPages = Math.max(1, Math.ceil(sortedTasks.length / PAGE_SIZE))
   const pagedTasks = sortedTasks.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
-  // 统计
+  // 统计（跟随当前 tab 筛选）
   const stats = useMemo(() => ({
-    taskCount: filteredTasks.length,
-    totalCount: filteredTasks.reduce((s, t) => s + t.total_count, 0),
-    completedCount: filteredTasks.reduce((s, t) => s + t.completed_count, 0),
-  }), [filteredTasks])
+    taskCount: currentTasks.length,
+    totalCount: currentTasks.reduce((s, t) => s + t.total_count, 0),
+    completedCount: currentTasks.reduce((s, t) => s + t.completed_count, 0),
+    hazardCount: currentTasks.reduce((s, t) => s + t.hazard_count, 0),
+    majorHazardCount: currentTasks.reduce((s, t) => s + t.major_hazard_count, 0),
+    rectifiedCount: currentTasks.reduce((s, t) => s + (t.rectified_count || 0), 0),
+  }), [currentTasks])
 
   // 任务类型映射
   const typeMap: Record<string, string> = {
@@ -210,24 +213,36 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
   return (
     <div>
       {/* 统计卡片 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
-        <div style={{ background: 'white', borderRadius: 8, padding: 16, border: '1px solid #E5E7EB' }}>
-          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>任务总数</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: '#1F2937' }}>{stats.taskCount}</div>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '12px 14px', border: '1px solid #E5E7EB', borderLeft: '3px solid #6B7280' }}>
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>任务总数</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>{stats.taskCount}</div>
         </div>
-        <div style={{ background: 'white', borderRadius: 8, padding: 16, border: '1px solid #E5E7EB' }}>
-          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>覆盖企业</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: '#1F2937' }}>{stats.totalCount}</div>
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '12px 14px', border: '1px solid #E5E7EB', borderLeft: '3px solid #4F46E5' }}>
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>覆盖企业</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>{stats.totalCount}</div>
         </div>
-        <div style={{ background: 'white', borderRadius: 8, padding: 16, border: '1px solid #E5E7EB' }}>
-          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>已完成</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: '#059669' }}>{stats.completedCount}</div>
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '12px 14px', border: '1px solid #E5E7EB', borderLeft: '3px solid #059669' }}>
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>已完成</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#059669' }}>{stats.completedCount}</div>
+        </div>
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '12px 14px', border: '1px solid #E5E7EB', borderLeft: '3px solid #D97706' }}>
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>隐患总数</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>{stats.hazardCount}</div>
+        </div>
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '12px 14px', border: '1px solid #E5E7EB', borderLeft: '3px solid #DC2626' }}>
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>重大事故隐患数</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#B91C1C' }}>{stats.majorHazardCount}</div>
+        </div>
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '12px 14px', border: '1px solid #E5E7EB', borderLeft: '3px solid #10B981' }}>
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>已整改隐患数</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>{stats.rectifiedCount}</div>
         </div>
       </div>
 
       {/* Tab + 搜索 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {(['全部', '日常检查', '专项检查', '督查督办', '抽检'] as TaskTab[]).map(tab => {
             const count = tab === '全部' ? filteredTasks.length : filteredTasks.filter(t => t.type === tab).length
             const isActive = activeTab === tab
@@ -276,16 +291,15 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
               <th style={{ ...thStyle, fontWeight: 600, fontSize: 11 }}>时间进度</th>
               <SortableTh label="隐患总数" sortKey="hazard_count" sort={sort} onSort={handleSort} />
               <SortableTh label="重大隐患数" sortKey="major_hazard_count" sort={sort} onSort={handleSort} />
+              <SortableTh label="已整改" sortKey="rectified_count" sort={sort} onSort={handleSort} />
               <SortableTh label="创建人" sortKey="creator" sort={sort} onSort={handleSort} />
-              <SortableTh label="状态" sortKey="status" sort={sort} onSort={handleSort} />
             </tr>
           </thead>
           <tbody>
             {pagedTasks.length === 0 ? (
-              <tr><td colSpan={12} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>暂无数据</td></tr>
+              <tr><td colSpan={11} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>暂无数据</td></tr>
             ) : pagedTasks.map((t, i) => {
               const timeProgress = calcTimeProgress(t.start_date, t.end_date)
-              const statusStyle = statusLabels[t.status] || { bg: '#F3F4F6', color: '#374151' }
               const isSelected = selectedTask?.id === t.id
               return (
                 <tr 
@@ -338,12 +352,8 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
                       {t.major_hazard_count}
                     </span>
                   </td>
+                  <td style={{ ...tdStyle, color: '#059669', fontWeight: 600 }}>{t.rectified_count}</td>
                   <td style={{ ...tdStyle, color: t.creator === '系统' ? '#9CA3AF' : '#4F46E5' }}>{t.creator}</td>
-                  <td style={tdStyle}>
-                    <span style={{ ...statusStyle, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 500 }}>
-                      {t.status}
-                    </span>
-                  </td>
                 </tr>
               )
             })}

@@ -117,6 +117,12 @@ export function StationChiefV2Dashboard() {
   // 风险等级筛选状态
   const [riskLevel, setRiskLevel] = useState<'all' | 'major' | 'high' | 'medium' | 'low'>('all')
 
+  // 责任主体类型筛选
+  const [filterEntityType, setFilterEntityType] = useState<'all' | 'production' | 'venue'>('all')
+
+  // 任务计划修改记录弹窗
+  const [showSpecialChangeLog, setShowSpecialChangeLog] = useState(false)
+
   const kpiTotals = useMemo(() => {
     const { start, end } = dateRange
     const inRange = hazardRecords.filter(h => {
@@ -418,6 +424,36 @@ export function StationChiefV2Dashboard() {
 
         <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
 
+        {/* 责任主体类型筛选 */}
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: '#9CA3AF' }}>主体:</span>
+          {([
+            { key: 'all' as const, label: '全部' },
+            { key: 'production' as const, label: '生产企业' },
+            { key: 'venue' as const, label: '消防场所' },
+          ]).map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => setFilterEntityType(opt.key)}
+              style={{
+                padding: '2px 8px',
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: filterEntityType === opt.key ? '#4F46E5' : '#E5E7EB',
+                background: filterEntityType === opt.key ? '#EEF2FF' : 'white',
+                color: filterEntityType === opt.key ? '#4F46E5' : '#6B7280',
+                cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: filterEntityType === opt.key ? 600 : 400,
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
+
         {/* 工作组筛选 */}
         <select
           value={filterTeam}
@@ -461,9 +497,9 @@ export function StationChiefV2Dashboard() {
         </select>
 
         {/* 重置筛选 */}
-        {(filterTeam !== 'all' || filterExpert !== 'all') && (
+        {(filterTeam !== 'all' || filterExpert !== 'all' || filterEntityType !== 'all') && (
           <button
-            onClick={() => { setFilterTeam('all'); setFilterExpert('all') }}
+            onClick={() => { setFilterTeam('all'); setFilterExpert('all'); setFilterEntityType('all') }}
             style={{
               padding: '2px 8px',
               border: '1px solid #D1D5DB',
@@ -684,34 +720,48 @@ export function StationChiefV2Dashboard() {
         ].map(tab => {
           const isActive = dimension === tab.key
           return (
-            <button
-              key={tab.key}
-              onClick={() => handleDimensionChange(tab.key as Dimension)}
-              style={{
-                padding: '10px 20px',
-                border: 'none',
-                borderBottom: isActive ? '2px solid #4F46E5' : '2px solid transparent',
-                marginBottom: -2,
-                background: 'transparent',
-                color: isActive ? '#4F46E5' : '#6B7280',
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: isActive ? 700 : 500,
-                letterSpacing: isActive ? 0.2 : 0,
-                transition: 'color 0.15s, border-color 0.15s',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {tab.label}
-            </button>
+            <div key={tab.key} style={{ display: 'flex', alignItems: 'center' }}>
+              <button
+                onClick={() => handleDimensionChange(tab.key as Dimension)}
+                style={{
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderBottom: isActive ? '2px solid #4F46E5' : '2px solid transparent',
+                  marginBottom: -2,
+                  background: 'transparent',
+                  color: isActive ? '#4F46E5' : '#6B7280',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: isActive ? 700 : 500,
+                  letterSpacing: isActive ? 0.2 : 0,
+                  transition: 'color 0.15s, border-color 0.15s',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {tab.label}
+              </button>
+              {tab.key === 'special' && isActive && (
+                <button
+                  onClick={() => setShowSpecialChangeLog(true)}
+                  title="查看任务计划修改记录"
+                  style={{
+                    padding: '4px 8px', border: '1px solid #E5E7EB', borderRadius: 6,
+                    background: 'white', color: '#9CA3AF', fontSize: 12, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', marginLeft: 4, marginBottom: -2,
+                  }}
+                >
+                  📝
+                </button>
+              )}
+            </div>
           )
         })}
       </div>
 
-      {dimension === 'duty' && <DutyDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} onNavigateToHazard={handleNavigateToHazard} onNavigateToState={handleNavigateToState} />}
-      {dimension === 'industry' && <IndustryDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} />}
-      {dimension === 'special' && <SpecialDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} onNavigateToHazard={handleNavigateToHazard} />}
-      {dimension === 'state' && <StateDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} navigateParams={{
+      {dimension === 'duty' && <DutyDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} onNavigateToHazard={handleNavigateToHazard} onNavigateToState={handleNavigateToState} filterEntityType={filterEntityType} />}
+      {dimension === 'industry' && <IndustryDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} filterEntityType={filterEntityType} />}
+      {dimension === 'special' && <SpecialDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} onNavigateToHazard={handleNavigateToHazard} filterEntityType={filterEntityType} />}
+      {dimension === 'state' && <StateDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} filterEntityType={filterEntityType} navigateParams={{
         teamName: searchParams.get('teamName') || undefined,
         enterpriseName: searchParams.get('enterpriseName') || undefined,
       }} />}
@@ -721,6 +771,7 @@ export function StationChiefV2Dashboard() {
         timeRange={timeRange}
         selectedKpi={selectedKpi}
         setSelectedKpi={setSelectedKpi}
+        filterEntityType={filterEntityType}
         navigateParams={{
           teamName: searchParams.get('teamName') || undefined,
           enterpriseName: searchParams.get('enterpriseName') || undefined,
@@ -732,8 +783,64 @@ export function StationChiefV2Dashboard() {
         filterExpert={filterExpert}
         filterEnterprise={filterEnterprise}
         filterIndustry={filterIndustry}
+        filterEntityType={filterEntityType}
       />}
         </>
+      )}
+
+      {/* ─── 任务计划修改记录弹窗 ─────────────────────────────── */}
+      {showSpecialChangeLog && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999,
+        }}
+          onClick={() => setShowSpecialChangeLog(false)}
+        >
+          <div style={{
+            background: 'white', borderRadius: 10, boxShadow: '0 8px 40px rgba(0,0,0,0.15)',
+            width: 480, maxHeight: '70vh', overflow: 'auto', padding: '24px 28px',
+          }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>任务计划 - 修改记录</div>
+              <button
+                onClick={() => setShowSpecialChangeLog(false)}
+                style={{ border: 'none', background: 'none', fontSize: 18, color: '#9CA3AF', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+              >✕</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{
+                padding: '12px 14px', background: '#F9FAFB', borderRadius: 8,
+                borderLeft: '3px solid #4F46E5',
+              }}>
+                <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>
+                  2026-07-01
+                </div>
+                <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
+                  <strong>表格：</strong><br />
+                  1. 删除"状态"列<br />
+                  2. 在"重大隐患数"右侧新增"已整改"列<br />
+                  <br />
+                  <strong>指标卡：</strong><br />
+                  1. 指标跟随子 tab 维度（全部/日常检查/专项检查/督查督办/抽检）动态变化<br />
+                  2. 新增隐患总数、重大事故隐患数、已整改隐患数3个指标<br />
+                  3. 6个指标卡单行排列，统一UI风格，左侧彩色 accent bar 区分
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+              <button
+                onClick={() => setShowSpecialChangeLog(false)}
+                style={{
+                  padding: '6px 16px', border: '1px solid #D1D5DB', borderRadius: 5,
+                  background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer',
+                }}
+              >关闭</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

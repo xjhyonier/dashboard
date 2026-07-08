@@ -369,6 +369,7 @@ export interface Task {
   enterprise_ids: string[]               // 覆盖企业ID列表
   hazard_count: number                    // 发现隐患数
   major_hazard_count: number             // 重大隐患数
+  rectified_count: number                 // 已整改数
   created_at: string
 }
 

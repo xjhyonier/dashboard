@@ -11,6 +11,7 @@ interface TrendDimensionProps {
   filterExpert?: string
   filterEnterprise?: string
   filterIndustry?: string
+  filterEntityType?: 'all' | 'production' | 'venue'
 }
 
 export function TrendDimension(props: TrendDimensionProps) {

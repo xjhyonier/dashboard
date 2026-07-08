@@ -164,7 +164,7 @@ export const emergencyConfig: BusinessLine = {
     },
     {
       id: 'enterprise-boss',
-      name: '企业老板',
+      name: '企业数据看板',
       title: '企业负责人',
       description: '关注企业风险和员工履职',
       goals: [

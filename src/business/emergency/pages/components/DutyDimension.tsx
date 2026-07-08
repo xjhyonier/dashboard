@@ -700,7 +700,7 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
             <tr>
               <SortableTh label="姓名" sortKey="name" sort={sortMembers} onSort={handleSortMembers} />
               <th style={thStyle}>职位</th>
-              <th style={thStyle}>所在工作组</th>
+              <SortableTh label="所在工作组" sortKey="work_groups" sort={sortMembers} onSort={handleSortMembers} />
               <SortableTh label="负责企业" sortKey="enterprise_count" sort={sortMembers} onSort={handleSortMembers} />
               <SortableTh label="已检查企业" sortKey="inspection_count" sort={sortMembers} onSort={handleSortMembers} />
               <SortableTh label="检查完成率" sortKey="plan_completion_rate" sort={sortMembers} onSort={handleSortMembers} />
