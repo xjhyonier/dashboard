@@ -10,6 +10,7 @@ import { IndustryDimension } from './components/IndustryDimension'
 import { SpecialDimension } from './components/SpecialDimension'
 import { TrendDimension } from './components/TrendDimension'
 import { YuzhiSyncDimension } from './components/YuzhiSyncDimension'
+import { YuzhiSyncDashboard } from './YuzhiSyncDashboard'
 
 import { initDatabase, getWorkGroups, getHazards, getEnterpriseStats, getExperts, getEnterprises } from '../../../db'
 import type { WorkGroup, Hazard, Expert, Enterprise } from '../../../db/types'
@@ -17,7 +18,7 @@ import type { WorkGroup, Hazard, Expert, Enterprise } from '../../../db/types'
 const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'state', 'hazard', 'trend', 'yuzhi']
 
 // 顶级页面标识
-type TopLevelPage = 'station' | 'yuzhi'
+type TopLevelPage = 'station' | 'yuzhi' | 'yuzhi-sync'
 
 // 日期工具
 const TODAY = new Date()
@@ -94,7 +95,8 @@ export function StationChiefV2Dashboard() {
   const dimension: Dimension = VALID_DIMENSIONS.includes(urlDimension as Dimension) ? urlDimension as Dimension : 'duty'
 
   // 顶级页面：station（应急消防管理站看板）或 yuzhi（村社数据看板）
-  const topPage: TopLevelPage = searchParams.get('page') === 'yuzhi' ? 'yuzhi' : 'station'
+  const pageParam = searchParams.get('page')
+  const topPage: TopLevelPage = pageParam === 'yuzhi-sync' ? 'yuzhi-sync' : pageParam === 'yuzhi' ? 'yuzhi' : 'station'
 
   // 日期筛选状态
   const [timeRange, setTimeRange] = useState<TimeRange>('month')
@@ -344,10 +346,29 @@ export function StationChiefV2Dashboard() {
         >
           村社数据看板
         </button>
+        <button
+          onClick={() => setSearchParams({ page: 'yuzhi-sync' })}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            borderBottom: topPage === 'yuzhi-sync' ? '2px solid #4F46E5' : '2px solid transparent',
+            marginBottom: -2,
+            background: 'transparent',
+            color: topPage === 'yuzhi-sync' ? '#4F46E5' : '#6B7280',
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: topPage === 'yuzhi-sync' ? 700 : 500,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          三方同步任务看板
+        </button>
       </div>
 
       {topPage === 'yuzhi' ? (
         <YuzhiSyncDimension />
+      ) : topPage === 'yuzhi-sync' ? (
+        <YuzhiSyncDashboard />
       ) : (
         <>
       <PageHeader title="应急消防管理站看板" />
