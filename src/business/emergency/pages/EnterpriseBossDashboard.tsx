@@ -36,6 +36,9 @@ export function EnterpriseBossDashboard() {
   const [eduMonthFrom, setEduMonthFrom] = useState('2026-01')
   const [eduMonthTo, setEduMonthTo] = useState('2026-07')
   const [safetyMonth, setSafetyMonth] = useState('2026-07')
+  const [safetyMonthFrom, setSafetyMonthFrom] = useState('2026-07')
+  const [safetyMonthTo, setSafetyMonthTo] = useState('2026-07')
+  const [safetyTimeFilter, setSafetyTimeFilter] = useState<'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear'>('thisMonth')
   const [partyPage, setPartyPage] = useState(1)
   const PARTY_PAGE_SIZE = 6
   const [activeSection, setActiveSection] = useState('')
@@ -160,16 +163,16 @@ export function EnterpriseBossDashboard() {
     )
   }
 
-  // 5.1 作业安全管理 - 按月份筛选数据
-  const safetyMonthData = enterpriseBossMock.workSafety.filter(d => d.month === safetyMonth)
+  // 5.1 作业安全管理 - 按月份范围筛选数据
+  const safetyMonthData = enterpriseBossMock.workSafety.filter(d => d.month >= safetyMonthFrom && d.month <= safetyMonthTo)
   const safetyTotal = safetyMonthData.reduce((s, d) => s + d.count, 0)
   const safetyTypes = ['动火作业', '高处作业', '受限空间', '临时用电', '吊装作业', '其他']
   const safetyStatuses = ['待作业许可', '待现场签批', '待验收', '已完成']
   const safetyByType = (type: string) => safetyMonthData.filter(d => d.type === type).reduce((s, d) => s + d.count, 0)
   const safetyByStatus = (status: string) => safetyMonthData.filter(d => d.status === status).reduce((s, d) => s + d.count, 0)
 
-  // 5.3 作业票报备 - 按月份筛选数据
-  const permitMonthData = enterpriseBossMock.workPermitReport.filter(d => d.month === safetyMonth)
+  // 5.3 作业票报备 - 按月份范围筛选数据
+  const permitMonthData = enterpriseBossMock.workPermitReport.filter(d => d.month >= safetyMonthFrom && d.month <= safetyMonthTo)
   const permitTotal = permitMonthData.reduce((s, d) => s + d.count, 0)
   const permitTypes = ['动火作业', '高处作业', '受限空间', '临时用电', '吊装作业', '其他']
   const permitStatuses = ['通过', '待审批', '驳回']
@@ -849,15 +852,74 @@ export function EnterpriseBossDashboard() {
         <SectionBlock
           title="五、现场管理"
         >
-          {/* 5.1 + 5.2 + 5.3 并排 */}
+          {/* 作业安全管理 + 作业票报备 + 相关方管理 并排 */}
           <div>
             {/* 共享时间筛选 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, color: '#6B7280' }}>月份:</span>
+              {([
+                { key: 'thisMonth' as const, label: '本月' },
+                { key: 'lastMonth' as const, label: '上月' },
+                { key: 'thisYear' as const, label: '本年' },
+                { key: 'lastYear' as const, label: '上年' },
+              ]).map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => {
+                    setSafetyTimeFilter(opt.key)
+                    const now = new Date()
+                    let from: string, to: string
+                    switch (opt.key) {
+                      case 'thisMonth':
+                        from = to = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+                        break
+                      case 'lastMonth': {
+                        const d = new Date(now.getFullYear(), now.getMonth(), 0)
+                        from = to = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                        break
+                      }
+                      case 'thisYear':
+                        from = `${now.getFullYear()}-01`
+                        to = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+                        break
+                      case 'lastYear':
+                        from = `${now.getFullYear() - 1}-01`
+                        to = `${now.getFullYear() - 1}-12`
+                        break
+                    }
+                    setSafetyMonthFrom(from)
+                    setSafetyMonthTo(to)
+                    setSafetyMonth(from)
+                  }}
+                  style={{
+                    padding: '3px 10px',
+                    borderRadius: 4,
+                    border: '1px solid',
+                    borderColor: safetyTimeFilter === opt.key ? '#3B82F6' : '#E5E7EB',
+                    background: safetyTimeFilter === opt.key ? '#EFF6FF' : 'white',
+                    color: safetyTimeFilter === opt.key ? '#3B82F6' : '#6B7280',
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    fontWeight: safetyTimeFilter === opt.key ? 600 : 400,
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
               <input
                 type="month"
-                value={safetyMonth}
-                onChange={e => setSafetyMonth(e.target.value)}
+                value={safetyMonthFrom}
+                onChange={e => setSafetyMonthFrom(e.target.value)}
+                style={{
+                  padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
+                  fontSize: 12, color: '#374151', background: 'white', outline: 'none',
+                }}
+              />
+              <span style={{ fontSize: 12, color: '#9CA3AF' }}>~</span>
+              <input
+                type="month"
+                value={safetyMonthTo}
+                onChange={e => setSafetyMonthTo(e.target.value)}
                 style={{
                   padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
                   fontSize: 12, color: '#374151', background: 'white', outline: 'none',
@@ -865,10 +927,10 @@ export function EnterpriseBossDashboard() {
               />
             </div>
             <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-            {/* 5.1 作业安全管理 */}
+            {/* 作业安全管理 */}
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', paddingLeft: 4, borderLeft: '3px solid #DC2626', marginBottom: 10 }}>
-                5.1 作业安全管理
+                作业安全管理
               </div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <div style={{ flex: 1, background: 'linear-gradient(135deg, #FEF2F2, #FEE2E2)', borderRadius: 8, padding: '14px 16px', border: '1px solid #FECACA' }}>
@@ -932,10 +994,10 @@ export function EnterpriseBossDashboard() {
               </div>
             </div>
 
-            {/* 5.2 作业票报备 */}
+            {/* 作业票报备 */}
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', paddingLeft: 4, borderLeft: '3px solid #7C3AED', marginBottom: 10 }}>
-                5.2 作业票报备
+                作业票报备
               </div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <div style={{ flex: 1, background: 'linear-gradient(135deg, #FAF5FF, #F3E8FF)', borderRadius: 8, padding: '14px 16px', border: '1px solid #D8B4FE' }}>
@@ -998,10 +1060,10 @@ export function EnterpriseBossDashboard() {
               </div>
             </div>
 
-            {/* 5.3 相关方管理 */}
+            {/* 相关方管理 */}
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', paddingLeft: 4, borderLeft: '3px solid #3B82F6', marginBottom: 10 }}>
-                5.3 相关方管理
+                相关方管理
               </div>
               <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
                 <div style={{ flex: 1, background: '#EFF6FF', borderRadius: 8, padding: '12px 16px', textAlign: 'center', border: '1px solid #BFDBFE' }}>
