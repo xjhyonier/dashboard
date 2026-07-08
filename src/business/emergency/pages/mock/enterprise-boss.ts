@@ -2,7 +2,7 @@ export const enterpriseBossMock = {
   // 风险分级管控情况
   riskOverview: [
     {
-      title: '风险总数',
+      title: '风险点总数',
       value: '48',
       unit: '项',
       trend: { value: -3, label: '较上月', type: 'up' as const },

@@ -39,6 +39,7 @@ export function EnterpriseBossDashboard() {
   const [safetyMonthFrom, setSafetyMonthFrom] = useState('2026-07')
   const [safetyMonthTo, setSafetyMonthTo] = useState('2026-07')
   const [safetyTimeFilter, setSafetyTimeFilter] = useState<'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear'>('thisMonth')
+  const [permitDimension, setPermitDimension] = useState<'self' | 'tenant'>('self')
   const [partyPage, setPartyPage] = useState(1)
   const PARTY_PAGE_SIZE = 6
   const [activeSection, setActiveSection] = useState('')
@@ -493,7 +494,7 @@ export function EnterpriseBossDashboard() {
 
             {/* 随手拍统计 */}
             <div style={{ flex: 1, border: '1px solid #E5E7EB', borderRadius: 8, padding: 12, background: 'white', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span>📸</span> 随手拍统计
                 </div>
@@ -996,8 +997,34 @@ export function EnterpriseBossDashboard() {
 
             {/* 作业票报备 */}
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', paddingLeft: 4, borderLeft: '3px solid #7C3AED', marginBottom: 10 }}>
-                作业票报备
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', paddingLeft: 4, borderLeft: '3px solid #7C3AED' }}>
+                  作业票报备
+                </div>
+                <div style={{ display: 'flex', gap: 2 }}>
+                  <button
+                    onClick={() => setPermitDimension('self')}
+                    style={{
+                      padding: '2px 8px', fontSize: 11, borderRadius: '4px 0 0 4px', border: '1px solid #D1D5DB',
+                      background: permitDimension === 'self' ? '#7C3AED' : 'white',
+                      color: permitDimension === 'self' ? 'white' : '#6B7280',
+                      cursor: 'pointer', fontWeight: permitDimension === 'self' ? 600 : 400,
+                    }}
+                  >
+                    本单位报备
+                  </button>
+                  <button
+                    onClick={() => setPermitDimension('tenant')}
+                    style={{
+                      padding: '2px 8px', fontSize: 11, borderRadius: '0 4px 4px 0', border: '1px solid #D1D5DB',
+                      background: permitDimension === 'tenant' ? '#7C3AED' : 'white',
+                      color: permitDimension === 'tenant' ? 'white' : '#6B7280',
+                      cursor: 'pointer', fontWeight: permitDimension === 'tenant' ? 600 : 400,
+                    }}
+                  >
+                    承租单位报备
+                  </button>
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <div style={{ flex: 1, background: 'linear-gradient(135deg, #FAF5FF, #F3E8FF)', borderRadius: 8, padding: '14px 16px', border: '1px solid #D8B4FE' }}>
@@ -1009,7 +1036,7 @@ export function EnterpriseBossDashboard() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: permitDimension === 'self' ? 1 : 1 }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr>
@@ -1027,6 +1054,7 @@ export function EnterpriseBossDashboard() {
                     </tbody>
                   </table>
                 </div>
+                {permitDimension === 'tenant' && (
                 <div style={{ flex: 1 }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
@@ -1057,6 +1085,7 @@ export function EnterpriseBossDashboard() {
                     </tbody>
                   </table>
                 </div>
+                )}
               </div>
             </div>
 
