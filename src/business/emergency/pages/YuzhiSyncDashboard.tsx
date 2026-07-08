@@ -83,7 +83,7 @@ export function YuzhiSyncDashboard() {
 
       {/* 时间筛选 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12, color: '#6B7280' }}>月份:</span>
+        <span style={{ fontSize: 12, color: '#6B7280' }}>任务同步时间/创建时间:</span>
         {([
           { key: 'thisMonth' as const, label: '本月' },
           { key: 'lastMonth' as const, label: '上月' },
