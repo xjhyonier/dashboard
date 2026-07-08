@@ -78,7 +78,6 @@ export function YuzhiSyncDashboard() {
     <PageShell>
       <PageHeader
         title="三方同步任务看板"
-        updateTime={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')} ${String(new Date().getHours()).padStart(2, '0')}:00`}
       />
 
       {/* 时间筛选 */}
@@ -192,20 +191,21 @@ export function YuzhiSyncDashboard() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={{ ...th, textAlign: 'left', width: 100 }}>任务来源</th>
+                <th style={{ ...th, width: 50 }}>序号</th>
+                <th style={{ ...th, textAlign: 'left', width: 90 }}>任务来源</th>
                 <th style={{ ...th, textAlign: 'left', width: 110 }}>任务去向</th>
-                <th style={{ ...th, textAlign: 'left', width: 100 }}>状态</th>
+                <th style={{ ...th, textAlign: 'left', width: 90 }}>状态</th>
                 <th style={{ ...th, textAlign: 'left' }}>同步情况说明</th>
                 <th style={{ ...th, width: 80 }}>任务数</th>
                 <th style={{ ...th, width: 80, borderRight: 'none' }}>占比</th>
               </tr>
             </thead>
             <tbody>
-              {SYNC_ROWS.filter(r => !r.isSubtotal).map((row, i) => {
+              {SYNC_ROWS.filter(r => !r.isSubtotal).map((row, idx) => {
                 if (row.isTotal) {
                   return (
-                    <tr key={i} style={{ background: '#F9FAFB', fontWeight: 700 }}>
-                      <td colSpan={4} style={{ ...td({ fontWeight: 700, color: '#111827', fontSize: 13 }) }}>总计</td>
+                    <tr key={idx} style={{ background: '#F9FAFB', fontWeight: 700 }}>
+                      <td colSpan={5} style={{ ...td({ fontWeight: 700, color: '#111827', fontSize: 13 }) }}>总计</td>
                       <td style={{ ...td({ textAlign: 'center', fontWeight: 700, color: '#111827', fontSize: 14 }) }}>{row.count.toLocaleString()}</td>
                       <td style={{ ...td({ borderRight: 'none' }) }}></td>
                     </tr>
@@ -216,7 +216,8 @@ export function YuzhiSyncDashboard() {
                 const rowBg = isAbnormal ? '#FFFBFB' : '#FAFFFE'
 
                 return (
-                  <tr key={i} style={{ background: rowBg }}>
+                  <tr key={idx} style={{ background: rowBg }}>
+                    <td style={td({ textAlign: 'center', color: '#9CA3AF' })}>{idx + 1}</td>
                     <td style={td({ whiteSpace: 'nowrap', color: '#374151', fontWeight: 500 })}>余智护杭</td>
                     <td style={td({ whiteSpace: 'nowrap', color: '#374151' })}>
                       {row.destination && (
