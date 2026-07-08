@@ -195,7 +195,7 @@ export function YuzhiSyncDashboard() {
                 <th style={{ ...th, textAlign: 'left', width: 100 }}>任务来源</th>
                 <th style={{ ...th, textAlign: 'left', width: 110 }}>任务去向</th>
                 <th style={{ ...th, textAlign: 'left', width: 100 }}>状态</th>
-                <th style={{ ...th, textAlign: 'left' }}>状态解释</th>
+                <th style={{ ...th, textAlign: 'left' }}>同步情况说明</th>
                 <th style={{ ...th, width: 80 }}>任务数</th>
                 <th style={{ ...th, width: 80, borderRight: 'none' }}>占比</th>
               </tr>
