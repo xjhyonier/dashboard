@@ -3,39 +3,6 @@ import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList,
 } from 'recharts'
 
-// ─── 表2数据：14项已同步任务分析 ────────────────────────────────────────
-interface SyncRow {
-  status: string      // 状态（分组标题行）
-  destination: string // 任务去向
-  exception: string   // 异常信息
-  count: number
-  percent: string
-  isSubtotal?: boolean
-  isTotal?: boolean
-}
-
-const SYNC_ROWS: SyncRow[] = [
-  // ========== 村社任务 ==========
-  { status: '已创建', destination: '村社任务', exception: '无异常，余智护杭任务已同步至村社/镇街', count: 2664, percent: '19.21%' },
-  { status: '检查完成', destination: '村社任务', exception: '无异常，余智护杭任务已同步至村社/镇街，并在一起安完成了检查', count: 2379, percent: '17.16%' },
-  { status: '数据校验异常', destination: '村社任务', exception: '企业已开通一起安平台，但不在村社底数内，请在村社底数中录入', count: 1506, percent: '10.86%' },
-  { status: '数据校验异常', destination: '村社任务', exception: '该企业所在部门没有检查人员', count: 314, percent: '2.26%' },
-  { status: '数据校验异常', destination: '村社任务', exception: '任务明细未匹配到村社', count: 110, percent: '0.79%' },
-  { status: '数据校验异常', destination: '村社任务', exception: '该企业所在部门有检查人员,但是不在浙政钉内,部门名称：亿丰时代网格', count: 24, percent: '0.17%' },
-  { status: '数据校验异常', destination: '村社任务', exception: '该企业所在部门有检查人员,但是不在浙政钉内,部门名称：严村里网格', count: 8, percent: '0.06%' },
-  { status: '', destination: '', exception: '小计', count: 7005, percent: '', isSubtotal: true },
-  // ========== 镇街任务 ==========
-  { status: '已创建', destination: '镇街任务', exception: '无异常，余智护杭任务已同步至村社/镇街', count: 195, percent: '1.41%' },
-  { status: '数据校验异常', destination: '镇街任务', exception: '企业没在镇街组织：良渚应急消防管理站', count: 3, percent: '0.02%' },
-  { status: '数据校验异常', destination: '镇街任务', exception: '镇街企业没有检查人员', count: 1, percent: '0.01%' },
-  { status: '', destination: '', exception: '小计', count: 199, percent: '', isSubtotal: true },
-  // ========== 未知分配去向 ==========
-  { status: '数据校验异常', destination: '未知分配去向', exception: '企业尚未开通一起安平台，请在村社底数中录入', count: 6661, percent: '48.04%' },
-  { status: '', destination: '', exception: '小计', count: 6661, percent: '', isSubtotal: true },
-  // ========== 总计 ==========
-  { status: '', destination: '', exception: '总计', count: 13865, percent: '', isTotal: true },
-]
-
 // ─── 表1数据：村社检查任务统计 ────────────────────────────────────────────
 interface TaskSub {
   total: number     // 总任务数（累计）
@@ -518,7 +485,6 @@ export function YuzhiSyncDimension() {
   const [dateFrom, setDateFrom] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` })
   const [dateTo, setDateTo] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` })
   const [quickRange, setQuickRange] = useState<'month' | 'lastMonth' | 'quarter' | 'year' | ''>('month')
-  const [showNote, setShowNote] = useState(false)
   const [timeDimension, setTimeDimension] = useState<'12months' | '30days'>('12months')
   const [hoveredMetric, setHoveredMetric] = useState<number | null>(null)
   const [showTableHelp, setShowTableHelp] = useState(false) // 表1指标说明悬浮框
@@ -711,24 +677,6 @@ export function YuzhiSyncDimension() {
     setDraftSelected([])
     setSelectedVillages([])
     setShowVillageDropdown(false)
-  }
-
-  // 导出表2明细为CSV
-  const exportSyncDetail = () => {
-    const header = '状态,任务去向,异常信息,任务数,占比'
-    const dataRows = SYNC_ROWS
-      .filter(r => !r.isSubtotal && !r.isTotal)
-      .map(r => `"${r.status}","${r.destination}","${r.exception}",${r.count},"${r.percent}"`)
-    // 添加BOM以支持Excel正确识别中文
-    const BOM = '\uFEFF'
-    const csv = BOM + header + '\n' + dataRows.join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `余智护杭任务同步明细_${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
   }
 
   // 全量汇总统计（用于表1顶部统计行 - 基于筛选后的数据）
@@ -1938,159 +1886,6 @@ export function YuzhiSyncDimension() {
               末页
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* ─── 表2：14项已同步任务分析 ─────────────────────────── */}
-      <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>表2：余智护杭 14 项任务同步情况分析</span>
-            {/* 备注感叹号 */}
-            <span
-              style={{ position: 'relative', display: 'inline-flex', marginLeft: 6, cursor: 'pointer', userSelect: 'none' }}
-              onMouseEnter={() => setShowNote(true)}
-              onMouseLeave={() => setShowNote(false)}
-            >
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 18, height: 18, borderRadius: '50%',
-                background: '#4F46E5', color: 'white', fontSize: 11, fontWeight: 700,
-              }}>!</span>
-              {showNote && (
-                <div style={{
-                  position: 'absolute', top: '100%', left: 0, marginTop: 6,
-                  background: 'white', border: '1px solid #E5E7EB', borderRadius: 6,
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '12px 16px',
-                  zIndex: 1000, whiteSpace: 'nowrap', minWidth: 300,
-                }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 8 }}>
-                    已同步 14 项任务如下：
-                  </div>
-                  <ol style={{ margin: 0, paddingLeft: 0, fontSize: 12, color: '#6B7280', lineHeight: 1.8, listStyle: 'none' }}>
-                    <li>1. 应急消防一般风险安全检查</li>
-                    <li>2. 应急消防较大风险安全检查</li>
-                    <li>3. 应急消防重大风险安全检查</li>
-                    <li>4. 九小场所安全检查（小网吧/电竞小站）</li>
-                    <li>5. 九小场所安全检查（小医院/小诊所/小托育机构）</li>
-                    <li>6. 低风险安全检查</li>
-                    <li>7. 九小场所安全检查（小餐饮场所）</li>
-                    <li>8. 九小场所安全检查（小美容洗浴场所）</li>
-                    <li>9. 九小场所安全检查（小生产加工企业）</li>
-                    <li>10. 九小场所安全检查（小歌舞娱乐场所）</li>
-                    <li>11. 九小场所安全检查（小旅馆）</li>
-                    <li>12. 九小场所安全检查（小学校、小幼儿园）</li>
-                    <li>13. 九小场所安全检查（小商店）</li>
-                    <li>14. 九小场所安全检查（其他）</li>
-                  </ol>
-                </div>
-              )}
-            </span>
-            <span style={{ marginLeft: 12, fontSize: 12, color: '#6B7280' }}>总计 13,865 条任务</span>
-          </div>
-          <div style={{ display: 'flex', gap: 16, fontSize: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 10, height: 10, borderRadius: 2, background: '#D1FAE5' }} />
-              <span style={{ color: '#374151' }}>正常同步 5,238（37.78%）</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 10, height: 10, borderRadius: 2, background: '#FEE2E2' }} />
-              <span style={{ color: '#374151' }}>数据校验异常 8,627（62.22%）</span>
-            </div>
-          </div>
-          <button
-            onClick={exportSyncDetail}
-            style={{
-              padding: '4px 14px',
-              border: '1px solid #4F46E5',
-              borderRadius: 4,
-              background: 'white',
-              color: '#4F46E5',
-              fontSize: 12,
-              fontWeight: 500,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              marginLeft: 12,
-            }}
-          >
-            导出明细
-          </button>
-        </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={{ ...th, textAlign: 'left', width: 130 }}>任务去向</th>
-                <th style={{ ...th, textAlign: 'left', width: 110 }}>状态</th>
-                <th style={{ ...th, textAlign: 'left' }}>异常信息</th>
-                <th style={{ ...th, width: 80 }}>任务数</th>
-                <th style={{ ...th, width: 80, borderRight: 'none' }}>占比</th>
-              </tr>
-            </thead>
-            <tbody>
-              {SYNC_ROWS.map((row, i) => {
-                if (row.isTotal) {
-                  return (
-                    <tr key={i} style={{ background: '#F9FAFB', fontWeight: 700 }}>
-                      <td colSpan={3} style={{ ...td({ fontWeight: 700, color: '#111827', fontSize: 13 }) }}>总计</td>
-                      <td style={{ ...td({ textAlign: 'center', fontWeight: 700, color: '#111827', fontSize: 14 }) }}>{row.count.toLocaleString()}</td>
-                      <td style={{ ...td({ borderRight: 'none' }) }}></td>
-                    </tr>
-                  )
-                }
-                if (row.isSubtotal) {
-                  return (
-                    <tr key={i} style={{ background: '#F3F4F6' }}>
-                      <td colSpan={3} style={{ ...td({ fontWeight: 600, color: '#374151', fontSize: 13 }) }}>
-                        小计
-                      </td>
-                      <td style={{ ...td({ textAlign: 'center', fontWeight: 700, color: '#374151', fontSize: 14 }) }}>
-                        {row.count.toLocaleString()}
-                      </td>
-                      <td style={{ ...td({ borderRight: 'none' }) }}></td>
-                    </tr>
-                  )
-                }
-
-                // 普通行
-                const isAbnormal = row.status === '数据校验异常'
-                const rowBg = isAbnormal ? '#FFFBFB' : '#FAFFFE'
-
-                return (
-                  <tr key={i} style={{ background: rowBg }}>
-                    <td style={td({ whiteSpace: 'nowrap', color: '#374151' })}>
-                      {row.destination && (
-                        <span style={{
-                          display: 'inline-block', padding: '1px 6px', borderRadius: 3, fontSize: 12,
-                          background: row.destination === '镇街任务' ? '#EFF6FF' : row.destination === '未知分配去向' ? '#F3F4F6' : '#F0FDF4',
-                          color: row.destination === '镇街任务' ? '#1E40AF' : row.destination === '未知分配去向' ? '#6B7280' : '#166534',
-                        }}>
-                          {row.destination}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ ...td({ verticalAlign: 'top', whiteSpace: 'nowrap' }) }}>
-                        <span style={{
-                          display: 'inline-block', padding: '2px 8px', borderRadius: 4,
-                          fontSize: 12, fontWeight: 600,
-                          background: isAbnormal ? '#FEE2E2' : '#D1FAE5',
-                          color: isAbnormal ? '#991B1B' : '#065F46',
-                        }}>
-                          {row.status}
-                        </span>
-                    </td>
-                    <td style={td({ color: isAbnormal ? '#DC2626' : '#374151' })}>{row.exception}</td>
-                    <td style={td({ textAlign: 'center', fontWeight: 600, color: isAbnormal ? '#DC2626' : '#059669' })}>
-                      {row.count.toLocaleString()}
-                    </td>
-                    <td style={{ ...td({ textAlign: 'center', fontWeight: 600, color: isAbnormal ? '#EF4444' : '#059669', borderRight: 'none' }) }}>
-                      {row.percent}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>

@@ -255,8 +255,11 @@ export function YuzhiSyncDashboard() {
 
         {/* 任务来源说明 */}
         <div style={{ marginTop: 20, padding: '14px 18px', background: '#F9FAFB', borderRadius: 8, border: '1px solid #E5E7EB' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 10 }}>
-            任务来源说明：余智护杭目前已同步下方 14 项任务：
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 10 }}>
+            任务来源
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 8 }}>
+            余智护杭目前已同步任务清单：
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px', fontSize: 12, color: '#6B7280', lineHeight: 1.8 }}>
             <div>1. 应急消防一般风险安全检查</div>
