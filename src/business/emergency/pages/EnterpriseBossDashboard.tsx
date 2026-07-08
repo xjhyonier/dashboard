@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
@@ -36,6 +36,43 @@ export function EnterpriseBossDashboard() {
   const [eduMonthFrom, setEduMonthFrom] = useState('2026-01')
   const [eduMonthTo, setEduMonthTo] = useState('2026-07')
   const [safetyMonth, setSafetyMonth] = useState('2026-07')
+  const [partyPage, setPartyPage] = useState(1)
+  const PARTY_PAGE_SIZE = 6
+  const [activeSection, setActiveSection] = useState('')
+
+  // 板块导航配置
+  const sections = [
+    { id: 'section-safety-responsibility', label: '一、安全责任主体情况', conditional: true },
+    { id: 'section-risk-overview', label: '二、风险分级管控情况' },
+    { id: 'section-hazard-management', label: '三、隐患排查治理情况' },
+    { id: 'section-education', label: '四、教育培训' },
+    { id: 'section-site-management', label: '五、现场管理' },
+    { id: 'section-compliance', label: '六、制度台账管理' },
+  ]
+
+  const scrollToSection = useCallback((id: string) => {
+    const el = document.getElementById(id)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY + 120
+      let current = ''
+      for (const s of sections) {
+        const el = document.getElementById(s.id)
+        if (el && el.offsetTop <= scrollTop) {
+          current = s.id
+        }
+      }
+      if (current) setActiveSection(current)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const { hazardManagement } = enterpriseBossMock
   const { dailyCheck, specialCheck, governance } = hazardManagement
@@ -112,9 +149,9 @@ export function EnterpriseBossDashboard() {
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', gap: 6 }}>
             {riskItems.map((item, i) => (
-              <div key={i} style={{ flex: 1, background: item.bg, borderRadius: 6, padding: '8px 6px', textAlign: 'center' }}>
-                <div style={{ fontSize: 10, color: '#6B7280', marginBottom: 3 }}>{item.label}</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: item.color }}>{item.value}<span style={{ fontSize: 10, fontWeight: 400, marginLeft: 2 }}>{unit}</span></div>
+              <div key={i} style={{ flex: 1, background: item.bg, borderRadius: 6, padding: '10px 8px', textAlign: 'center' }}>
+                <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>{item.label}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: item.color }}>{item.value}<span style={{ fontSize: 11, fontWeight: 400, marginLeft: 2 }}>{unit}</span></div>
               </div>
             ))}
           </div>
@@ -174,6 +211,60 @@ export function EnterpriseBossDashboard() {
         ]}
       />
 
+      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+        {/* 左侧导航 */}
+        <nav style={{
+          width: 168, flexShrink: 0, position: 'sticky', top: 20,
+          background: 'white', borderRadius: 10, border: '1px solid #E5E7EB',
+          padding: '16px 0', marginRight: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', padding: '0 16px 14px', borderBottom: '1px solid #F3F4F6', marginBottom: 4 }}>
+            📋 板块导航
+          </div>
+          {sections.filter(s => !s.conditional || enterpriseBossMock.safetyResponsibility.hasTenant).map((s, idx) => {
+            const isActive = activeSection === s.id
+            const icons = ['🏢', '⚠️', '🔍', '📚', '🏗️', '📋']
+            const displayIdx = sections.filter(ss => !ss.conditional || enterpriseBossMock.safetyResponsibility.hasTenant).findIndex(ss => ss.id === s.id)
+            return (
+              <a
+                key={s.id}
+                onClick={e => { e.preventDefault(); scrollToSection(s.id) }}
+                href={`#${s.id}`}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '8px 14px 8px 12px',
+                  margin: '1px 8px',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  color: isActive ? '#4F46E5' : '#6B7280',
+                  fontWeight: isActive ? 600 : 400,
+                  background: isActive ? '#EEF2FF' : 'transparent',
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = '#F9FAFB'
+                    e.currentTarget.style.color = '#374151'
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent'
+                    e.currentTarget.style.color = '#6B7280'
+                  }
+                }}
+              >
+                <span style={{ fontSize: 14, flexShrink: 0 }}>{icons[displayIdx]}</span>
+                <span style={{ lineHeight: 1.4 }}>{s.label}</span>
+              </a>
+            )
+          })}
+        </nav>
+
+        {/* 右侧内容 */}
+        <div style={{ flex: 1, minWidth: 0 }}>
       <PageShell>
         <PageHeader
           title="企业安全概览"
@@ -182,6 +273,7 @@ export function EnterpriseBossDashboard() {
         />
 
         {/* ─── 一、安全责任主体情况 ──────────────────────────────── */}
+        <div id="section-safety-responsibility" style={{ scrollMarginTop: 80 }}>
         {enterpriseBossMock.safetyResponsibility.hasTenant && (
         <SectionBlock title="一、安全责任主体情况">
           <div style={{ display: 'flex', gap: 16 }}>
@@ -202,8 +294,10 @@ export function EnterpriseBossDashboard() {
           </div>
         </SectionBlock>
         )}
+        </div>
 
         {/* ─── 二、风险分级管控情况 ───────────────────────────── */}
+        <div id="section-risk-overview" style={{ scrollMarginTop: 80 }}>
         <SectionBlock title="二、风险分级管控情况">
           <div style={{ display: 'flex', gap: 16 }}>
             {enterpriseBossMock.riskOverview.map((metric, index) => {
@@ -239,8 +333,10 @@ export function EnterpriseBossDashboard() {
             })}
           </div>
         </SectionBlock>
+        </div>
 
         {/* ─── 三、隐患排查治理情况 ───────────────────────────── */}
+        <div id="section-hazard-management" style={{ scrollMarginTop: 80 }}>
         <SectionBlock title="三、隐患排查治理情况">
           {/* 时间筛选 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -578,8 +674,10 @@ export function EnterpriseBossDashboard() {
             </div>
           </div>
         </SectionBlock>
+        </div>
 
         {/* ─── 四、教育培训 ──────────────────────────────────── */}
+        <div id="section-education" style={{ scrollMarginTop: 80 }}>
         <SectionBlock
           title="四、教育培训"
           description="安全生产教育培训计划与执行情况"
@@ -744,13 +842,15 @@ export function EnterpriseBossDashboard() {
             </ResponsiveContainer>
           </div>
         </SectionBlock>
+        </div>
 
         {/* ─── 五、现场管理 ────────────────────────────────── */}
+        <div id="section-site-management" style={{ scrollMarginTop: 80 }}>
         <SectionBlock
           title="五、现场管理"
         >
-          {/* 5.1 + 5.3 并排 */}
-          <div style={{ marginBottom: 24 }}>
+          {/* 5.1 + 5.2 + 5.3 并排 */}
+          <div>
             {/* 共享时间筛选 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, color: '#6B7280' }}>月份:</span>
@@ -832,10 +932,10 @@ export function EnterpriseBossDashboard() {
               </div>
             </div>
 
-            {/* 5.3 作业票报备 */}
+            {/* 5.2 作业票报备 */}
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', paddingLeft: 4, borderLeft: '3px solid #7C3AED', marginBottom: 10 }}>
-                5.3 作业票报备
+                5.2 作业票报备
               </div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <div style={{ flex: 1, background: 'linear-gradient(135deg, #FAF5FF, #F3E8FF)', borderRadius: 8, padding: '14px 16px', border: '1px solid #D8B4FE' }}>
@@ -851,7 +951,7 @@ export function EnterpriseBossDashboard() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr>
-                        <th style={{ ...th, textAlign: 'left' }}>作业票类型</th>
+                        <th style={{ ...th, textAlign: 'left' }}>已报备作业票类型</th>
                         <th style={th}>数量</th>
                       </tr>
                     </thead>
@@ -897,46 +997,80 @@ export function EnterpriseBossDashboard() {
                 </div>
               </div>
             </div>
-          </div>
-          </div>
 
-          {/* 5.2 相关方管理 */}
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 10, paddingLeft: 4, borderLeft: '3px solid #3B82F6' }}>
-              5.2 相关方管理
-            </div>
-            <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-              <div style={{ flex: 1, background: '#EFF6FF', borderRadius: 8, padding: '12px 16px', textAlign: 'center', border: '1px solid #BFDBFE' }}>
-                <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>相关方单位数量</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: '#3B82F6' }}>{enterpriseBossMock.relatedParty.unitCount}<span style={{ fontSize: 11, fontWeight: 400, color: '#93C5FD', marginLeft: 3 }}>个</span></div>
+            {/* 5.3 相关方管理 */}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', paddingLeft: 4, borderLeft: '3px solid #3B82F6', marginBottom: 10 }}>
+                5.3 相关方管理
               </div>
-              <div style={{ flex: 1, background: '#F0FDF4', borderRadius: 8, padding: '12px 16px', textAlign: 'center', border: '1px solid #86EFAC' }}>
-                <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>相关方人员数量</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: '#059669' }}>{enterpriseBossMock.relatedParty.personCount}<span style={{ fontSize: 11, fontWeight: 400, color: '#6EE7B7', marginLeft: 3 }}>人</span></div>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                <div style={{ flex: 1, background: '#EFF6FF', borderRadius: 8, padding: '12px 16px', textAlign: 'center', border: '1px solid #BFDBFE' }}>
+                  <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>相关方单位数量</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: '#3B82F6' }}>{enterpriseBossMock.relatedParty.unitCount}<span style={{ fontSize: 11, fontWeight: 400, color: '#93C5FD', marginLeft: 3 }}>个</span></div>
+                </div>
+                <div style={{ flex: 1, background: '#F0FDF4', borderRadius: 8, padding: '12px 16px', textAlign: 'center', border: '1px solid #86EFAC' }}>
+                  <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>相关方人员数量</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: '#059669' }}>{enterpriseBossMock.relatedParty.personCount}<span style={{ fontSize: 11, fontWeight: 400, color: '#6EE7B7', marginLeft: 3 }}>人</span></div>
+                </div>
               </div>
+              {(() => {
+                const totalPages = Math.ceil(enterpriseBossMock.relatedParty.details.length / PARTY_PAGE_SIZE)
+                const paged = enterpriseBossMock.relatedParty.details.slice((partyPage - 1) * PARTY_PAGE_SIZE, partyPage * PARTY_PAGE_SIZE)
+                return (
+                  <>
+                    <div style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid #E5E7EB', borderRadius: 6 }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                        <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                          <tr>
+                            <th style={th}>序号</th>
+                            <th style={{ ...th, textAlign: 'left' }}>相关方单位</th>
+                            <th style={th}>人员数量</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paged.map((d, pi) => {
+                            const i = (partyPage - 1) * PARTY_PAGE_SIZE + pi
+                            return (
+                              <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                                <td style={td}>{i + 1}</td>
+                                <td style={{ ...td, textAlign: 'left' }}>{d.unit}</td>
+                                <td style={{ ...td, fontWeight: 600 }}>{d.personCount}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {totalPages > 1 && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10 }}>
+                        <button
+                          onClick={() => setPartyPage(p => Math.max(1, p - 1))}
+                          disabled={partyPage === 1}
+                          style={{ padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', fontSize: 11, color: partyPage === 1 ? '#D1D5DB' : '#374151', cursor: partyPage === 1 ? 'default' : 'pointer' }}
+                        >
+                          ‹
+                        </button>
+                        <span style={{ fontSize: 11, color: '#6B7280' }}>{partyPage} / {totalPages}</span>
+                        <button
+                          onClick={() => setPartyPage(p => Math.min(totalPages, p + 1))}
+                          disabled={partyPage === totalPages}
+                          style={{ padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', fontSize: 11, color: partyPage === totalPages ? '#D1D5DB' : '#374151', cursor: partyPage === totalPages ? 'default' : 'pointer' }}
+                        >
+                          ›
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-              <thead>
-                <tr>
-                  <th style={th}>序号</th>
-                  <th style={{ ...th, textAlign: 'left' }}>相关方单位</th>
-                  <th style={th}>人员数量</th>
-                </tr>
-              </thead>
-              <tbody>
-                {enterpriseBossMock.relatedParty.details.map((d, i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                    <td style={td}>{i + 1}</td>
-                    <td style={{ ...td, textAlign: 'left' }}>{d.unit}</td>
-                    <td style={{ ...td, fontWeight: 600 }}>{d.personCount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          </div>
           </div>
         </SectionBlock>
+        </div>
 
         {/* ─── 六、制度台账管理 ──────────────────────────────── */}
+        <div id="section-compliance" style={{ scrollMarginTop: 80 }}>
         <SectionBlock
           title="六、制度台账管理"
           description="5项制度台账合规状态，点击可跳转至对应功能页"
@@ -1009,7 +1143,10 @@ export function EnterpriseBossDashboard() {
             })}
           </div>
         </SectionBlock>
+        </div>
       </PageShell>
+        </div>
+      </div>
     </>
   )
 }
