@@ -101,4 +101,4 @@ export interface SpecialDimensionProps {
   filterEntityType?: EntityType
 }
 
-export type Dimension = 'duty' | 'industry' | 'special' | 'state' | 'hazard' | 'trend' | 'yuzhi'
+export type Dimension = 'duty' | 'daily' | 'industry' | 'special' | 'state' | 'hazard' | 'trend' | 'yuzhi'
