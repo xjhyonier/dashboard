@@ -46,7 +46,7 @@ const prevQuarterStartMonth = ((prevQuarterMonth % 12) + 12) % 12
 const prevQuarterStart = new Date(prevQuarterYear, prevQuarterStartMonth, 1)
 const prevQuarterEnd = new Date(prevQuarterYear, prevQuarterStartMonth + 3, 0)
 
-type TimeRange = 'week' | 'month' | 'quarter' | 'year' | 'prevMonth' | 'prevQuarter'
+type TimeRange = 'week' | 'month' | 'quarter' | 'year' | 'prevMonth' | 'prevQuarter' | 'custom'
 
 export function StationChiefV2Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -101,9 +101,15 @@ export function StationChiefV2Dashboard() {
 
   // 日期筛选状态
   const [timeRange, setTimeRange] = useState<TimeRange>('month')
+  const [timeMonthFrom, setTimeMonthFrom] = useState(fmtMonth(TODAY))
+  const [timeMonthTo, setTimeMonthTo] = useState(fmtMonth(TODAY))
+  const [timeQuickFilter, setTimeQuickFilter] = useState<TimeRange>('month')
 
-  // 根据 timeRange 计算实际起止日期
+  // 根据 timeRange 或自定义月份范围计算实际起止日期
   const dateRange = useMemo((): { start: string; end: string } => {
+    if (timeRange === 'custom') {
+      return { start: `${timeMonthFrom}-01`, end: (() => { const d = new Date(Number(timeMonthTo.split('-')[0]), Number(timeMonthTo.split('-')[1]), 0); return fmtDate(d) })() }
+    }
     switch (timeRange) {
       case 'week':        return { start: fmtDate(weekStart),       end: fmtDate(weekEnd) }
       case 'month':       return { start: fmtDate(monthStart),      end: fmtDate(monthEnd) }
@@ -112,7 +118,7 @@ export function StationChiefV2Dashboard() {
       case 'prevMonth':   return { start: fmtDate(prevMonthStart),  end: fmtDate(prevMonthEnd) }
       case 'prevQuarter': return { start: fmtDate(prevQuarterStart), end: fmtDate(prevQuarterEnd) }
     }
-  }, [timeRange])
+  }, [timeRange, timeMonthFrom, timeMonthTo])
 
   // 全局 KPI 筛选状态
   const [selectedKpi, setSelectedKpi] = useState<string | null>(null)
@@ -127,6 +133,7 @@ export function StationChiefV2Dashboard() {
   const ENTERPRISE_STATUSES = ['正常', '托管', '歇业中', '未核实', '停业', '搬迁', '虚拟注册', '注销']
   const [filterStatuses, setFilterStatuses] = useState<string[]>(['正常', '托管', '歇业中', '未核实'])
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
+  const [filterFireType, setFilterFireType] = useState<'all' | 'fireKey' | 'nineSmall' | 'general'>('all')
   const [showChangelog, setShowChangelog] = useState(false)
   const [changeLogItems, setChangeLogItems] = useState([
     {
@@ -147,7 +154,7 @@ export function StationChiefV2Dashboard() {
       id: 3,
       date: '2026-07-09',
       location: '全局筛选栏',
-      content: '1. 全局筛选"主体" → "责任主体类型"\n2. 新增企业状态多选筛选，默认选中 正常/托管/歇业中/未核实',
+      content: '1. 全局筛选"主体" → "责任主体类型"\n2. 新增企业状态多选筛选，默认选中 正常/托管/歇业中/未核实\n3. 新增消防类型筛选（消防重点单位/九小场所/一般单位）\n4. 时间筛选支持跨月范围（from ~ to），快捷选项改为下拉框\n5. 风险等级、责任主体类型、消防类型改为下拉框，标签外置',
       editing: false,
     },
   ])
@@ -435,34 +442,52 @@ export function StationChiefV2Dashboard() {
         marginBottom: 12,
         flexWrap: 'wrap',
       }}>
-        {/* 时间快捷筛选 */}
+        {/* 时间快捷筛选 + 跨月范围 */}
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#9CA3AF' }}>时间:</span>
-          {([
-            { key: 'month' as TimeRange, label: '本月' },
-            { key: 'prevMonth' as TimeRange, label: '上月' },
-            { key: 'quarter' as TimeRange, label: '本季' },
-            { key: 'prevQuarter' as TimeRange, label: '上季' },
-            { key: 'year' as TimeRange, label: '本年' },
-          ] as const).map(opt => (
-            <button
-              key={opt.key}
-              onClick={() => setTimeRange(opt.key)}
-              style={{
-                padding: '2px 8px',
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: timeRange === opt.key ? '#4F46E5' : '#E5E7EB',
-                background: timeRange === opt.key ? '#EEF2FF' : 'white',
-                color: timeRange === opt.key ? '#4F46E5' : '#6B7280',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: timeRange === opt.key ? 600 : 400,
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
+          <select
+            value={timeQuickFilter}
+            onChange={e => {
+              const key = e.target.value as TimeRange
+              setTimeRange(key)
+              setTimeQuickFilter(key)
+            }}
+            style={{
+              padding: '2px 8px',
+              border: '1px solid #D1D5DB',
+              borderRadius: 4,
+              fontSize: 12,
+              color: '#6B7280',
+              background: 'white',
+              outline: 'none',
+            }}
+          >
+            <option value="month">本月</option>
+            <option value="prevMonth">上月</option>
+            <option value="quarter">本季</option>
+            <option value="prevQuarter">上季</option>
+            <option value="year">本年</option>
+            <option value="custom">自定义</option>
+          </select>
+          <input
+            type="month"
+            value={timeMonthFrom}
+            onChange={e => { setTimeMonthFrom(e.target.value); setTimeRange('custom'); setTimeQuickFilter('custom') }}
+            style={{
+              padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
+              fontSize: 12, color: '#374151', background: 'white', outline: 'none',
+            }}
+          />
+          <span style={{ fontSize: 12, color: '#9CA3AF' }}>~</span>
+          <input
+            type="month"
+            value={timeMonthTo}
+            onChange={e => { setTimeMonthTo(e.target.value); setTimeRange('custom') }}
+            style={{
+              padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
+              fontSize: 12, color: '#374151', background: 'white', outline: 'none',
+            }}
+          />
         </div>
 
         <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
@@ -470,31 +495,25 @@ export function StationChiefV2Dashboard() {
         {/* 风险等级筛选 */}
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#9CA3AF' }}>风险:</span>
-          {([
-            { key: 'all' as const, label: '全部' },
-            { key: 'major' as const, label: '重大风险' },
-            { key: 'high' as const, label: '较大风险' },
-            { key: 'medium' as const, label: '一般风险' },
-            { key: 'low' as const, label: '低风险' },
-          ]).map(opt => (
-            <button
-              key={opt.key}
-              onClick={() => setRiskLevel(opt.key)}
-              style={{
-                padding: '2px 8px',
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: riskLevel === opt.key ? '#4F46E5' : '#E5E7EB',
-                background: riskLevel === opt.key ? '#EEF2FF' : 'white',
-                color: riskLevel === opt.key ? '#4F46E5' : '#6B7280',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: riskLevel === opt.key ? 600 : 400,
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
+          <select
+            value={riskLevel}
+            onChange={e => setRiskLevel(e.target.value as any)}
+            style={{
+              padding: '2px 8px',
+              border: '1px solid #D1D5DB',
+              borderRadius: 4,
+              fontSize: 12,
+              color: riskLevel !== 'all' ? '#4F46E5' : '#6B7280',
+              background: 'white',
+              outline: 'none',
+            }}
+          >
+            <option value="all">全部</option>
+            <option value="major">重大风险</option>
+            <option value="high">较大风险</option>
+            <option value="medium">一般风险</option>
+            <option value="low">低风险</option>
+          </select>
         </div>
 
         <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
@@ -502,29 +521,23 @@ export function StationChiefV2Dashboard() {
         {/* 责任主体类型筛选 */}
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#9CA3AF' }}>责任主体类型:</span>
-          {([
-            { key: 'all' as const, label: '全部' },
-            { key: 'production' as const, label: '生产企业' },
-            { key: 'venue' as const, label: '消防场所' },
-          ]).map(opt => (
-            <button
-              key={opt.key}
-              onClick={() => setFilterEntityType(opt.key)}
-              style={{
-                padding: '2px 8px',
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: filterEntityType === opt.key ? '#4F46E5' : '#E5E7EB',
-                background: filterEntityType === opt.key ? '#EEF2FF' : 'white',
-                color: filterEntityType === opt.key ? '#4F46E5' : '#6B7280',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: filterEntityType === opt.key ? 600 : 400,
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
+          <select
+            value={filterEntityType}
+            onChange={e => setFilterEntityType(e.target.value as any)}
+            style={{
+              padding: '2px 8px',
+              border: '1px solid #D1D5DB',
+              borderRadius: 4,
+              fontSize: 12,
+              color: filterEntityType !== 'all' ? '#4F46E5' : '#6B7280',
+              background: 'white',
+              outline: 'none',
+            }}
+          >
+            <option value="all">全部</option>
+            <option value="production">生产企业</option>
+            <option value="venue">消防场所</option>
+          </select>
         </div>
 
         <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
@@ -585,6 +598,31 @@ export function StationChiefV2Dashboard() {
 
         <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
 
+        {/* 消防类型筛选 */}
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: '#9CA3AF' }}>消防类型:</span>
+          <select
+            value={filterFireType}
+            onChange={e => setFilterFireType(e.target.value as any)}
+            style={{
+              padding: '2px 8px',
+              border: '1px solid #D1D5DB',
+              borderRadius: 4,
+              fontSize: 12,
+              color: filterFireType !== 'all' ? '#4F46E5' : '#6B7280',
+              background: 'white',
+              outline: 'none',
+            }}
+          >
+            <option value="all">全部</option>
+            <option value="fireKey">消防重点单位</option>
+            <option value="nineSmall">九小场所</option>
+            <option value="general">一般单位</option>
+          </select>
+        </div>
+
+        <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
+
         {/* 工作组筛选 */}
         <select
           value={filterTeam}
@@ -628,9 +666,9 @@ export function StationChiefV2Dashboard() {
         </select>
 
         {/* 重置筛选 */}
-        {(filterTeam !== 'all' || filterExpert !== 'all' || filterEntityType !== 'all' || filterStatuses.length !== 4) && (
+        {(filterTeam !== 'all' || filterExpert !== 'all' || filterEntityType !== 'all' || filterFireType !== 'all' || filterStatuses.length !== 4) && (
           <button
-            onClick={() => { setFilterTeam('all'); setFilterExpert('all'); setFilterEntityType('all'); setFilterStatuses(['正常', '托管', '歇业中', '未核实']) }}
+            onClick={() => { setFilterTeam('all'); setFilterExpert('all'); setFilterEntityType('all'); setFilterFireType('all'); setFilterStatuses(['正常', '托管', '歇业中', '未核实']) }}
             style={{
               padding: '2px 8px',
               border: '1px solid #D1D5DB',
