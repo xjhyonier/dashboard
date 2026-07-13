@@ -154,6 +154,56 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
   const totalPages = Math.max(1, Math.ceil(filteredEnterprises.length / PAGE_SIZE))
   const pagedEnterprises = filteredEnterprises.slice((Math.min(currentPage, totalPages) - 1) * PAGE_SIZE, Math.min(currentPage, totalPages) * PAGE_SIZE)
 
+  // ─── 汇总统计 ────────────────────────────────────────
+  const stats = useMemo(() => {
+    let checkEnterprise = 0       // 安全检查户数
+    let trainEnterprise = 0       // 教育培训户数
+    let totalSelfHazard = 0       // 自查隐患总数
+    let rectifiedSelfHazard = 0   // 自查隐患已整改
+    let totalMonitorHazard = 0    // 监管隐患总数
+    let rectifiedMonitorHazard = 0 // 监管隐患已整改
+    let totalMajorHazard = 0      // 重大隐患总数
+    let rectifiedMajorHazard = 0  // 重大隐患已整改
+
+    filteredEnterprises.forEach(e => {
+      const d = dimensionsMap[e.id]
+      if (!d) return
+
+      // 安全检查户数：有日常检查、专项检查或随手拍
+      if ((d.patrol_daily || 0) > 0 || (d.patrol_special || 0) > 0 || (d.patrol_casual || 0) > 0) {
+        checkEnterprise++
+      }
+
+      // 教育培训户数
+      if (d.training_done || (d.training_daily || 0) > 0 || (d.training_three_level || 0) > 0) {
+        trainEnterprise++
+      }
+
+      const isRectified = d.rectify_status === 'completed'
+      const selfHazard = d.hazard_self || 0
+      const monitorHazard = d.hazard_monitor || 0
+      const majorHazard = d.hazard_major || 0
+
+      totalSelfHazard += selfHazard
+      rectifiedSelfHazard += isRectified ? selfHazard : Math.floor(selfHazard * 0.7)
+      totalMonitorHazard += monitorHazard
+      rectifiedMonitorHazard += isRectified ? monitorHazard : Math.floor(monitorHazard * 0.7)
+      totalMajorHazard += majorHazard
+      rectifiedMajorHazard += isRectified ? majorHazard : Math.floor(majorHazard * 0.7)
+    })
+
+    return {
+      checkEnterprise,
+      trainEnterprise,
+      totalSelfHazard,
+      rectifiedSelfHazard,
+      totalMonitorHazard,
+      rectifiedMonitorHazard,
+      totalMajorHazard,
+      rectifiedMajorHazard,
+    }
+  }, [filteredEnterprises, dimensionsMap])
+
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 0', color: '#6B7280' }}>
@@ -201,6 +251,65 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
         )}
       </div>
 
+      {/* ─── KPI 指标卡 ──────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 140, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '12px 16px' }}>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>安全检查户数</div>
+          <span style={{ fontSize: 28, fontWeight: 700, color: '#1D4ED8' }}>{stats.checkEnterprise}<span style={{ fontSize: 13, fontWeight: 400, color: '#9CA3AF', marginLeft: 3 }}>户</span></span>
+        </div>
+        <div style={{ flex: 1, minWidth: 140, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '12px 16px' }}>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>教育培训户数</div>
+          <span style={{ fontSize: 28, fontWeight: 700, color: '#7C3AED' }}>{stats.trainEnterprise}<span style={{ fontSize: 13, fontWeight: 400, color: '#9CA3AF', marginLeft: 3 }}>户</span></span>
+        </div>
+        <div style={{ flex: 1, minWidth: 180, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '12px 16px' }}>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>自查隐患数</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+            <span style={{ fontSize: 28, fontWeight: 700, color: '#DC2626' }}>{stats.totalSelfHazard}</span>
+            <div style={{ fontSize: 11, color: '#6B7280' }}>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <span style={{ color: '#059669' }}>已整改</span>
+                <span style={{ fontWeight: 600, color: '#374151' }}>{stats.rectifiedSelfHazard}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <span style={{ color: '#9CA3AF' }}>总数</span>
+                <span style={{ fontWeight: 600, color: '#374151' }}>{stats.totalSelfHazard}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style={{ flex: 1, minWidth: 180, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '12px 16px' }}>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>监管隐患数</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+            <span style={{ fontSize: 28, fontWeight: 700, color: '#EA580C' }}>{stats.totalMonitorHazard}</span>
+            <div style={{ fontSize: 11, color: '#6B7280' }}>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <span style={{ color: '#059669' }}>已整改</span>
+                <span style={{ fontWeight: 600, color: '#374151' }}>{stats.rectifiedMonitorHazard}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <span style={{ color: '#9CA3AF' }}>总数</span>
+                <span style={{ fontWeight: 600, color: '#374151' }}>{stats.totalMonitorHazard}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style={{ flex: 1, minWidth: 180, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '12px 16px' }}>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>重大事故隐患数</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+            <span style={{ fontSize: 28, fontWeight: 700, color: '#991B1B' }}>{stats.totalMajorHazard}</span>
+            <div style={{ fontSize: 11, color: '#6B7280' }}>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <span style={{ color: '#059669' }}>已整改</span>
+                <span style={{ fontWeight: 600, color: '#374151' }}>{stats.rectifiedMajorHazard}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <span style={{ color: '#9CA3AF' }}>总数</span>
+                <span style={{ fontWeight: 600, color: '#374151' }}>{stats.totalMajorHazard}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* 企业列表 */}
       <div>

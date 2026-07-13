@@ -54,6 +54,39 @@ function mockRental(name: string): number {
   return 40 + (h % 220)        // 40~259家
 }
 
+// 风险等级分布 mock（企业/出租房）
+function mockRiskLevels(name: string, total: number) {
+  const h = hashVillage(name + '_risk')
+  const major = Math.max(1, Math.round(total * (0.02 + (h % 8) / 100)))       // 2%~10%
+  const upper = Math.max(2, Math.round(total * (0.05 + (h % 12) / 100)))      // 5%~17%
+  const general = Math.max(3, Math.round(total * (0.1 + (h % 20) / 100)))     // 10%~30%
+  const low = total - major - upper - general
+  return { major, upper, general, low }
+}
+// 场所类型分布 mock（消防重点单位/一般单位/九小场所）
+function mockVenueTypes(name: string, total: number) {
+  const h = hashVillage(name + '_vtype')
+  const key = Math.max(1, Math.round(total * (0.05 + (h % 10) / 100)))        // 5%~15%
+  const general = Math.max(5, Math.round(total * (0.2 + (h % 25) / 100)))     // 20%~45%
+  const nineSmall = total - key - general
+  return { key, general, nineSmall }
+}
+
+// ─── 内联维度标签（紧凑版，放在数值右侧）────────────────────────────
+function InlineDot({ color, label, count }: { color: string; label: string; count: number }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 3,
+      padding: '1px 7px', borderRadius: 3,
+      background: `${color}10`, border: `1px solid ${color}30`,
+      fontSize: 10, color, fontWeight: 500, whiteSpace: 'nowrap',
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }} />
+      {label}
+      <span style={{ fontWeight: 700 }}>{count}</span>
+    </span>
+  )
+}
 // ─── 确认隐患数（期间）：基于时间周期的独立模拟 ─────────────────────────────
 // 逻辑：每个村社有固定的"日均新发现隐患数"，期间隐患数 = 日均数 × 期间天数
 // 用村社名称哈希生成固定的日均数，避免与总隐患数产生推导关系
@@ -903,10 +936,31 @@ export function YuzhiSyncDimension() {
       {(() => {
         const data = selectedVillages.length > 0 ? filteredVillages : allVillages
         let ent = 0, ven = 0, rent = 0
+        // 风险等级累加
+        let riskLevelsEnt = { major: 0, upper: 0, general: 0, low: 0 }
+        let riskLevelsRent = { major: 0, upper: 0, general: 0, low: 0 }
+        let venueTypesVen = { key: 0, general: 0, nineSmall: 0 }
         for (const r of data) {
           ent += r.enterpriseCount
           ven += r.venueCount
           rent += r.rentalCount
+        }
+        // 汇总所有村社mock的风险/类型分布
+        for (const r of data) {
+          const eRisk = mockRiskLevels(r.village, r.enterpriseCount)
+          riskLevelsEnt.major += eRisk.major
+          riskLevelsEnt.upper += eRisk.upper
+          riskLevelsEnt.general += eRisk.general
+          riskLevelsEnt.low += eRisk.low
+          const rRisk = mockRiskLevels(r.village + '_rent', r.rentalCount)
+          riskLevelsRent.major += rRisk.major
+          riskLevelsRent.upper += rRisk.upper
+          riskLevelsRent.general += rRisk.general
+          riskLevelsRent.low += rRisk.low
+          const vType = mockVenueTypes(r.village, r.venueCount)
+          venueTypesVen.key += vType.key
+          venueTypesVen.general += vType.general
+          venueTypesVen.nineSmall += vType.nineSmall
         }
         const entReg = Math.round(ent * 0.82)
         const venReg = Math.round(ven * 0.84)
@@ -970,6 +1024,7 @@ export function YuzhiSyncDimension() {
             icon: '🏢',
             registered: entReg,
             registeredRate: rate(entReg, ent),
+            riskLevels: riskLevelsEnt,
           },
           {
             label: '场所数',
@@ -981,6 +1036,7 @@ export function YuzhiSyncDimension() {
             icon: '🏪',
             registered: venReg,
             registeredRate: rate(venReg, ven),
+            venueTypes: venueTypesVen,
           },
           {
             label: '出租房数',
@@ -992,6 +1048,7 @@ export function YuzhiSyncDimension() {
             icon: '🏠',
             registered: rentReg,
             registeredRate: rate(rentReg, rent),
+            riskLevels: riskLevelsRent,
           },
         ]
 
@@ -1039,32 +1096,42 @@ export function YuzhiSyncDimension() {
               background: item.bg,
               border: `1px solid ${item.border}`,
               borderRadius: 8,
-              padding: '16px 20px',
+              padding: '14px 18px',
               display: 'flex',
               flexDirection: 'column',
-              gap: 10,
+              gap: 6,
             }}
           >
-            {/* 顶部：图标 + 主指标 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ fontSize: 28 }}>{item.icon}</div>
-              <div>
-                <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, marginBottom: 4 }}>{item.label}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                  <span style={{ fontSize: 28, fontWeight: 700, color: item.color, lineHeight: 1 }}>{item.value.toLocaleString()}</span>
+            {/* 第一行：图标 + 标签 + 主数值 + 单位 + 维度分类 */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ fontSize: 26, lineHeight: 1 }}>{item.icon}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{item.label}</span>
+                  <span style={{ fontSize: 26, fontWeight: 700, color: item.color, lineHeight: 1 }}>{item.value.toLocaleString()}</span>
                   <span style={{ fontSize: 12, color: item.color, fontWeight: 500 }}>{item.unit}</span>
+                  {/* 维度分类标签（内联到右侧） */}
+                  {item.riskLevels && (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginLeft: 4 }}>
+                      <InlineDot color="#DC2626" label="重大风险" count={item.riskLevels.major} />
+                      <InlineDot color="#EA580C" label="较大风险" count={item.riskLevels.upper} />
+                      <InlineDot color="#D97706" label="一般风险" count={item.riskLevels.general} />
+                      <InlineDot color="#3B82F6" label="低风险" count={item.riskLevels.low} />
+                    </div>
+                  )}
+                  {item.venueTypes && (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginLeft: 4 }}>
+                      <InlineDot color="#DC2626" label="消防重点单位" count={item.venueTypes.key} />
+                      <InlineDot color="#3B82F6" label="一般单位" count={item.venueTypes.general} />
+                      <InlineDot color="#D97706" label="九小场所" count={item.venueTypes.nineSmall} />
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
-            {/* 底部：子指标 */}
-            <div style={{ display: 'flex', gap: 16, borderTop: `1px dashed ${item.border}`, paddingTop: 8 }}>
-              <div>
-                <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 2 }}>已注册数</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: item.color }}>{item.registered.toLocaleString()}<span style={{ fontSize: 10, fontWeight: 500, marginLeft: 2 }}>{item.unit}</span></div>
-              </div>
-              <div>
-                <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 2 }}>注册率</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: item.color }}>{item.registeredRate}</div>
+                {/* 第二行：已注册 + 注册率 */}
+                <div style={{ display: 'flex', gap: 16, marginTop: 6, borderTop: `1px dashed ${item.border}`, paddingTop: 6 }}>
+                  <div style={{ fontSize: 10, color: '#9CA3AF' }}>已注册 <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{item.registered.toLocaleString()}</span> <span style={{ fontSize: 9 }}>{item.unit}</span></div>
+                  <div style={{ fontSize: 10, color: '#9CA3AF' }}>注册率 <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{item.registeredRate}</span></div>
+                </div>
               </div>
             </div>
           </div>

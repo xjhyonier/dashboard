@@ -137,7 +137,28 @@ export function StationChiefV2Dashboard() {
   const [showChangelog, setShowChangelog] = useState(false)
   const [changeLogItems, setChangeLogItems] = useState([
     {
+      id: 6,
+      date: '2026-07-13',
+      location: '村社数据看板',
+      content: '指标卡增加维度分类：企业数/出租房数新增重大风险/较大风险/一般风险/低风险分布，场所数新增消防重点单位/一般单位/九小场所分布',
+      editing: false,
+    },
+    {
+      id: 5,
+      date: '2026-07-13',
+      location: '运营数据分析',
+      content: '运营数据分析看板重新设计：地域级联筛选(省→市→区→街道)、平台使用概况KPI(活跃人数/户数/访问/留存)、活跃趋势图、地域排行、核心功能分析Tab(隐患排查/教育培训/安全检查/风险管控)，全部支持按户统计',
+      editing: false,
+    },
+    {
       id: 1,
+      date: '2026-07-09',
+      location: '责任主体分析',
+      content: '新增指标卡：安全检查户数、教育培训户数、自查隐患数（已整改/总数）、监管隐患数（已整改/总数）、重大事故隐患数（已整改/总数）',
+      editing: false,
+    },
+    {
+      id: 2,
       date: '2026-07-09',
       location: '维度页签',
       content: '新增"日常监管"维度页签（位于"组织与人员"右侧），包含概览、五维分析、占比分析三个模块',
