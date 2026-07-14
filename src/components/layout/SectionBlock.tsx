@@ -1,7 +1,7 @@
 import { ReactNode } from 'react'
 
 interface SectionBlockProps {
-  title?: string
+  title?: ReactNode
   description?: string
   actions?: ReactNode
   children: ReactNode

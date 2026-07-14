@@ -27,6 +27,68 @@ const td: React.CSSProperties = {
   verticalAlign: 'middle',
 }
 
+// ─── 通用分页表格组件 ─────────────────────────────────────────────
+function PaginatedTable<T>({
+  data,
+  pageSize = 10,
+  children,
+}: {
+  data: T[]
+  pageSize?: number
+  children: (paged: T[], page: number, totalPages: number) => React.ReactNode
+}) {
+  const [page, setPage] = useState(1)
+  const totalPages = Math.max(1, Math.ceil(data.length / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const paged = data.slice((safePage - 1) * pageSize, safePage * pageSize)
+
+  // Reset to page 1 when data changes
+  useEffect(() => { setPage(1) }, [data.length])
+
+  return (
+    <>
+      {children(paged, safePage, totalPages)}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 12 }}>
+          <button
+            onClick={() => setPage(1)}
+            disabled={safePage <= 1}
+            style={pageBtnStyle(safePage <= 1)}
+          >首页</button>
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={safePage <= 1}
+            style={pageBtnStyle(safePage <= 1)}
+          >上一页</button>
+          <span style={{ color: '#6B7280' }}>
+            第 {safePage} / {totalPages} 页，共 {data.length} 条
+          </span>
+          <button
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={safePage >= totalPages}
+            style={pageBtnStyle(safePage >= totalPages)}
+          >下一页</button>
+          <button
+            onClick={() => setPage(totalPages)}
+            disabled={safePage >= totalPages}
+            style={pageBtnStyle(safePage >= totalPages)}
+          >末页</button>
+        </div>
+      )}
+    </>
+  )
+}
+
+const pageBtnStyle = (disabled: boolean): React.CSSProperties => ({
+  padding: '2px 8px',
+  border: '1px solid #D1D5DB',
+  borderRadius: 4,
+  background: disabled ? '#F9FAFB' : 'white',
+  color: disabled ? '#D1D5DB' : '#374151',
+  cursor: disabled ? 'default' : 'pointer',
+  fontSize: 12,
+})
+
 export function EnterpriseBossDashboard() {
   const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'month' | 'year'>('month')
   const [dateFrom, setDateFrom] = useState('2026-01-01')
@@ -273,13 +335,20 @@ export function EnterpriseBossDashboard() {
         <PageHeader
           title="企业安全概览"
           subtitle="本企业安全状况、隐患排查、制度台账与现场管理"
-          updateTime={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')} ${String(new Date().getHours()).padStart(2, '0')}:00`}
+          updateTime="以下数据每日凌晨4点更新"
         />
 
         {/* ─── 一、安全责任主体情况 ──────────────────────────────── */}
         <div id="section-safety-responsibility" style={{ scrollMarginTop: 80 }}>
         {enterpriseBossMock.safetyResponsibility.hasTenant && (
-        <SectionBlock title="一、安全责任主体情况">
+        <SectionBlock 
+          title={<>
+            一、安全责任主体情况
+            <span style={{ fontSize: 12, color: '#DC2626', fontWeight: 700, marginLeft: 8 }}>
+              本模块数据仅有承租单位的版本才有：包括综合体、园区、市场
+            </span>
+          </>}
+        >
           <div style={{ display: 'flex', gap: 16 }}>
             <div style={{ flex: 1 }}>
               <RiskSummaryCard
@@ -417,30 +486,34 @@ export function EnterpriseBossDashboard() {
                   <div style={{ fontSize: 18, fontWeight: 700, color: '#DC2626' }}>{dailyCheck.hazards}<span style={{ fontSize: 10, fontWeight: 400, color: '#9CA3AF', marginLeft: 2 }}>个</span></div>
                 </div>
               </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                <thead>
-                  <tr>
-                    <th style={th}>序号</th>
-                    <th style={{ ...th, textAlign: 'left' }}>任务名称</th>
-                    <th style={th}>总任务数</th>
-                    <th style={th}>已检查</th>
-                    <th style={th}>超时未检查</th>
-                    <th style={th}>发现隐患</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dailyCheck.tasks.map((t, i) => (
-                    <tr key={t.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                      <td style={td}>{i + 1}</td>
-                      <td style={{ ...td, textAlign: 'left' }}>{t.name}</td>
-                      <td style={td}>{t.total}</td>
-                      <td style={td}>{t.checked}</td>
-                      <td style={{ ...td, color: '#D97706' }}>{t.overdue}</td>
-                      <td style={{ ...td, color: '#DC2626' }}>{t.hazards}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <PaginatedTable data={dailyCheck.tasks}>
+                {(paged, page, totalPages) => (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th style={th}>序号</th>
+                        <th style={{ ...th, textAlign: 'left' }}>任务名称</th>
+                        <th style={th}>总任务数</th>
+                        <th style={th}>已检查</th>
+                        <th style={th}>超时未检查</th>
+                        <th style={th}>发现隐患</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paged.map((t, i) => (
+                        <tr key={t.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                          <td style={td}>{(page - 1) * 10 + i + 1}</td>
+                          <td style={{ ...td, textAlign: 'left', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.name}>{t.name}</td>
+                          <td style={td}>{t.total}</td>
+                          <td style={td}>{t.checked}</td>
+                          <td style={{ ...td, color: '#D97706' }}>{t.overdue}</td>
+                          <td style={{ ...td, color: '#DC2626' }}>{t.hazards}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </PaginatedTable>
             </div>
 
             {/* 专项检查统计 */}
@@ -466,30 +539,34 @@ export function EnterpriseBossDashboard() {
                   <div style={{ fontSize: 18, fontWeight: 700, color: '#DC2626' }}>{specialCheck.hazards}<span style={{ fontSize: 10, fontWeight: 400, color: '#9CA3AF', marginLeft: 2 }}>个</span></div>
                 </div>
               </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                <thead>
-                  <tr>
-                    <th style={th}>序号</th>
-                    <th style={{ ...th, textAlign: 'left' }}>任务名称</th>
-                    <th style={th}>总任务数</th>
-                    <th style={th}>已检查</th>
-                    <th style={th}>超时未检查</th>
-                    <th style={th}>发现隐患</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {specialCheck.tasks.map((t, i) => (
-                    <tr key={t.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                      <td style={td}>{i + 1}</td>
-                      <td style={{ ...td, textAlign: 'left' }}>{t.name}</td>
-                      <td style={td}>{t.total}</td>
-                      <td style={td}>{t.checked}</td>
-                      <td style={{ ...td, color: '#D97706' }}>{t.overdue}</td>
-                      <td style={{ ...td, color: '#DC2626' }}>{t.hazards}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <PaginatedTable data={specialCheck.tasks}>
+                {(paged, page, totalPages) => (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th style={th}>序号</th>
+                        <th style={{ ...th, textAlign: 'left' }}>任务名称</th>
+                        <th style={th}>总任务数</th>
+                        <th style={th}>已检查</th>
+                        <th style={th}>超时未检查</th>
+                        <th style={th}>发现隐患</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paged.map((t, i) => (
+                        <tr key={t.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                          <td style={td}>{(page - 1) * 10 + i + 1}</td>
+                          <td style={{ ...td, textAlign: 'left', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.name}>{t.name}</td>
+                          <td style={td}>{t.total}</td>
+                          <td style={td}>{t.checked}</td>
+                          <td style={{ ...td, color: '#D97706' }}>{t.overdue}</td>
+                          <td style={{ ...td, color: '#DC2626' }}>{t.hazards}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </PaginatedTable>
             </div>
 
             {/* 随手拍统计 */}
@@ -527,26 +604,30 @@ export function EnterpriseBossDashboard() {
                   <div style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>{snapshot.reward}<span style={{ fontSize: 10, fontWeight: 400, color: '#9CA3AF', marginLeft: 2 }}>个</span></div>
                 </div>
               </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                <thead>
-                  <tr>
-                    <th style={th}>序号</th>
-                    <th style={{ ...th, textAlign: 'left' }}>员工姓名</th>
-                    <th style={{ ...th, textAlign: 'left' }}>人员类型</th>
-                    <th style={th}>随手拍隐患数</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {snapshot.persons.slice(0, 5).map((p, i) => (
-                    <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                      <td style={td}>{i + 5}</td>
-                      <td style={{ ...td, textAlign: 'left' }}>{p.name}</td>
-                      <td style={{ ...td, textAlign: 'left' }}>{p.type}</td>
-                      <td style={td}>{p.count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <PaginatedTable data={snapshot.persons}>
+                {(paged, page, totalPages) => (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th style={th}>序号</th>
+                        <th style={{ ...th, textAlign: 'left' }}>员工姓名</th>
+                        <th style={{ ...th, textAlign: 'left' }}>人员类型</th>
+                        <th style={th}>随手拍隐患数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paged.map((p, i) => (
+                        <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                          <td style={td}>{(page - 1) * 10 + i + 1}</td>
+                          <td style={{ ...td, textAlign: 'left', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.name}>{p.name}</td>
+                          <td style={{ ...td, textAlign: 'left' }}>{p.type}</td>
+                          <td style={td}>{p.count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </PaginatedTable>
             </div>
           </div>
 

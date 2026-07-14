@@ -24,6 +24,8 @@ interface RegionRow {
   visits: number
   retention7d: number
   retention30d: number
+  retention7dUsers: number
+  retention30dUsers: number
   // 隐患排查
   hazardTotal: number
   hazardChecked: number
@@ -151,6 +153,8 @@ function generateRegionData(): RegionRow[] {
             visits,
             retention7d: Math.floor(activeEnt * (0.3 + (seed % 30) / 100)),
             retention30d: Math.floor(activeEnt * (0.15 + (seed % 25) / 100)),
+            retention7dUsers: Math.floor(activeUsers * (0.3 + (seed % 30) / 100)),
+            retention30dUsers: Math.floor(activeUsers * (0.15 + (seed % 25) / 100)),
             hazardTotal,
             hazardChecked,
             hazardCheckedEnt,
@@ -178,11 +182,16 @@ const generateMonthlyTrend = () => {
   const months = []
   for (let m = 1; m <= 6; m++) {
     const base = 800 + m * 100
+    const users = base + Math.floor(Math.random() * 200)
+    const enterprises = Math.floor(base / 3.5) + Math.floor(Math.random() * 50)
+    const visits = base * 4 + Math.floor(Math.random() * 2000)
     months.push({
       month: `2026-${String(m).padStart(2, '0')}`,
-      activeUsers: base + Math.floor(Math.random() * 200),
-      activeEnterprises: Math.floor(base / 3.5) + Math.floor(Math.random() * 50),
-      visits: base * 4 + Math.floor(Math.random() * 2000),
+      activeUsers: users,
+      activeEnterprises: enterprises,
+      visits,
+      avgVisitsPerUser: Math.round(visits / users * 10) / 10,
+      avgVisitsPerEnt: Math.round(visits / enterprises * 10) / 10,
     })
   }
   return months
@@ -261,6 +270,8 @@ export function OperationsAnalyticsDashboard() {
           g.visits += r.visits
           g.retention7d += r.retention7d
           g.retention30d += r.retention30d
+          g.retention7dUsers += r.retention7dUsers
+          g.retention30dUsers += r.retention30dUsers
           g.hazardTotal += r.hazardTotal
           g.hazardChecked += r.hazardChecked
           g.hazardCheckedEnt += r.hazardCheckedEnt
@@ -286,7 +297,7 @@ export function OperationsAnalyticsDashboard() {
   const totals = useMemo(() => {
     const t = {
       activeUsers: 0, activeEnterprises: 0, visits: 0,
-      retention7d: 0, retention30d: 0,
+      retention7d: 0, retention30d: 0, retention7dUsers: 0, retention30dUsers: 0,
       hazardTotal: 0, hazardChecked: 0, hazardCheckedEnt: 0,
       hazardFound: 0, hazardMajor: 0, hazardRectified: 0,
       trainPlanEnt: 0, trainDailyEnt: 0, trainDailySessions: 0,
@@ -299,6 +310,8 @@ export function OperationsAnalyticsDashboard() {
       t.visits += r.visits
       t.retention7d += r.retention7d
       t.retention30d += r.retention30d
+      t.retention7dUsers += r.retention7dUsers
+      t.retention30dUsers += r.retention30dUsers
       t.hazardTotal += r.hazardTotal
       t.hazardChecked += r.hazardChecked
       t.hazardCheckedEnt += r.hazardCheckedEnt
@@ -396,9 +409,12 @@ export function OperationsAnalyticsDashboard() {
       <div style={{ display: 'flex', gap: 14, marginBottom: 20, flexWrap: 'wrap' }}>
         <KpiBlock label="活跃人数" value={totals.activeUsers} unit="人" color="#4F46E5" />
         <KpiBlock label="活跃户数" value={totals.activeEnterprises} unit="户" color="#3B82F6" />
-        <KpiBlock label="访问人次" value={totals.visits} unit="次" color="#059669" />
-        <KpiBlock label="7日留存户数" value={totals.retention7d} unit="户" color="#D97706" />
-        <KpiBlock label="30日留存户数" value={totals.retention30d} unit="户" color="#DC2626" />
+        <KpiBlock label="人均访问次数" value={totals.activeUsers > 0 ? Math.round(totals.visits / totals.activeUsers) : 0} unit="次/人" color="#059669" />
+        <KpiBlock label="户均访问次数" value={totals.activeEnterprises > 0 ? Math.round(totals.visits / totals.activeEnterprises) : 0} unit="次/户" color="#7C3AED" />
+        <KpiBlock label="7日留存" value={totals.retention7d} unit="户" color="#D97706"
+          subValue={totals.retention7dUsers} subUnit="人" />
+        <KpiBlock label="30日留存" value={totals.retention30d} unit="户" color="#DC2626"
+          subValue={totals.retention30dUsers} subUnit="人" />
       </div>
 
       {/* ─── 趋势图 + 地域排行（左右并排） ─────────────── */}
@@ -416,7 +432,8 @@ export function OperationsAnalyticsDashboard() {
               <Legend />
               <Bar yAxisId="left" dataKey="activeUsers" name="活跃人数" fill="#4F46E5" radius={[4, 4, 0, 0]} />
               <Bar yAxisId="left" dataKey="activeEnterprises" name="活跃户数" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-              <Line yAxisId="right" type="monotone" dataKey="visits" name="访问人次" stroke="#059669" strokeWidth={2} dot={{ r: 4 }} />
+              <Line yAxisId="right" type="monotone" dataKey="avgVisitsPerUser" name="人均访问次数" stroke="#059669" strokeWidth={2} dot={{ r: 4 }} />
+              <Line yAxisId="right" type="monotone" dataKey="avgVisitsPerEnt" name="户均访问次数" stroke="#7C3AED" strokeWidth={2} dot={{ r: 4 }} strokeDasharray="5 3" />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -433,7 +450,8 @@ export function OperationsAnalyticsDashboard() {
                 <th style={{ ...th, textAlign: 'left' }}>区域</th>
                 <th style={th}>活跃户数</th>
                 <th style={th}>活跃人数</th>
-                <th style={{ ...th, borderRight: 'none' }}>访问</th>
+                <th style={th}>人均访问</th>
+                <th style={{ ...th, borderRight: 'none' }}>户均访问</th>
               </tr>
             </thead>
             <tbody>
@@ -448,7 +466,8 @@ export function OperationsAnalyticsDashboard() {
                   </td>
                   <td style={td({ fontWeight: 600 })}>{r.activeEnterprises}</td>
                   <td style={td({})}>{r.activeUsers}</td>
-                  <td style={td({ borderRight: 'none' })}>{r.visits}</td>
+                  <td style={td({})}>{r.activeUsers > 0 ? Math.round(r.visits / r.activeUsers * 10) / 10 : '-'}</td>
+                  <td style={td({ borderRight: 'none' })}>{r.activeEnterprises > 0 ? Math.round(r.visits / r.activeEnterprises * 10) / 10 : '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -550,21 +569,37 @@ const inputSmall: React.CSSProperties = {
   fontSize: 12, color: '#374151', background: 'white', outline: 'none',
 }
 
-function KpiBlock({ label, value, unit, color, compact }: {
+function KpiBlock({ label, value, unit, color, compact, subLabel, subValue, subUnit }: {
   label: string; value: number; unit: string; color: string; compact?: boolean
+  subLabel?: string; subValue?: number; subUnit?: string
 }) {
-  const fontSize = compact ? 22 : 28
+  const fontSize = compact ? 20 : 28
   const padding = compact ? '10px 14px' : '14px 18px'
+  const hasDual = subValue != null
   return (
     <div style={{
-      flex: 1, minWidth: compact ? 120 : 150, background: 'white',
+      flex: 1, minWidth: compact ? 120 : 160, background: 'white',
       borderRadius: 8, border: '1px solid #E5E7EB', padding,
     }}>
       <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>{label}</div>
-      <span style={{ fontSize, fontWeight: 700, color, lineHeight: 1.2 }}>
-        {value.toLocaleString()}
-        <span style={{ fontSize: compact ? 11 : 12, fontWeight: 400, color: '#9CA3AF', marginLeft: 3 }}>{unit}</span>
-      </span>
+      {hasDual ? (
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'nowrap' }}>
+          <span style={{ fontSize, fontWeight: 700, color, lineHeight: 1.2, whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {subValue!.toLocaleString()}
+            <span style={{ fontSize: compact ? 11 : 12, fontWeight: 400, color: '#9CA3AF', marginLeft: 3 }}>{subUnit}</span>
+          </span>
+          <span style={{ color: '#E5E7EB', fontSize: 14, flexShrink: 0 }}>|</span>
+          <span style={{ fontSize, fontWeight: 700, color, lineHeight: 1.2, whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {value.toLocaleString()}
+            <span style={{ fontSize: compact ? 11 : 12, fontWeight: 400, color: '#9CA3AF', marginLeft: 3 }}>{unit}</span>
+          </span>
+        </div>
+      ) : (
+        <span style={{ fontSize, fontWeight: 700, color, lineHeight: 1.2 }}>
+          {value.toLocaleString()}
+          <span style={{ fontSize: compact ? 11 : 12, fontWeight: 400, color: '#9CA3AF', marginLeft: 3 }}>{unit}</span>
+        </span>
+      )}
     </div>
   )
 }
