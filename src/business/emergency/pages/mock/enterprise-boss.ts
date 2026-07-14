@@ -294,6 +294,12 @@ export const enterpriseBossMock = {
       { unit: 'XX环保工程有限公司', personCount: 7 },
       { unit: 'XX机电设备有限公司', personCount: 9 },
       { unit: 'XX安全管理咨询公司', personCount: 6 },
+      { unit: 'XX物业服务有限公司', personCount: 24 },
+      { unit: 'XX餐饮管理有限公司', personCount: 14 },
+      { unit: 'XX安保服务公司', personCount: 20 },
+      { unit: 'XX清洁服务有限公司', personCount: 11 },
+      { unit: 'XX电梯维保有限公司', personCount: 5 },
+      { unit: 'XX绿化养护有限公司', personCount: 8 },
     ],
   },
   // 作业票报备（月度数据，月份降序）

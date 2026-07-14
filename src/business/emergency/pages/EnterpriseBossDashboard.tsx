@@ -27,67 +27,20 @@ const td: React.CSSProperties = {
   verticalAlign: 'middle',
 }
 
-// ─── 通用分页表格组件 ─────────────────────────────────────────────
-function PaginatedTable<T>({
+// ─── 通用滚动表格组件 ─────────────────────────────────────────────
+function ScrollableTable<T>({
   data,
-  pageSize = 10,
   children,
 }: {
   data: T[]
-  pageSize?: number
-  children: (paged: T[], page: number, totalPages: number) => React.ReactNode
+  children: (allData: T[]) => React.ReactNode
 }) {
-  const [page, setPage] = useState(1)
-  const totalPages = Math.max(1, Math.ceil(data.length / pageSize))
-  const safePage = Math.min(page, totalPages)
-  const paged = data.slice((safePage - 1) * pageSize, safePage * pageSize)
-
-  // Reset to page 1 when data changes
-  useEffect(() => { setPage(1) }, [data.length])
-
   return (
-    <>
-      {children(paged, safePage, totalPages)}
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 12 }}>
-          <button
-            onClick={() => setPage(1)}
-            disabled={safePage <= 1}
-            style={pageBtnStyle(safePage <= 1)}
-          >首页</button>
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={safePage <= 1}
-            style={pageBtnStyle(safePage <= 1)}
-          >上一页</button>
-          <span style={{ color: '#6B7280' }}>
-            第 {safePage} / {totalPages} 页，共 {data.length} 条
-          </span>
-          <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            disabled={safePage >= totalPages}
-            style={pageBtnStyle(safePage >= totalPages)}
-          >下一页</button>
-          <button
-            onClick={() => setPage(totalPages)}
-            disabled={safePage >= totalPages}
-            style={pageBtnStyle(safePage >= totalPages)}
-          >末页</button>
-        </div>
-      )}
-    </>
+    <div style={{ maxHeight: 185, overflowY: 'auto' }}>
+      {children(data)}
+    </div>
   )
 }
-
-const pageBtnStyle = (disabled: boolean): React.CSSProperties => ({
-  padding: '2px 8px',
-  border: '1px solid #D1D5DB',
-  borderRadius: 4,
-  background: disabled ? '#F9FAFB' : 'white',
-  color: disabled ? '#D1D5DB' : '#374151',
-  cursor: disabled ? 'default' : 'pointer',
-  fontSize: 12,
-})
 
 export function EnterpriseBossDashboard() {
   const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'month' | 'year'>('month')
@@ -486,8 +439,8 @@ export function EnterpriseBossDashboard() {
                   <div style={{ fontSize: 18, fontWeight: 700, color: '#DC2626' }}>{dailyCheck.hazards}<span style={{ fontSize: 10, fontWeight: 400, color: '#9CA3AF', marginLeft: 2 }}>个</span></div>
                 </div>
               </div>
-              <PaginatedTable data={dailyCheck.tasks}>
-                {(paged, page, totalPages) => (
+              <ScrollableTable data={dailyCheck.tasks}>
+                {(data) => (
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr>
@@ -500,9 +453,9 @@ export function EnterpriseBossDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {paged.map((t, i) => (
+                      {data.map((t, i) => (
                         <tr key={t.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                          <td style={td}>{(page - 1) * 10 + i + 1}</td>
+                          <td style={td}>{i + 1}</td>
                           <td style={{ ...td, textAlign: 'left', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.name}>{t.name}</td>
                           <td style={td}>{t.total}</td>
                           <td style={td}>{t.checked}</td>
@@ -513,7 +466,7 @@ export function EnterpriseBossDashboard() {
                     </tbody>
                   </table>
                 )}
-              </PaginatedTable>
+              </ScrollableTable>
             </div>
 
             {/* 专项检查统计 */}
@@ -539,8 +492,8 @@ export function EnterpriseBossDashboard() {
                   <div style={{ fontSize: 18, fontWeight: 700, color: '#DC2626' }}>{specialCheck.hazards}<span style={{ fontSize: 10, fontWeight: 400, color: '#9CA3AF', marginLeft: 2 }}>个</span></div>
                 </div>
               </div>
-              <PaginatedTable data={specialCheck.tasks}>
-                {(paged, page, totalPages) => (
+              <ScrollableTable data={specialCheck.tasks}>
+                {(data) => (
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr>
@@ -553,9 +506,9 @@ export function EnterpriseBossDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {paged.map((t, i) => (
+                      {data.map((t, i) => (
                         <tr key={t.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                          <td style={td}>{(page - 1) * 10 + i + 1}</td>
+                          <td style={td}>{i + 1}</td>
                           <td style={{ ...td, textAlign: 'left', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.name}>{t.name}</td>
                           <td style={td}>{t.total}</td>
                           <td style={td}>{t.checked}</td>
@@ -566,7 +519,7 @@ export function EnterpriseBossDashboard() {
                     </tbody>
                   </table>
                 )}
-              </PaginatedTable>
+              </ScrollableTable>
             </div>
 
             {/* 随手拍统计 */}
@@ -604,8 +557,8 @@ export function EnterpriseBossDashboard() {
                   <div style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>{snapshot.reward}<span style={{ fontSize: 10, fontWeight: 400, color: '#9CA3AF', marginLeft: 2 }}>个</span></div>
                 </div>
               </div>
-              <PaginatedTable data={snapshot.persons}>
-                {(paged, page, totalPages) => (
+              <ScrollableTable data={snapshot.persons}>
+                {(data) => (
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr>
@@ -616,9 +569,9 @@ export function EnterpriseBossDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {paged.map((p, i) => (
+                      {data.map((p, i) => (
                         <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                          <td style={td}>{(page - 1) * 10 + i + 1}</td>
+                          <td style={td}>{i + 1}</td>
                           <td style={{ ...td, textAlign: 'left', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.name}>{p.name}</td>
                           <td style={{ ...td, textAlign: 'left' }}>{p.type}</td>
                           <td style={td}>{p.count}</td>
@@ -627,7 +580,7 @@ export function EnterpriseBossDashboard() {
                     </tbody>
                   </table>
                 )}
-              </PaginatedTable>
+              </ScrollableTable>
             </div>
           </div>
 
@@ -1024,7 +977,7 @@ export function EnterpriseBossDashboard() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, maxHeight: 185, overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr>
@@ -1042,7 +995,7 @@ export function EnterpriseBossDashboard() {
                     </tbody>
                   </table>
                 </div>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, maxHeight: 185, overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr>
@@ -1117,7 +1070,7 @@ export function EnterpriseBossDashboard() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ flex: permitDimension === 'self' ? 1 : 1 }}>
+                <div style={{ flex: permitDimension === 'self' ? 1 : 1, maxHeight: 185, overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr>
@@ -1136,7 +1089,7 @@ export function EnterpriseBossDashboard() {
                   </table>
                 </div>
                 {permitDimension === 'tenant' && (
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, maxHeight: 185, overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr>
@@ -1186,53 +1139,28 @@ export function EnterpriseBossDashboard() {
                 </div>
               </div>
               {(() => {
-                const totalPages = Math.ceil(enterpriseBossMock.relatedParty.details.length / PARTY_PAGE_SIZE)
-                const paged = enterpriseBossMock.relatedParty.details.slice((partyPage - 1) * PARTY_PAGE_SIZE, partyPage * PARTY_PAGE_SIZE)
+                const allDetails = enterpriseBossMock.relatedParty.details
                 return (
-                  <>
-                    <div style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid #E5E7EB', borderRadius: 6 }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                        <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-                          <tr>
-                            <th style={th}>序号</th>
-                            <th style={{ ...th, textAlign: 'left' }}>相关方单位</th>
-                            <th style={th}>人员数量</th>
+                  <div style={{ maxHeight: 185, overflowY: 'auto', border: '1px solid #E5E7EB', borderRadius: 6 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                      <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                        <tr>
+                          <th style={th}>序号</th>
+                          <th style={{ ...th, textAlign: 'left' }}>相关方单位</th>
+                          <th style={th}>人员数量</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allDetails.map((d, i) => (
+                          <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                            <td style={td}>{i + 1}</td>
+                            <td style={{ ...td, textAlign: 'left', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.unit}>{d.unit}</td>
+                            <td style={{ ...td, fontWeight: 600 }}>{d.personCount}</td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {paged.map((d, pi) => {
-                            const i = (partyPage - 1) * PARTY_PAGE_SIZE + pi
-                            return (
-                              <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                                <td style={td}>{i + 1}</td>
-                                <td style={{ ...td, textAlign: 'left' }}>{d.unit}</td>
-                                <td style={{ ...td, fontWeight: 600 }}>{d.personCount}</td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                    {totalPages > 1 && (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10 }}>
-                        <button
-                          onClick={() => setPartyPage(p => Math.max(1, p - 1))}
-                          disabled={partyPage === 1}
-                          style={{ padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', fontSize: 11, color: partyPage === 1 ? '#D1D5DB' : '#374151', cursor: partyPage === 1 ? 'default' : 'pointer' }}
-                        >
-                          ‹
-                        </button>
-                        <span style={{ fontSize: 11, color: '#6B7280' }}>{partyPage} / {totalPages}</span>
-                        <button
-                          onClick={() => setPartyPage(p => Math.min(totalPages, p + 1))}
-                          disabled={partyPage === totalPages}
-                          style={{ padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', fontSize: 11, color: partyPage === totalPages ? '#D1D5DB' : '#374151', cursor: partyPage === totalPages ? 'default' : 'pointer' }}
-                        >
-                          ›
-                        </button>
-                      </div>
-                    )}
-                  </>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )
               })()}
             </div>
