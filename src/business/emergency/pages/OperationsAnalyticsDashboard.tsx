@@ -66,6 +66,7 @@ interface RegionRow {
   checkHazardRectified: number
   checkMajorTotal: number
   checkMajorRectified: number
+  checkPlanDone: number // 五维分析：检查计划已制定户数
   // 风险管控
   riskTotal: number
   riskMajor: number
@@ -243,6 +244,10 @@ function generateRegionData(): RegionRow[] {
           const siteRelatedEnt = Math.max(1, Math.floor(activeEnt * (0.3 + (seed % 20) / 100)))
           const siteRelatedUser = siteRelatedEnt * (3 + (seed % 10))
 
+          // 五维分析：检查计划制定情况（已制定/未制定，分母=安全责任主体总数）
+          const docLedgerEntVal = Math.max(1, Math.floor(activeEnt * (0.6 + (seed % 30) / 100)))
+          const checkPlanDoneVal = Math.max(0, Math.floor(docLedgerEntVal * (0.6 + (seed % 35) / 100)))
+
           rows.push({
             province,
             city,
@@ -295,13 +300,14 @@ function generateRegionData(): RegionRow[] {
             checkHazardRectified,
             checkMajorTotal,
             checkMajorRectified,
+            checkPlanDone: checkPlanDoneVal,
             riskTotal,
             riskMajor,
             riskHigh,
             riskNormal,
             riskLow,
             riskConfirmedTotal,
-            docLedgerEnt: Math.max(1, Math.floor(activeEnt * (0.6 + (seed % 30) / 100))),
+            docLedgerEnt: docLedgerEntVal,
             docLedgerTotal: Math.floor(activeEnt * 1.5),
             docLedgerEstablishedEnt,
             docLedgerEstablishedCount,
@@ -443,6 +449,9 @@ export function OperationsAnalyticsDashboard() {
   // 功能模块筛选（独立于tab，仅影响访问数据）
   const [moduleFilter, setModuleFilter] = useState<ModuleFilterValue>('all')
 
+  // 图表系列可见性
+  const [chartVisible, setChartVisible] = useState({ activeUsers: true, activeEnterprises: true, avgVisitsPerUser: true, avgVisitsPerEnt: true })
+
   // 排行榜排序
   type SortField = 'activeEnterprises' | 'activeUsers' | 'avgVisitsPerUser' | 'avgVisitsPerEnt'
   const [sortField, setSortField] = useState<SortField>('activeUsers')
@@ -461,6 +470,13 @@ export function OperationsAnalyticsDashboard() {
       content: '1. 全局筛选默认本月+全选街道\n2. 访问数据指标卡重构：安全责任主体三列布局，活跃人数/户数/人均户均双列布局，7日/30日留存拆分人数+户数，全部卡片带月环比\n3. 6个业务tab全面升级：企业自查自纠/镇街检查/教育培训/风险管控/制度台账/现场管理，每个tab含指标卡+带排序滑动表格\n4. 统一卡片样式：边框#9CA3AF/竖线分隔2px/字号统一/居中对齐/月环比',
       editing: false,
     },
+    {
+      id: 2,
+      date: '2026-07-16',
+      location: '五维分析',
+      content: '在「二、业务数据」各模块tab上方新增「五维分析」模块，含5个指标卡（安全制度建立/风险点识别/检查计划制定/自查自纠/隐患整改闭环），每个卡片含百分比进度条与【已完成、未完成】双列统计，随地域筛选联动',
+      editing: false,
+    },
   ], [])
   const [changeLogItems, setChangeLogItems] = useState(() => {
     try {
@@ -472,6 +488,22 @@ export function OperationsAnalyticsDashboard() {
   })
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editText, setEditText] = useState('')
+
+  // 时间快捷切换时同步 from/to
+  React.useEffect(() => {
+    if (timeFilter === 'custom') return
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    if (timeFilter === 'month') { setTimeFrom(`${y}-${m}`); setTimeTo(`${y}-${m}`) }
+    else if (timeFilter === 'quarter') {
+      const qs = Math.floor(now.getMonth() / 3) * 3 + 1
+      const qsStr = String(qs).padStart(2, '0')
+      const qeStr = String(qs + 2).padStart(2, '0')
+      setTimeFrom(`${y}-${qsStr}`); setTimeTo(`${y}-${qeStr}`)
+    }
+    else if (timeFilter === 'year') { setTimeFrom(`${y}-01`); setTimeTo(`${y}-12`) }
+  }, [timeFilter])
 
   // 根据已选省份动态获取可选城市列表
   const availableCities = useMemo(() => {
@@ -555,6 +587,7 @@ export function OperationsAnalyticsDashboard() {
         g.checkHazardRectified += r.checkHazardRectified
         g.checkMajorTotal += r.checkMajorTotal
         g.checkMajorRectified += r.checkMajorRectified
+        g.checkPlanDone += r.checkPlanDone
         g.riskTotal += r.riskTotal
         g.riskMajor += r.riskMajor
         g.riskHigh += r.riskHigh
@@ -610,7 +643,7 @@ export function OperationsAnalyticsDashboard() {
       checkTotal: 0, checkEnt: 0, checkCoverageEnt: 0,
       aiSuperviseCount: 0, superviseCount: 0, aiPushEnt: 0, aiDoneCount: 0,
       checkHazardTotal: 0, checkHazardRectified: 0,
-      checkMajorTotal: 0, checkMajorRectified: 0,
+      checkMajorTotal: 0, checkMajorRectified: 0, checkPlanDone: 0,
       riskTotal: 0, riskMajor: 0, riskHigh: 0, riskNormal: 0, riskLow: 0, riskConfirmedTotal: 0,
       docLedgerEnt: 0, docLedgerTotal: 0,
       docLedgerEstablishedEnt: 0, docLedgerEstablishedCount: 0,
@@ -661,6 +694,7 @@ export function OperationsAnalyticsDashboard() {
       t.checkHazardRectified += r.checkHazardRectified
       t.checkMajorTotal += r.checkMajorTotal
       t.checkMajorRectified += r.checkMajorRectified
+      t.checkPlanDone += r.checkPlanDone
       t.riskTotal += r.riskTotal
       t.riskMajor += r.riskMajor
       t.riskHigh += r.riskHigh
@@ -907,20 +941,6 @@ export function OperationsAnalyticsDashboard() {
             <MomLabel seed={4002} />
           </div>
         </div>
-        {/* 7日留存人数 / 7日留存户数 */}
-        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 16, flex: 1, justifyContent: 'center' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>7日留存人数</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#D97706', lineHeight: 1.2 }}>{accessData.retention7dUsers.toLocaleString()}</div>
-            <MomLabel seed={5001} />
-          </div>
-          <div style={{ width: 2, height: 28, background: '#9CA3AF' }} />
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>7日留存户数</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#D97706', lineHeight: 1.2 }}>{accessData.retention7d.toLocaleString()}</div>
-            <MomLabel seed={5002} />
-          </div>
-        </div>
         {/* 30日留存人数 / 30日留存户数 */}
         <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 16, flex: 1, justifyContent: 'center' }}>
           <div style={{ textAlign: 'center' }}>
@@ -935,27 +955,61 @@ export function OperationsAnalyticsDashboard() {
             <MomLabel seed={6002} />
           </div>
         </div>
+        {/* 7日留存人数 / 7日留存户数 */}
+        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 16, flex: 1, justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>7日留存人数</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#D97706', lineHeight: 1.2 }}>{accessData.retention7dUsers.toLocaleString()}</div>
+            <MomLabel seed={5001} />
+          </div>
+          <div style={{ width: 2, height: 28, background: '#9CA3AF' }} />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>7日留存户数</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#D97706', lineHeight: 1.2 }}>{accessData.retention7d.toLocaleString()}</div>
+            <MomLabel seed={5002} />
+          </div>
+        </div>
       </div>
 
       {/* ─── 趋势图 + 地域排行（左右并排） ─────────────── */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
         {/* 活跃趋势 */}
-        <div style={{ flex: 6, background: 'white', border: '1px solid #9CA3AF', borderRadius: 8, padding: 14 }}>
+        <div style={{ flex: 6, background: 'white', border: '1px solid #9CA3AF', borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 12 }}>活跃趋势（按月）</div>
-          <ResponsiveContainer width="100%" height={280}>
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
+            {[
+              { key: 'activeUsers', label: '活跃人数', color: '#4F46E5' },
+              { key: 'activeEnterprises', label: '活跃户数', color: '#3B82F6' },
+              { key: 'avgVisitsPerUser', label: '人均访问次数', color: '#059669' },
+              { key: 'avgVisitsPerEnt', label: '户均访问次数', color: '#7C3AED' },
+            ].map(s => (
+              <span key={s.key}
+                onClick={() => setChartVisible(prev => ({ ...prev, [s.key]: !prev[s.key as keyof typeof prev] }))}
+                style={{
+                  cursor: 'pointer', fontSize: 11, color: chartVisible[s.key as keyof typeof chartVisible] ? s.color : '#D1D5DB',
+                  textDecoration: chartVisible[s.key as keyof typeof chartVisible] ? 'none' : 'line-through',
+                  userSelect: 'none',
+                }}
+              >
+                ● {s.label}
+              </span>
+            ))}
+          </div>
+          <div style={{ flex: 1, minHeight: 0 }}>
+          <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={monthlyTrend}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
               <XAxis dataKey="month" fontSize={11} tick={{ fill: '#9CA3AF' }} />
               <YAxis yAxisId="left" fontSize={11} tick={{ fill: '#9CA3AF' }} />
               <YAxis yAxisId="right" orientation="right" fontSize={11} tick={{ fill: '#9CA3AF' }} />
               <Tooltip />
-              <Legend />
-              <Bar yAxisId="left" dataKey="activeUsers" name="活跃人数" fill="#4F46E5" radius={[4, 4, 0, 0]} />
-              <Bar yAxisId="left" dataKey="activeEnterprises" name="活跃户数" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-              <Line yAxisId="right" type="monotone" dataKey="avgVisitsPerUser" name="人均访问次数" stroke="#059669" strokeWidth={2} dot={{ r: 4 }} />
-              <Line yAxisId="right" type="monotone" dataKey="avgVisitsPerEnt" name="户均访问次数" stroke="#7C3AED" strokeWidth={2} dot={{ r: 4 }} strokeDasharray="5 3" />
+              {chartVisible.activeUsers && <Bar yAxisId="left" dataKey="activeUsers" name="活跃人数" fill="#4F46E5" radius={[4, 4, 0, 0]} />}
+              {chartVisible.activeEnterprises && <Bar yAxisId="left" dataKey="activeEnterprises" name="活跃户数" fill="#3B82F6" radius={[4, 4, 0, 0]} />}
+              {chartVisible.avgVisitsPerUser && <Line yAxisId="right" type="monotone" dataKey="avgVisitsPerUser" name="人均访问次数" stroke="#059669" strokeWidth={2} dot={{ r: 4 }} />}
+              {chartVisible.avgVisitsPerEnt && <Line yAxisId="right" type="monotone" dataKey="avgVisitsPerEnt" name="户均访问次数" stroke="#7C3AED" strokeWidth={2} dot={{ r: 4 }} strokeDasharray="5 3" />}
             </ComposedChart>
           </ResponsiveContainer>
+          </div>
         </div>
 
         {/* 地域排行 */}
@@ -1003,6 +1057,18 @@ export function OperationsAnalyticsDashboard() {
       {/* ─── 二、业务数据 ────────────────────────────── */}
       <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 12, paddingLeft: 4, borderLeft: '3px solid #4F46E5' }}>
         二、业务数据
+      </div>
+
+      {/* ─── 五维分析数据 ────────────────────────────── */}
+      <div style={{ background: 'white', border: '1px solid #9CA3AF', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 12 }}>五维分析</div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <FiveDimCard title="安全制度建立情况" doneLabel="已建立" done={totals.docLedgerEstablishedEnt} undoneLabel="未建立" undone={Math.max(0, totals.docLedgerEnt - totals.docLedgerEstablishedEnt)} color="#3B82F6" />
+          <FiveDimCard title="风险点识别情况" doneLabel="已识别" done={totals.riskConfirmedTotal} undoneLabel="未识别" undone={Math.max(0, totals.riskTotal - totals.riskConfirmedTotal)} color="#7C3AED" />
+          <FiveDimCard title="检查计划制定情况" doneLabel="已制定" done={totals.checkPlanDone} undoneLabel="未制定" undone={Math.max(0, totals.docLedgerEnt - totals.checkPlanDone)} color="#4F46E5" />
+          <FiveDimCard title="自查自纠情况" doneLabel="已自查" done={totals.hazardCheckedEnt} undoneLabel="未自查" undone={Math.max(0, totals.docLedgerEnt - totals.hazardCheckedEnt)} color="#059669" />
+          <FiveDimCard title="隐患整改闭环情况" doneLabel="已到位" done={totals.hazardRectified} undoneLabel="未到位" undone={Math.max(0, totals.hazardFound - totals.hazardRectified)} color="#DC2626" />
+        </div>
       </div>
 
       {/* ─── 核心功能分析 Tab ────────────────────────── */}
@@ -1541,6 +1607,35 @@ function MultiCard({ labels, values, units, colors, extra, extraLabel }: {
           <Column label={extraLabel!} value2={`${extra}%`} color={extra! >= 80 ? '#059669' : extra! >= 50 ? '#D97706' : '#DC2626'} />
         </>
       )}
+    </div>
+  )
+}
+
+// ─── 五维分析指标卡（百分比进度条 + 已/未完成） ───────────────
+function FiveDimCard({ title, doneLabel, done, undoneLabel, undone, color }: {
+  title: string; doneLabel: string; done: number; undoneLabel: string; undone: number; color: string
+}) {
+  const total = done + undone
+  const pct = total > 0 ? Math.round(done / total * 100) : 0
+  return (
+    <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: '12px 14px', flex: '1 1 0', minWidth: 190 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 10 }}>{title}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <div style={{ flex: 1, height: 10, background: '#F3F4F6', borderRadius: 5, overflow: 'hidden' }}>
+          <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 5 }} />
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 700, color, minWidth: 42, textAlign: 'right' }}>{pct}%</div>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ flex: 1, background: '#F9FAFB', borderRadius: 6, padding: '8px 10px', border: '1px solid #F3F4F6', textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>{doneLabel}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color }}>{done.toLocaleString()}</div>
+        </div>
+        <div style={{ flex: 1, background: '#F9FAFB', borderRadius: 6, padding: '8px 10px', border: '1px solid #F3F4F6', textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>{undoneLabel}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#9CA3AF' }}>{undone.toLocaleString()}</div>
+        </div>
+      </div>
     </div>
   )
 }
