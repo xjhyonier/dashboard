@@ -137,6 +137,20 @@ export function StationChiefV2Dashboard() {
   const [showChangelog, setShowChangelog] = useState(false)
   const changeLogDefault = useMemo(() => [
     {
+      id: 0,
+      date: '2026-07-16',
+      location: '任务计划',
+      content: '指标卡：隐患总数/已整改合并为双列卡片，重大事故隐患数/已整改合并为双列卡片，5个卡片统一风格样式\n表格：隐患总数/已整改合并同列显示，重大事故隐患数/已整改合并同列显示\n修改记录合并到看板主修改记录',
+      editing: false,
+    },
+    {
+      id: -1,
+      date: '2026-07-16',
+      location: '组织与人员',
+      content: '（二）人员履职情况表，"所在工作组"字段增加排序功能',
+      editing: false,
+    },
+    {
       id: 1,
       date: '2026-07-09',
       location: '责任主体分析',
@@ -186,9 +200,6 @@ export function StationChiefV2Dashboard() {
   const toggleStatus = (s: string) => {
     setFilterStatuses(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
   }
-
-  // 任务计划修改记录弹窗
-  const [showSpecialChangeLog, setShowSpecialChangeLog] = useState(false)
 
   const kpiTotals = useMemo(() => {
     const { start, end } = dateRange
@@ -934,7 +945,7 @@ export function StationChiefV2Dashboard() {
               </button>
               {tab.key === 'special' && isActive && (
                 <button
-                  onClick={() => setShowSpecialChangeLog(true)}
+                  onClick={() => setShowChangelog(true)}
                   title="查看任务计划修改记录"
                   style={{
                     padding: '4px 8px', border: '1px solid #E5E7EB', borderRadius: 6,
@@ -1073,61 +1084,6 @@ export function StationChiefV2Dashboard() {
               >
                 关闭
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── 任务计划修改记录弹窗 ─────────────────────────────── */}
-      {showSpecialChangeLog && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999,
-        }}
-          onClick={() => setShowSpecialChangeLog(false)}
-        >
-          <div style={{
-            background: 'white', borderRadius: 10, boxShadow: '0 8px 40px rgba(0,0,0,0.15)',
-            width: 480, maxHeight: '70vh', overflow: 'auto', padding: '24px 28px',
-          }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>任务计划 - 修改记录</div>
-              <button
-                onClick={() => setShowSpecialChangeLog(false)}
-                style={{ border: 'none', background: 'none', fontSize: 18, color: '#9CA3AF', cursor: 'pointer', padding: 0, lineHeight: 1 }}
-              >✕</button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{
-                padding: '12px 14px', background: '#F9FAFB', borderRadius: 8,
-                borderLeft: '3px solid #4F46E5',
-              }}>
-                <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>
-                  2026-07-01
-                </div>
-                <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
-                  <strong>表格：</strong><br />
-                  1. 删除"状态"列<br />
-                  2. 在"重大隐患数"右侧新增"已整改"列<br />
-                  <br />
-                  <strong>指标卡：</strong><br />
-                  1. 指标跟随子 tab 维度（全部/日常检查/专项检查/督查督办/抽检）动态变化<br />
-                  2. 新增隐患总数、重大事故隐患数、已整改隐患数3个指标<br />
-                  3. 6个指标卡单行排列，统一UI风格，左侧彩色 accent bar 区分
-                </div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-              <button
-                onClick={() => setShowSpecialChangeLog(false)}
-                style={{
-                  padding: '6px 16px', border: '1px solid #D1D5DB', borderRadius: 5,
-                  background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer',
-                }}
-              >关闭</button>
             </div>
           </div>
         </div>

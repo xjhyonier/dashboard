@@ -214,29 +214,41 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
     <div>
       {/* 统计卡片 */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '12px 14px', border: '1px solid #E5E7EB', borderLeft: '3px solid #6B7280' }}>
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>任务总数</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>{stats.taskCount}</div>
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 14px', border: '1px solid #9CA3AF', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>任务总数</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>{stats.taskCount.toLocaleString()}</div>
         </div>
-        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '12px 14px', border: '1px solid #E5E7EB', borderLeft: '3px solid #4F46E5' }}>
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>覆盖企业</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>{stats.totalCount}</div>
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 14px', border: '1px solid #9CA3AF', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>覆盖企业</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>{stats.totalCount.toLocaleString()}</div>
         </div>
-        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '12px 14px', border: '1px solid #E5E7EB', borderLeft: '3px solid #059669' }}>
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>已完成</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#059669' }}>{stats.completedCount}</div>
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 14px', border: '1px solid #9CA3AF', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>已完成</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#059669' }}>{stats.completedCount.toLocaleString()}</div>
         </div>
-        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '12px 14px', border: '1px solid #E5E7EB', borderLeft: '3px solid #D97706' }}>
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>隐患总数</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>{stats.hazardCount}</div>
+        {/* 隐患总数 / 已整改 */}
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 14px', border: '1px solid #9CA3AF', display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>隐患总数</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#374151', lineHeight: 1.2 }}>{stats.hazardCount.toLocaleString()}</div>
+          </div>
+          <div style={{ width: 2, height: 28, background: '#9CA3AF' }} />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>已整改</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#059669', lineHeight: 1.2 }}>{stats.rectifiedCount.toLocaleString()}</div>
+          </div>
         </div>
-        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '12px 14px', border: '1px solid #E5E7EB', borderLeft: '3px solid #DC2626' }}>
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>重大事故隐患数</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#B91C1C' }}>{stats.majorHazardCount}</div>
-        </div>
-        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '12px 14px', border: '1px solid #E5E7EB', borderLeft: '3px solid #10B981' }}>
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>已整改隐患数</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>{stats.rectifiedCount}</div>
+        {/* 重大事故隐患数 / 已整改 */}
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 14px', border: '1px solid #9CA3AF', display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>重大事故隐患数</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#DC2626', lineHeight: 1.2 }}>{stats.majorHazardCount.toLocaleString()}</div>
+          </div>
+          <div style={{ width: 2, height: 28, background: '#9CA3AF' }} />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>已整改</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#059669', lineHeight: 1.2 }}>{stats.majorHazardCount > 0 ? Math.min(stats.rectifiedCount, stats.majorHazardCount).toLocaleString() : '0'}</div>
+          </div>
         </div>
       </div>
 
@@ -289,9 +301,8 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
               <SortableTh label="已完成" sortKey="completed_count" sort={sort} onSort={handleSort} />
               <SortableTh label="完成率" sortKey="completion_rate" sort={sort} onSort={handleSort} />
               <th style={{ ...thStyle, fontWeight: 600, fontSize: 11 }}>时间进度</th>
-              <SortableTh label="隐患总数" sortKey="hazard_count" sort={sort} onSort={handleSort} />
-              <SortableTh label="重大隐患数" sortKey="major_hazard_count" sort={sort} onSort={handleSort} />
-              <SortableTh label="已整改" sortKey="rectified_count" sort={sort} onSort={handleSort} />
+              <SortableTh label="隐患总数/已整改" sortKey="hazard_count" sort={sort} onSort={handleSort} />
+              <SortableTh label="重大事故隐患数/已整改" sortKey="major_hazard_count" sort={sort} onSort={handleSort} />
               <SortableTh label="创建人" sortKey="creator" sort={sort} onSort={handleSort} />
             </tr>
           </thead>
@@ -340,7 +351,7 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
                       style={{ cursor: 'pointer', color: '#D97706', fontWeight: 600, textDecoration: 'underline' }}
                       title="点击查看隐患详情"
                     >
-                      {t.hazard_count}
+                      {t.hazard_count} / {t.rectified_count}
                     </span>
                   </td>
                   <td style={tdStyle} onClick={e => e.stopPropagation()}>
@@ -349,10 +360,9 @@ export function SpecialDimension({ dateRange, riskLevel, timeRange, selectedKpi,
                       style={{ cursor: 'pointer', color: '#DC2626', fontWeight: 600, textDecoration: 'underline' }}
                       title="点击查看重大隐患详情"
                     >
-                      {t.major_hazard_count}
+                      {t.major_hazard_count} / {t.major_hazard_count > 0 ? Math.min(t.rectified_count, t.major_hazard_count) : 0}
                     </span>
                   </td>
-                  <td style={{ ...tdStyle, color: '#059669', fontWeight: 600 }}>{t.rectified_count}</td>
                   <td style={{ ...tdStyle, color: t.creator === '系统' ? '#9CA3AF' : '#4F46E5' }}>{t.creator}</td>
                 </tr>
               )

@@ -252,61 +252,51 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
       </div>
 
       {/* ─── KPI 指标卡 ──────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 140, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '12px 16px' }}>
-          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>安全检查户数</div>
-          <span style={{ fontSize: 28, fontWeight: 700, color: '#1D4ED8' }}>{stats.checkEnterprise}<span style={{ fontSize: 13, fontWeight: 400, color: '#9CA3AF', marginLeft: 3 }}>户</span></span>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+        {/* 安全检查户数 */}
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 14px', border: '1px solid #9CA3AF', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>安全检查户数</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#1D4ED8' }}>{stats.checkEnterprise.toLocaleString()}</div>
         </div>
-        <div style={{ flex: 1, minWidth: 140, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '12px 16px' }}>
-          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>教育培训户数</div>
-          <span style={{ fontSize: 28, fontWeight: 700, color: '#7C3AED' }}>{stats.trainEnterprise}<span style={{ fontSize: 13, fontWeight: 400, color: '#9CA3AF', marginLeft: 3 }}>户</span></span>
+        {/* 教育培训户数 */}
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 14px', border: '1px solid #9CA3AF', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>教育培训户数</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#7C3AED' }}>{stats.trainEnterprise.toLocaleString()}</div>
         </div>
-        <div style={{ flex: 1, minWidth: 180, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '12px 16px' }}>
-          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>自查隐患数</div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-            <span style={{ fontSize: 28, fontWeight: 700, color: '#DC2626' }}>{stats.totalSelfHazard}</span>
-            <div style={{ fontSize: 11, color: '#6B7280' }}>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <span style={{ color: '#059669' }}>已整改</span>
-                <span style={{ fontWeight: 600, color: '#374151' }}>{stats.rectifiedSelfHazard}</span>
-              </div>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <span style={{ color: '#9CA3AF' }}>总数</span>
-                <span style={{ fontWeight: 600, color: '#374151' }}>{stats.totalSelfHazard}</span>
-              </div>
-            </div>
+        {/* 自查隐患数 / 已整改 */}
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 14px', border: '1px solid #9CA3AF', display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>自查隐患数</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#DC2626', lineHeight: 1.2 }}>{stats.totalSelfHazard.toLocaleString()}</div>
+          </div>
+          <div style={{ width: 2, height: 28, background: '#9CA3AF' }} />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>已整改</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#059669', lineHeight: 1.2 }}>{stats.rectifiedSelfHazard.toLocaleString()}</div>
           </div>
         </div>
-        <div style={{ flex: 1, minWidth: 180, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '12px 16px' }}>
-          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>监管隐患数</div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-            <span style={{ fontSize: 28, fontWeight: 700, color: '#EA580C' }}>{stats.totalMonitorHazard}</span>
-            <div style={{ fontSize: 11, color: '#6B7280' }}>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <span style={{ color: '#059669' }}>已整改</span>
-                <span style={{ fontWeight: 600, color: '#374151' }}>{stats.rectifiedMonitorHazard}</span>
-              </div>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <span style={{ color: '#9CA3AF' }}>总数</span>
-                <span style={{ fontWeight: 600, color: '#374151' }}>{stats.totalMonitorHazard}</span>
-              </div>
-            </div>
+        {/* 监管隐患数 / 已整改 */}
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 14px', border: '1px solid #9CA3AF', display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>监管隐患数</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#EA580C', lineHeight: 1.2 }}>{stats.totalMonitorHazard.toLocaleString()}</div>
+          </div>
+          <div style={{ width: 2, height: 28, background: '#9CA3AF' }} />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>已整改</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#059669', lineHeight: 1.2 }}>{stats.rectifiedMonitorHazard.toLocaleString()}</div>
           </div>
         </div>
-        <div style={{ flex: 1, minWidth: 180, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', padding: '12px 16px' }}>
-          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>重大事故隐患数</div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-            <span style={{ fontSize: 28, fontWeight: 700, color: '#991B1B' }}>{stats.totalMajorHazard}</span>
-            <div style={{ fontSize: 11, color: '#6B7280' }}>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <span style={{ color: '#059669' }}>已整改</span>
-                <span style={{ fontWeight: 600, color: '#374151' }}>{stats.rectifiedMajorHazard}</span>
-              </div>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <span style={{ color: '#9CA3AF' }}>总数</span>
-                <span style={{ fontWeight: 600, color: '#374151' }}>{stats.totalMajorHazard}</span>
-              </div>
-            </div>
+        {/* 重大事故隐患数 / 已整改 */}
+        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 14px', border: '1px solid #9CA3AF', display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>重大事故隐患数</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#991B1B', lineHeight: 1.2 }}>{stats.totalMajorHazard.toLocaleString()}</div>
+          </div>
+          <div style={{ width: 2, height: 28, background: '#9CA3AF' }} />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>已整改</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#059669', lineHeight: 1.2 }}>{stats.rectifiedMajorHazard.toLocaleString()}</div>
           </div>
         </div>
       </div>
