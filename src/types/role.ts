@@ -184,7 +184,7 @@ export const emergencyConfig: BusinessLine = {
     {
       id: 'monthly-report',
       name: '月度报告',
-      title: '运营数据分析',
+      title: '一起安平台数据分析',
       description: '展示系统使用情况和成效',
       goals: [
         '全面掌握系统使用情况',
@@ -224,9 +224,9 @@ export const emergencyConfig: BusinessLine = {
     },
     {
       id: 'operations-analytics',
-      name: '运营数据分析',
-      title: '运营数据分析',
-      description: 'SaaS平台用户运营数据分析，追踪用户粘性、功能使用频次和企业活跃度',
+      name: '一起安平台数据分析',
+      title: '一起安平台数据分析',
+      description: '一起安平台用户数据分析，追踪用户粘性、功能使用频次和企业活跃度',
       goals: [
         '掌握平台用户活跃度',
         '追踪用户粘性和留存率',

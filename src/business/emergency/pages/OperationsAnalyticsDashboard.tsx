@@ -451,6 +451,28 @@ export function OperationsAnalyticsDashboard() {
   // 功能 tab
   const [funcTab, setFuncTab] = useState<FunctionTab>('hazard')
 
+  // 修改记录
+  const [showChangelog, setShowChangelog] = useState(false)
+  const changeLogDefault = useMemo(() => [
+    {
+      id: 1,
+      date: '2026-07-16',
+      location: '全局',
+      content: '1. 全局筛选默认本月+全选街道\n2. 访问数据指标卡重构：安全责任主体三列布局，活跃人数/户数/人均户均双列布局，7日/30日留存拆分人数+户数，全部卡片带月环比\n3. 6个业务tab全面升级：企业自查自纠/镇街检查/教育培训/风险管控/制度台账/现场管理，每个tab含指标卡+带排序滑动表格\n4. 统一卡片样式：边框#9CA3AF/竖线分隔2px/字号统一/居中对齐/月环比',
+      editing: false,
+    },
+  ], [])
+  const [changeLogItems, setChangeLogItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem('opsAnalytics_changeLogItems')
+      return saved ? JSON.parse(saved) : changeLogDefault
+    } catch {
+      return changeLogDefault
+    }
+  })
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editText, setEditText] = useState('')
+
   // 根据已选省份动态获取可选城市列表
   const availableCities = useMemo(() => {
     const allCities = Object.values(CITIES_BY_PROVINCE).flat()
@@ -730,7 +752,15 @@ export function OperationsAnalyticsDashboard() {
 
   return (
     <div style={{ padding: '24px', maxWidth: 1500, margin: '0 auto' }}>
-      <PageHeader title="运营数据分析看板" />
+      <PageHeader title="一起安平台数据分析看板" actions={
+        <button
+          onClick={() => setShowChangelog(true)}
+          style={{
+            background: 'white', border: '1px solid #D1D5DB', borderRadius: 6,
+            padding: '5px 14px', fontSize: 12, color: '#4F46E5', cursor: 'pointer',
+          }}
+        >📝 修改记录</button>
+      } />
 
       {/* ─── 全局筛选栏（sticky） ────────────────────── */}
       <div style={{
@@ -1146,6 +1176,103 @@ export function OperationsAnalyticsDashboard() {
 
         </div>
       </div>
+
+      {/* ─── 修改记录弹窗 ──────────────────────────────────────── */}
+      {showChangelog && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999,
+        }}
+          onClick={() => { setShowChangelog(false); setEditingId(null) }}
+        >
+          <div style={{
+            background: 'white', borderRadius: 10, boxShadow: '0 8px 40px rgba(0,0,0,0.15)',
+            width: 520, maxHeight: '70vh', overflow: 'auto', padding: '24px 28px',
+          }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>📝 修改记录</div>
+              <button
+                onClick={() => { setShowChangelog(false); setEditingId(null) }}
+                style={{ border: 'none', background: 'none', fontSize: 18, color: '#9CA3AF', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+              >✕</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {changeLogItems.map(item => (
+                <div key={item.id} style={{
+                  padding: '12px 14px', background: '#F9FAFB', borderRadius: 8,
+                  borderLeft: '3px solid #4F46E5',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <span style={{ fontSize: 12, color: '#9CA3AF' }}>{item.date}</span>
+                      <span style={{
+                        fontSize: 11, padding: '1px 8px', borderRadius: 3,
+                        background: '#EEF2FF', color: '#4F46E5', fontWeight: 500,
+                      }}>
+                        {item.location}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (editingId === item.id) {
+                          setChangeLogItems(prev => {
+                            const updated = prev.map(i => i.id === item.id ? { ...i, content: editText, editing: false } : i)
+                            localStorage.setItem('opsAnalytics_changeLogItems', JSON.stringify(updated))
+                            return updated
+                          })
+                          setEditingId(null)
+                        } else {
+                          setEditingId(item.id)
+                          setEditText(item.content)
+                        }
+                      }}
+                      style={{
+                        padding: '2px 8px', fontSize: 11, borderRadius: 4, border: 'none',
+                        background: editingId === item.id ? '#4F46E5' : '#EEF2FF',
+                        color: editingId === item.id ? 'white' : '#4F46E5',
+                        cursor: 'pointer', fontWeight: 500,
+                      }}
+                    >
+                      {editingId === item.id ? '保存' : '编辑'}
+                    </button>
+                  </div>
+                  {editingId === item.id ? (
+                    <textarea
+                      value={editText}
+                      onChange={e => setEditText(e.target.value)}
+                      style={{
+                        width: '100%', minHeight: 80, padding: '8px 10px',
+                        border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 13,
+                        color: '#374151', lineHeight: 1.6, resize: 'vertical',
+                        outline: 'none', fontFamily: 'inherit',
+                      }}
+                      autoFocus
+                    />
+                  ) : (
+                    <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                      {item.content}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+              <button
+                onClick={() => { setShowChangelog(false); setEditingId(null) }}
+                style={{
+                  padding: '6px 20px', border: 'none', borderRadius: 6,
+                  background: '#4F46E5', color: 'white', fontSize: 13, cursor: 'pointer',
+                }}
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1485,8 +1612,8 @@ function EnterpriseTop10({ moduleFilter, totalsActiveUsers, accessActiveUsers }:
                 <td style={td({ color: i < 3 ? '#4F46E5' : '#9CA3AF', fontWeight: i < 3 ? 700 : 400 })}>
                   {i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}
                 </td>
-                <td style={{ ...td, textAlign: 'left', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={e.name}>{e.name}</td>
-                <td style={{ ...td, fontFamily: 'monospace', fontSize: 11, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={e.creditCode}>{e.creditCode}</td>
+                <td style={td({ textAlign: 'left', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })} title={e.name}>{e.name}</td>
+                <td style={td({ fontFamily: 'monospace', fontSize: 11, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })} title={e.creditCode}>{e.creditCode}</td>
                 <td style={td({})}>{e.province}</td>
                 <td style={td({})}>{e.city}</td>
                 <td style={td({})}>{e.district}</td>

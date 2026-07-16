@@ -135,21 +135,7 @@ export function StationChiefV2Dashboard() {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [filterFireType, setFilterFireType] = useState<'all' | 'fireKey' | 'nineSmall' | 'general'>('all')
   const [showChangelog, setShowChangelog] = useState(false)
-  const [changeLogItems, setChangeLogItems] = useState([
-    {
-      id: 6,
-      date: '2026-07-13',
-      location: '村社数据看板',
-      content: '指标卡增加维度分类：企业数/出租房数新增重大风险/较大风险/一般风险/低风险分布，场所数新增消防重点单位/一般单位/九小场所分布',
-      editing: false,
-    },
-    {
-      id: 5,
-      date: '2026-07-13',
-      location: '运营数据分析',
-      content: '运营数据分析看板重新设计：地域级联筛选(省→市→区→街道)、平台使用概况KPI(活跃人数/户数/访问/留存)、活跃趋势图、地域排行、核心功能分析Tab(隐患排查/教育培训/安全检查/风险管控)，全部支持按户统计',
-      editing: false,
-    },
+  const changeLogDefault = useMemo(() => [
     {
       id: 1,
       date: '2026-07-09',
@@ -165,20 +151,35 @@ export function StationChiefV2Dashboard() {
       editing: false,
     },
     {
-      id: 2,
+      id: 3,
       date: '2026-07-09',
       location: '全局指标卡',
       content: '6个总指标卡的单位（家/次/户/张/项/个）从值下方移至值右侧同行显示',
       editing: false,
     },
     {
-      id: 3,
+      id: 4,
       date: '2026-07-09',
       location: '全局筛选栏',
       content: '1. 全局筛选"主体" → "责任主体类型"\n2. 新增企业状态多选筛选，默认选中 正常/托管/歇业中/未核实\n3. 新增消防类型筛选（消防重点单位/九小场所/一般单位）\n4. 时间筛选支持跨月范围（from ~ to），快捷选项改为下拉框\n5. 风险等级、责任主体类型、消防类型改为下拉框，标签外置',
       editing: false,
     },
-  ])
+  ], [])
+
+  const [changeLogItems, setChangeLogItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem('stationChief_changeLogItems_v2')
+      if (saved) {
+        const items = JSON.parse(saved)
+        // filter out any stale cross-tab entries
+        const valid = items.filter((i: any) => !['一起安平台数据分析', '村社数据看板'].includes(i.location))
+        return valid.length > 0 ? valid : changeLogDefault
+      }
+      return changeLogDefault
+    } catch {
+      return changeLogDefault
+    }
+  })
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editText, setEditText] = useState('')
 
@@ -1021,7 +1022,11 @@ export function StationChiefV2Dashboard() {
                     <button
                       onClick={() => {
                         if (editingId === item.id) {
-                          setChangeLogItems(prev => prev.map(i => i.id === item.id ? { ...i, content: editText, editing: false } : i))
+                          setChangeLogItems(prev => {
+                            const updated = prev.map(i => i.id === item.id ? { ...i, content: editText, editing: false } : i)
+                            localStorage.setItem('stationChief_changeLogItems_v2', JSON.stringify(updated))
+                            return updated
+                          })
                           setEditingId(null)
                         } else {
                           setEditingId(item.id)
