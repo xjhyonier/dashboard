@@ -240,7 +240,17 @@ export function StationChiefV2Dashboard() {
         const items = JSON.parse(saved)
         // filter out any stale cross-tab entries
         const valid = items.filter((i: any) => !['一起安平台数据分析', '村社数据看板'].includes(i.location))
-        return valid.length > 0 ? valid : changeLogDefault
+        if (valid.length > 0) {
+          // 合并 localStorage 数据与 changeLogDefault：补充 missing 的默认条目
+          const existingIds = new Set(valid.map((i: any) => i.id))
+          const missingDefaults = changeLogDefault.filter((d: any) => !existingIds.has(d.id))
+          if (missingDefaults.length > 0) {
+            const merged = [...missingDefaults, ...valid].sort((a, b) => b.id - a.id)
+            localStorage.setItem('stationChief_changeLogItems_v2', JSON.stringify(merged))
+            return merged
+          }
+          return valid
+        }
       }
       return changeLogDefault
     } catch {
