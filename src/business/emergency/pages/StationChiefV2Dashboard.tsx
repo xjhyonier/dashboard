@@ -16,10 +16,21 @@ import { YuzhiSyncDashboard } from './YuzhiSyncDashboard'
 import { initDatabase, getWorkGroups, getHazards, getEnterpriseStats, getExperts, getEnterprises } from '../../../db'
 import type { WorkGroup, Hazard, Expert, Enterprise } from '../../../db/types'
 
-const VALID_DIMENSIONS: Dimension[] = ['duty', 'daily', 'industry', 'special', 'state', 'hazard', 'trend', 'yuzhi']
+const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'state', 'hazard', 'trend', 'yuzhi']
 
 // 顶级页面标识
-type TopLevelPage = 'station' | 'yuzhi' | 'yuzhi-sync'
+type TopLevelPage = 'station' | 'daily' | 'yuzhi' | 'yuzhi-sync'
+
+// 日常监管筛选下拉统一样式
+const dailySelectStyle = (active: boolean): React.CSSProperties => ({
+  padding: '2px 8px',
+  border: '1px solid #D1D5DB',
+  borderRadius: 4,
+  fontSize: 12,
+  color: active ? '#4F46E5' : '#6B7280',
+  background: 'white',
+  outline: 'none',
+})
 
 // 日期工具
 const TODAY = new Date()
@@ -46,7 +57,7 @@ const prevQuarterStartMonth = ((prevQuarterMonth % 12) + 12) % 12
 const prevQuarterStart = new Date(prevQuarterYear, prevQuarterStartMonth, 1)
 const prevQuarterEnd = new Date(prevQuarterYear, prevQuarterStartMonth + 3, 0)
 
-type TimeRange = 'week' | 'month' | 'quarter' | 'year' | 'prevMonth' | 'prevQuarter' | 'custom'
+type TimeRange = 'month' | 'quarter' | 'year' | 'prevMonth' | 'prevQuarter'
 
 export function StationChiefV2Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -64,6 +75,15 @@ export function StationChiefV2Dashboard() {
   const [filterExpert, setFilterExpert] = useState<string>('all')
   const [filterEnterprise, setFilterEnterprise] = useState<string>('all')
   const [filterIndustry, setFilterIndustry] = useState<string>('all')
+
+  // 日常监管页专属筛选状态
+  const [dailyVillage, setDailyVillage] = useState<string>('all')
+  const [dailyStatus, setDailyStatus] = useState<string>('all')
+  // 村社选项（取自工作组所属区域）
+  const villages = useMemo(
+    () => Array.from(new Set(workGroups.map(w => w.area))).filter(Boolean).sort(),
+    [workGroups],
+  )
 
   // 加载数据
   useEffect(() => {
@@ -97,28 +117,26 @@ export function StationChiefV2Dashboard() {
 
   // 顶级页面：station（应急消防管理站看板）或 yuzhi（村社数据看板）
   const pageParam = searchParams.get('page')
-  const topPage: TopLevelPage = pageParam === 'yuzhi-sync' ? 'yuzhi-sync' : pageParam === 'yuzhi' ? 'yuzhi' : 'station'
+  const topPage: TopLevelPage = pageParam === 'daily' ? 'daily' : pageParam === 'yuzhi-sync' ? 'yuzhi-sync' : pageParam === 'yuzhi' ? 'yuzhi' : 'station'
 
   // 日期筛选状态
   const [timeRange, setTimeRange] = useState<TimeRange>('month')
-  const [timeMonthFrom, setTimeMonthFrom] = useState(fmtMonth(TODAY))
-  const [timeMonthTo, setTimeMonthTo] = useState(fmtMonth(TODAY))
-  const [timeQuickFilter, setTimeQuickFilter] = useState<TimeRange>('month')
+  const [specificMonth, setSpecificMonth] = useState('')
 
-  // 根据 timeRange 或自定义月份范围计算实际起止日期
+  // 根据 timeRange 或 specificMonth 计算实际起止日期
   const dateRange = useMemo((): { start: string; end: string } => {
-    if (timeRange === 'custom') {
-      return { start: `${timeMonthFrom}-01`, end: (() => { const d = new Date(Number(timeMonthTo.split('-')[0]), Number(timeMonthTo.split('-')[1]), 0); return fmtDate(d) })() }
+    if (specificMonth) {
+      const d = new Date(Number(specificMonth.split('-')[0]), Number(specificMonth.split('-')[1]), 0)
+      return { start: `${specificMonth}-01`, end: fmtDate(d) }
     }
     switch (timeRange) {
-      case 'week':        return { start: fmtDate(weekStart),       end: fmtDate(weekEnd) }
       case 'month':       return { start: fmtDate(monthStart),      end: fmtDate(monthEnd) }
       case 'quarter':     return { start: fmtDate(quarterStart),    end: fmtDate(quarterEnd) }
       case 'year':        return { start: fmtDate(yearStart),       end: fmtDate(yearEnd) }
       case 'prevMonth':   return { start: fmtDate(prevMonthStart),  end: fmtDate(prevMonthEnd) }
       case 'prevQuarter': return { start: fmtDate(prevQuarterStart), end: fmtDate(prevQuarterEnd) }
     }
-  }, [timeRange, timeMonthFrom, timeMonthTo])
+  }, [timeRange, specificMonth])
 
   // 全局 KPI 筛选状态
   const [selectedKpi, setSelectedKpi] = useState<string | null>(null)
@@ -136,6 +154,41 @@ export function StationChiefV2Dashboard() {
   const [filterFireType, setFilterFireType] = useState<'all' | 'fireKey' | 'nineSmall' | 'general'>('all')
   const [showChangelog, setShowChangelog] = useState(false)
   const changeLogDefault = useMemo(() => [
+    {
+      id: 9,
+      date: '2026-07-17',
+      location: '修改记录',
+      content: '修改记录弹窗新增"在线新增"功能：点击"+ 新增"按钮可在顶部创建新记录（可编辑日期/模块/内容），保存后自动持久化到 localStorage',
+      editing: false,
+    },
+    {
+      id: 8,
+      date: '2026-07-17',
+      location: '全局筛选栏',
+      content: '1. 时间筛选取消跨月(from~to输入框)和"自定义"选项，改为单月快捷下拉\n2. 企业状态筛选标签改为"状态"，默认显示"全部"\n3. "安全责任主体总数"和"覆盖户数"指标卡改用与其他指标卡统一的bordered卡片样式',
+      editing: false,
+    },
+    {
+      id: 7,
+      date: '2026-07-17',
+      location: '责任主体分析',
+      content: '删除"监管隐患数/已整改"指标卡，移除对应统计变量',
+      editing: false,
+    },
+    {
+      id: 6,
+      date: '2026-07-17',
+      location: '日常监管',
+      content: '日常监管页新增全局筛选条件：村社、风险等级、责任主体类型、消防类型、专家、工作组、状态；概览/五维分析/占比分析三模块改为按筛选条件动态计算',
+      editing: false,
+    },
+    {
+      id: 5,
+      date: '2026-07-17',
+      location: '维度页签',
+      content: '将"日常监管"从维度页签升级为与"应急消防管理站看板"平级的顶级页签（位于其右侧），原维度页签区移除"日常监管"',
+      editing: false,
+    },
     {
       id: 0,
       date: '2026-07-16',
@@ -196,6 +249,34 @@ export function StationChiefV2Dashboard() {
   })
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editText, setEditText] = useState('')
+  const [editDate, setEditDate] = useState('')
+  const [editLocation, setEditLocation] = useState('')
+
+  const handleNewChangeLog = () => {
+    const nextId = Math.max(...changeLogItems.map(i => i.id), 0) + 1
+    const today = fmtDate(new Date())
+    const newEntry = { id: nextId, date: today, location: '', content: '', editing: true }
+    const updated = [newEntry, ...changeLogItems]
+    setChangeLogItems(updated)
+    setEditingId(nextId)
+    setEditText('')
+    setEditDate(today)
+    setEditLocation('')
+    localStorage.setItem('stationChief_changeLogItems_v2', JSON.stringify(updated))
+  }
+
+  const handleSaveChangeLog = (itemId: number) => {
+    setChangeLogItems(prev => {
+      const updated = prev.map(i =>
+        i.id === itemId
+          ? { ...i, date: editDate, location: editLocation, content: editText, editing: false }
+          : i
+      )
+      localStorage.setItem('stationChief_changeLogItems_v2', JSON.stringify(updated))
+      return updated
+    })
+    setEditingId(null)
+  }
 
   const toggleStatus = (s: string) => {
     setFilterStatuses(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
@@ -408,6 +489,23 @@ export function StationChiefV2Dashboard() {
           应急消防管理站看板
         </button>
         <button
+          onClick={() => setSearchParams({ page: 'daily' })}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            borderBottom: topPage === 'daily' ? '2px solid #4F46E5' : '2px solid transparent',
+            marginBottom: -2,
+            background: 'transparent',
+            color: topPage === 'daily' ? '#4F46E5' : '#6B7280',
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: topPage === 'daily' ? 700 : 500,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          日常监管
+        </button>
+        <button
           onClick={() => setSearchParams({ page: 'yuzhi' })}
           style={{
             padding: '10px 20px',
@@ -443,7 +541,148 @@ export function StationChiefV2Dashboard() {
         </button>
       </div>
 
-      {topPage === 'yuzhi' ? (
+      {topPage === 'daily' ? (
+        <>
+          <PageHeader title="日常监管" />
+          {/* 日常监管 - 全局筛选条件 */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 12,
+            flexWrap: 'wrap',
+          }}>
+            {/* 村社筛选 */}
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#9CA3AF' }}>村社:</span>
+              <select
+                value={dailyVillage}
+                onChange={e => setDailyVillage(e.target.value)}
+                style={dailySelectStyle(dailyVillage !== 'all')}
+              >
+                <option value="all">全部</option>
+                {villages.map(v => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
+
+            {/* 风险等级筛选 */}
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#9CA3AF' }}>风险:</span>
+              <select
+                value={riskLevel}
+                onChange={e => setRiskLevel(e.target.value as any)}
+                style={dailySelectStyle(riskLevel !== 'all')}
+              >
+                <option value="all">全部</option>
+                <option value="major">重大风险</option>
+                <option value="high">较大风险</option>
+                <option value="medium">一般风险</option>
+                <option value="low">低风险</option>
+              </select>
+            </div>
+
+            <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
+
+            {/* 责任主体类型筛选 */}
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#9CA3AF' }}>责任主体类型:</span>
+              <select
+                value={filterEntityType}
+                onChange={e => setFilterEntityType(e.target.value as any)}
+                style={dailySelectStyle(filterEntityType !== 'all')}
+              >
+                <option value="all">全部</option>
+                <option value="production">生产企业</option>
+                <option value="venue">消防场所</option>
+              </select>
+            </div>
+
+            <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
+
+            {/* 消防类型筛选 */}
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#9CA3AF' }}>消防类型:</span>
+              <select
+                value={filterFireType}
+                onChange={e => setFilterFireType(e.target.value as any)}
+                style={dailySelectStyle(filterFireType !== 'all')}
+              >
+                <option value="all">全部</option>
+                <option value="fireKey">消防重点单位</option>
+                <option value="nineSmall">九小场所</option>
+                <option value="general">一般单位</option>
+              </select>
+            </div>
+
+            <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
+
+            {/* 专家筛选 */}
+            <select
+              value={filterExpert}
+              onChange={e => setFilterExpert(e.target.value)}
+              style={{ ...dailySelectStyle(filterExpert !== 'all'), minWidth: 100 }}
+            >
+              <option value="all">全部专家</option>
+              {experts.map(exp => (
+                <option key={exp.id} value={exp.name}>{exp.name}</option>
+              ))}
+            </select>
+
+            {/* 工作组筛选 */}
+            <select
+              value={filterTeam}
+              onChange={e => setFilterTeam(e.target.value)}
+              style={{ ...dailySelectStyle(filterTeam !== 'all'), minWidth: 120 }}
+            >
+              <option value="all">全部工作组</option>
+              {workGroups.map(wg => (
+                <option key={wg.id} value={wg.name}>{wg.name}</option>
+              ))}
+            </select>
+
+            {/* 状态筛选 */}
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#9CA3AF' }}>状态:</span>
+              <select
+                value={dailyStatus}
+                onChange={e => setDailyStatus(e.target.value)}
+                style={dailySelectStyle(dailyStatus !== 'all')}
+              >
+                <option value="all">全部</option>
+                <option value="在业">在业</option>
+                <option value="停产">停产</option>
+                <option value="注销">注销</option>
+              </select>
+            </div>
+
+            {/* 重置筛选 */}
+            {(dailyVillage !== 'all' || riskLevel !== 'all' || filterEntityType !== 'all' || filterFireType !== 'all' || filterExpert !== 'all' || filterTeam !== 'all' || dailyStatus !== 'all') && (
+              <button
+                onClick={() => { setDailyVillage('all'); setRiskLevel('all'); setFilterEntityType('all'); setFilterFireType('all'); setFilterExpert('all'); setFilterTeam('all'); setDailyStatus('all') }}
+                style={{
+                  padding: '2px 8px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: 4,
+                  background: 'white',
+                  color: '#6B7280',
+                  fontSize: 12,
+                  cursor: 'pointer',
+                }}
+              >
+                重置
+              </button>
+            )}
+          </div>
+          <DailySupervisionDimension
+            filters={{ village: dailyVillage, risk: riskLevel, entityType: filterEntityType, fireType: filterFireType, expert: filterExpert, team: filterTeam, status: dailyStatus }}
+            options={{ villages, workGroups: workGroups.map(w => w.name), experts: experts.map(e => e.name) }}
+          />
+        </>
+      ) : topPage === 'yuzhi' ? (
         <YuzhiSyncDimension />
       ) : topPage === 'yuzhi-sync' ? (
         <YuzhiSyncDashboard />
@@ -475,16 +714,12 @@ export function StationChiefV2Dashboard() {
         marginBottom: 12,
         flexWrap: 'wrap',
       }}>
-        {/* 时间快捷筛选 + 跨月范围 */}
+        {/* 时间快捷筛选 */}
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#9CA3AF' }}>时间:</span>
           <select
-            value={timeQuickFilter}
-            onChange={e => {
-              const key = e.target.value as TimeRange
-              setTimeRange(key)
-              setTimeQuickFilter(key)
-            }}
+            value={timeRange}
+            onChange={e => setTimeRange(e.target.value as TimeRange)}
             style={{
               padding: '2px 8px',
               border: '1px solid #D1D5DB',
@@ -500,27 +735,28 @@ export function StationChiefV2Dashboard() {
             <option value="quarter">本季</option>
             <option value="prevQuarter">上季</option>
             <option value="year">本年</option>
-            <option value="custom">自定义</option>
           </select>
           <input
             type="month"
-            value={timeMonthFrom}
-            onChange={e => { setTimeMonthFrom(e.target.value); setTimeRange('custom'); setTimeQuickFilter('custom') }}
+            value={specificMonth}
+            onChange={e => setSpecificMonth(e.target.value)}
             style={{
               padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
-              fontSize: 12, color: '#374151', background: 'white', outline: 'none',
+              fontSize: 12, color: specificMonth ? '#4F46E5' : '#9CA3AF', background: 'white', outline: 'none',
             }}
           />
-          <span style={{ fontSize: 12, color: '#9CA3AF' }}>~</span>
-          <input
-            type="month"
-            value={timeMonthTo}
-            onChange={e => { setTimeMonthTo(e.target.value); setTimeRange('custom') }}
-            style={{
-              padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
-              fontSize: 12, color: '#374151', background: 'white', outline: 'none',
-            }}
-          />
+          {specificMonth && (
+            <button
+              onClick={() => setSpecificMonth('')}
+              style={{
+                padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
+                background: 'white', color: '#9CA3AF', fontSize: 11, cursor: 'pointer',
+                lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
@@ -575,23 +811,27 @@ export function StationChiefV2Dashboard() {
 
         <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
 
-        {/* 企业状态多选筛选 */}
+        {/* 状态多选筛选 */}
         <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-            style={{
-              padding: '2px 8px',
-              border: '1px solid #D1D5DB',
-              borderRadius: 4,
-              background: filterStatuses.length < ENTERPRISE_STATUSES.length ? '#EEF2FF' : 'white',
-              color: filterStatuses.length < ENTERPRISE_STATUSES.length ? '#4F46E5' : '#6B7280',
-              fontSize: 12,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            企业状态 ({filterStatuses.length}/{ENTERPRISE_STATUSES.length})
-          </button>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: '#9CA3AF' }}>状态:</span>
+            <button
+              onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+              style={{
+                padding: '2px 8px',
+                border: '1px solid #D1D5DB',
+                borderRadius: 4,
+                background: filterStatuses.length < ENTERPRISE_STATUSES.length ? '#EEF2FF' : 'white',
+                color: filterStatuses.length < ENTERPRISE_STATUSES.length ? '#4F46E5' : '#6B7280',
+                fontSize: 12,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                minWidth: 80,
+              }}
+            >
+              {filterStatuses.length === ENTERPRISE_STATUSES.length ? '全部' : `${filterStatuses.length}项`}
+            </button>
+          </div>
           {showStatusDropdown && (
             <>
               <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99 }} onClick={() => setShowStatusDropdown(false)} />
@@ -699,7 +939,7 @@ export function StationChiefV2Dashboard() {
         </select>
 
         {/* 重置筛选 */}
-        {(filterTeam !== 'all' || filterExpert !== 'all' || filterEntityType !== 'all' || filterFireType !== 'all' || filterStatuses.length !== 4) && (
+        {(filterTeam !== 'all' || filterExpert !== 'all' || filterEntityType !== 'all' || filterFireType !== 'all' || filterStatuses.length < ENTERPRISE_STATUSES.length) && (
           <button
             onClick={() => { setFilterTeam('all'); setFilterExpert('all'); setFilterEntityType('all'); setFilterFireType('all'); setFilterStatuses(['正常', '托管', '歇业中', '未核实']) }}
             style={{
@@ -725,12 +965,10 @@ export function StationChiefV2Dashboard() {
         alignItems: 'stretch',
       }}>
         {/* 安全责任主体总数 */}
-        <KpiCard
-          selectedKpi={selectedKpi}
-          setSelectedKpi={setSelectedKpi}
-          item={{ key: 'safetySubject', label: '安全责任主体总数', value: enterprises.length, unit: '家', color: '#1D4ED8', tip: '纳入安全监管的企业（安全责任主体）总数' }}
-          accentBar="#3B82F6"
-        />
+        <div style={{ flex: '0 0 auto', background: 'white', borderRadius: 8, padding: '10px 14px', border: '1px solid #9CA3AF', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>安全责任主体总数 ⓘ</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#1D4ED8', lineHeight: 1.2 }}>{enterprises.length.toLocaleString()} <span style={{ fontSize: 12, fontWeight: 400, color: '#9CA3AF' }}>家</span></div>
+        </div>
         {/* 检查次数组 */}
         <div style={{
           flex: 1,
@@ -768,11 +1006,10 @@ export function StationChiefV2Dashboard() {
           </div>
         </div>
         {/* 覆盖户数 */}
-        <KpiCard
-          selectedKpi={selectedKpi}
-          setSelectedKpi={setSelectedKpi}
-          item={{ key: 'enterprise', label: '覆盖户数', value: kpiTotals.enterprise, unit: '户', color: '#374151', tip: '远程监管户数（去除停业、虚拟注册等，共8900多）' }}
-        />
+        <div style={{ flex: '0 0 auto', background: 'white', borderRadius: 8, padding: '10px 14px', border: '1px solid #9CA3AF', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>覆盖户数 ⓘ</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#374151', lineHeight: 1.2 }}>{kpiTotals.enterprise.toLocaleString()} <span style={{ fontSize: 12, fontWeight: 400, color: '#9CA3AF' }}>户</span></div>
+        </div>
 
         {/* 检查单统计组 */}
         <div style={{
@@ -914,7 +1151,6 @@ export function StationChiefV2Dashboard() {
       }}>
         {[
           { key: 'duty', label: '组织与人员' },
-          { key: 'daily', label: '日常监管' },
           { key: 'industry', label: '行业分析' },
           { key: 'special', label: '任务计划' },
           { key: 'state', label: '责任主体分析' },
@@ -962,7 +1198,6 @@ export function StationChiefV2Dashboard() {
       </div>
 
       {dimension === 'duty' && <DutyDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} onNavigateToHazard={handleNavigateToHazard} onNavigateToState={handleNavigateToState} filterEntityType={filterEntityType} />}
-      {dimension === 'daily' && <DailySupervisionDimension />}
       {dimension === 'industry' && <IndustryDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} filterEntityType={filterEntityType} />}
       {dimension === 'special' && <SpecialDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} onNavigateToHazard={handleNavigateToHazard} filterEntityType={filterEntityType} />}
       {dimension === 'state' && <StateDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} filterEntityType={filterEntityType} navigateParams={{
@@ -1008,7 +1243,18 @@ export function StationChiefV2Dashboard() {
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>📝 修改记录</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>📝 修改记录</div>
+                <button
+                  onClick={handleNewChangeLog}
+                  style={{
+                    padding: '3px 10px', fontSize: 12, borderRadius: 4, border: '1px solid #D1D5DB',
+                    background: 'white', color: '#4F46E5', cursor: 'pointer', fontWeight: 500,
+                  }}
+                >
+                  + 新增
+                </button>
+              </div>
               <button
                 onClick={() => { setShowChangelog(false); setEditingId(null) }}
                 style={{ border: 'none', background: 'none', fontSize: 18, color: '#9CA3AF', cursor: 'pointer', padding: 0, lineHeight: 1 }}
@@ -1030,18 +1276,16 @@ export function StationChiefV2Dashboard() {
                         {item.location}
                       </span>
                     </div>
+                    <div style={{ display: 'flex', gap: 4 }}>
                     <button
                       onClick={() => {
                         if (editingId === item.id) {
-                          setChangeLogItems(prev => {
-                            const updated = prev.map(i => i.id === item.id ? { ...i, content: editText, editing: false } : i)
-                            localStorage.setItem('stationChief_changeLogItems_v2', JSON.stringify(updated))
-                            return updated
-                          })
-                          setEditingId(null)
+                          handleSaveChangeLog(item.id)
                         } else {
                           setEditingId(item.id)
                           setEditText(item.content)
+                          setEditDate(item.date)
+                          setEditLocation(item.location)
                         }
                       }}
                       style={{
@@ -1053,19 +1297,56 @@ export function StationChiefV2Dashboard() {
                     >
                       {editingId === item.id ? '保存' : '编辑'}
                     </button>
+                    {editingId === item.id && (
+                      <button
+                        onClick={() => setEditingId(null)}
+                        style={{
+                          padding: '2px 8px', fontSize: 11, borderRadius: 4, border: '1px solid #D1D5DB',
+                          background: 'white', color: '#6B7280', cursor: 'pointer', fontWeight: 400,
+                        }}
+                      >
+                        取消
+                      </button>
+                    )}
+                    </div>
                   </div>
                   {editingId === item.id ? (
-                    <textarea
-                      value={editText}
-                      onChange={e => setEditText(e.target.value)}
-                      style={{
-                        width: '100%', minHeight: 80, padding: '8px 10px',
-                        border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 13,
-                        color: '#374151', lineHeight: 1.6, resize: 'vertical',
-                        outline: 'none', fontFamily: 'inherit',
-                      }}
-                      autoFocus
-                    />
+                    <div>
+                      {item.editing && (
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                          <input
+                            value={editDate}
+                            onChange={e => setEditDate(e.target.value)}
+                            placeholder="日期 (YYYY-MM-DD)"
+                            style={{
+                              flex: 1, padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4,
+                              fontSize: 12, color: '#374151', outline: 'none', fontFamily: 'inherit',
+                            }}
+                          />
+                          <input
+                            value={editLocation}
+                            onChange={e => setEditLocation(e.target.value)}
+                            placeholder="模块名称"
+                            style={{
+                              flex: 1, padding: '4px 8px', border: '1px solid #D1D5DB', borderRadius: 4,
+                              fontSize: 12, color: '#374151', outline: 'none', fontFamily: 'inherit',
+                            }}
+                          />
+                        </div>
+                      )}
+                      <textarea
+                        value={editText}
+                        onChange={e => setEditText(e.target.value)}
+                        placeholder="输入修改内容..."
+                        style={{
+                          width: '100%', minHeight: 80, padding: '8px 10px',
+                          border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 13,
+                          color: '#374151', lineHeight: 1.6, resize: 'vertical',
+                          outline: 'none', fontFamily: 'inherit',
+                        }}
+                        autoFocus
+                      />
+                    </div>
                   ) : (
                     <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                       {item.content}

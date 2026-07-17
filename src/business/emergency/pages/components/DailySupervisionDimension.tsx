@@ -1,4 +1,25 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+
+// ─── 筛选条件与可选项 ───────────────────────────────────────────────
+export interface DailyFilters {
+  village: string        // 'all' | 村社名称
+  risk: string           // 'all' | 'major' | 'high' | 'medium' | 'low'
+  entityType: string     // 'all' | 'production' | 'venue'
+  fireType: string       // 'all' | 'fireKey' | 'nineSmall' | 'general'
+  expert: string         // 'all' | 专家姓名
+  team: string           // 'all' | 工作组名称
+  status: string         // 'all' | '在业' | '停产' | '注销'
+}
+
+export interface DailyFilterOptions {
+  villages: string[]
+  workGroups: string[]
+  experts: string[]
+}
+
+const RISK_MAP: Record<string, string> = {
+  major: '重大', high: '较大', medium: '一般', low: '低',
+}
 
 // ─── 通用小卡片：两数对比（如 已开通/未开通） ─────────────────────────
 const StatPair = ({
@@ -133,8 +154,173 @@ const RiskTag = ({ level, count, rate }: { level: string; count: number; rate: s
   )
 }
 
-export function DailySupervisionDimension() {
+// ─── 确定性随机（保证无筛选时数值稳定） ───────────────────────────────
+function mulberry32(seed: number) {
+  return function () {
+    seed |= 0
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+type RiskDisp = '重大' | '较大' | '一般' | '低'
+type EntityTypeKey = 'production' | 'venue'
+type FireKey = 'fireKey' | 'nineSmall' | 'general'
+type StatusKey = '在业' | '停产' | '注销'
+type AiRisk = 'consistent' | 'inconsistent' | 'unrecognized'
+type Rectify = 'completed' | 'partial' | 'uncompleted'
+
+interface Entity {
+  id: number
+  village: string
+  riskLevel: RiskDisp
+  entityType: EntityTypeKey
+  fireType: FireKey
+  expert: string
+  workGroup: string
+  status: StatusKey
+  activated: boolean
+  infoCollected: boolean
+  aiRisk: AiRisk
+  riskMarked: boolean
+  dutyEstablished: boolean
+  riskIdentified: boolean
+  planMade: boolean
+  selfCheck: boolean
+  hazardClosed: boolean
+  todoPushed: boolean
+  rectify: Rectify | null
+  read: boolean
+}
+
+const DEFAULT_VILLAGES = ['良渚村', '勾庄村', '运河村', '石桥村', '管家塘', '金家渡', '西塘河', '七贤桥']
+const DEFAULT_TEAMS = ['第一工作组', '第二工作组', '第三工作组', '第四工作组']
+const DEFAULT_EXPERTS = ['张伟专家', '李娜专家', '王强专家', '刘洋专家', '陈静专家']
+
+function generateEntities(opts: DailyFilterOptions): Entity[] {
+  const villages = opts.villages.length ? opts.villages : DEFAULT_VILLAGES
+  const workGroups = opts.workGroups.length ? opts.workGroups : DEFAULT_TEAMS
+  const experts = opts.experts.length ? opts.experts : DEFAULT_EXPERTS
+  const rnd = mulberry32(20260717)
+  const TOTAL = 1160
+  const list: Entity[] = []
+  for (let i = 0; i < TOTAL; i++) {
+    const r = rnd()
+    const riskLevel: RiskDisp = r < 0.332 ? '重大' : r < 0.642 ? '较大' : r < 0.847 ? '一般' : '低'
+    const activated = rnd() < 0.94138
+    const infoCollected = rnd() < 0.92414
+    const aiR = rnd()
+    const aiRisk: AiRisk = aiR < 0.3974 ? 'consistent' : aiR < 0.8845 ? 'inconsistent' : 'unrecognized'
+    const riskMarked = rnd() < 0.80086
+    const dutyEstablished = rnd() < 0.31121
+    const riskIdentified = rnd() < 0.82931
+    const planMade = rnd() < 0.81466
+    const selfCheck = rnd() < 0.80690
+    const hazardClosed = rnd() < 0.81121
+    const entityType: EntityTypeKey = rnd() < 0.6 ? 'production' : 'venue'
+    const fireR = rnd()
+    const fireType: FireKey = fireR < 0.2 ? 'fireKey' : fireR < 0.7 ? 'nineSmall' : 'general'
+    const statusR = rnd()
+    const status: StatusKey = statusR < 0.8 ? '在业' : statusR < 0.92 ? '停产' : '注销'
+    const village = villages[Math.floor(rnd() * villages.length)]
+    const workGroup = workGroups[Math.floor(rnd() * workGroups.length)]
+    const expert = experts[Math.floor(rnd() * experts.length)]
+    let todoPushed = false
+    let rectify: Rectify | null = null
+    let read = false
+    if (activated) {
+      todoPushed = rnd() < 0.93040
+      if (todoPushed) {
+        const x = rnd()
+        rectify = x < 0.34646 ? 'completed' : x < 0.43012 ? 'partial' : 'uncompleted'
+        if (rectify === 'uncompleted') read = rnd() < 0.53022
+      }
+    }
+    list.push({
+      id: i, village, riskLevel, entityType, fireType, expert, workGroup, status,
+      activated, infoCollected, aiRisk, riskMarked, dutyEstablished, riskIdentified,
+      planMade, selfCheck, hazardClosed, todoPushed, rectify, read,
+    })
+  }
+  return list
+}
+
+const pct = (n: number, d: number) => (d > 0 ? ((n / d) * 100).toFixed(2) + '%' : '0.00%')
+
+const RISK_LEVELS: RiskDisp[] = ['重大', '较大', '一般', '低']
+
+function renderRiskTags(entities: Entity[]) {
+  const total = entities.length
+  return RISK_LEVELS
+    .map(level => {
+      const count = entities.filter(e => e.riskLevel === level).length
+      return { level, count }
+    })
+    .filter(x => x.count > 0)
+    .map(x => (
+      <RiskTag
+        key={x.level}
+        level={x.level + '风险'}
+        count={x.count}
+        rate={pct(x.count, total)}
+      />
+    ))
+}
+
+export function DailySupervisionDimension({
+  filters,
+  options,
+}: {
+  filters: DailyFilters
+  options: DailyFilterOptions
+}) {
   const [viewMode, setViewMode] = useState<'level' | 'flow'>('level')
+
+  // 实体全集（仅生成一次，确定性）
+  const allEntities = useMemo(() => generateEntities(options), [options])
+
+  // 按筛选条件过滤
+  const entities = useMemo(() => {
+    return allEntities.filter(e => {
+      if (filters.village !== 'all' && e.village !== filters.village) return false
+      if (filters.risk !== 'all' && e.riskLevel !== RISK_MAP[filters.risk]) return false
+      if (filters.entityType !== 'all' && e.entityType !== filters.entityType) return false
+      if (filters.fireType !== 'all' && e.fireType !== filters.fireType) return false
+      if (filters.expert !== 'all' && e.expert !== filters.expert) return false
+      if (filters.team !== 'all' && e.workGroup !== filters.team) return false
+      if (filters.status !== 'all' && e.status !== filters.status) return false
+      return true
+    })
+  }, [allEntities, filters])
+
+  const total = entities.length
+
+  // 概览统计
+  const activated = entities.filter(e => e.activated)
+  const infoCollected = entities.filter(e => e.infoCollected)
+  const aiConsistent = entities.filter(e => e.aiRisk === 'consistent')
+  const aiInconsistent = entities.filter(e => e.aiRisk === 'inconsistent')
+  const aiUnrecognized = entities.filter(e => e.aiRisk === 'unrecognized')
+  const riskMarked = entities.filter(e => e.riskMarked)
+
+  // 五维分析
+  const dutyEstablished = entities.filter(e => e.dutyEstablished)
+  const riskIdentified = entities.filter(e => e.riskIdentified)
+  const planMade = entities.filter(e => e.planMade)
+  const selfCheck = entities.filter(e => e.selfCheck)
+  const hazardClosed = entities.filter(e => e.hazardClosed)
+
+  // 占比分析树
+  const unactivated = entities.filter(e => !e.activated)
+  const pushed = entities.filter(e => e.todoPushed)
+  const notPushed = entities.filter(e => e.activated && !e.todoPushed)
+  const completed = pushed.filter(e => e.rectify === 'completed')
+  const partial = pushed.filter(e => e.rectify === 'partial')
+  const uncompleted = pushed.filter(e => e.rectify === 'uncompleted')
+  const readList = uncompleted.filter(e => e.read)
+  const unreadList = uncompleted.filter(e => !e.read)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '8px 0 24px' }}>
@@ -143,22 +329,22 @@ export function DailySupervisionDimension() {
       <section>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 14 }}>概览</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-          <StatPair title="单位开通情况" rate="94.14%" done={1092} doneLabel="已开通" undone={68} undoneLabel="未开通" />
-          <StatPair title="数据采集情况" rate="92.50%" done={1073} doneLabel="已采集" undone={87} undoneLabel="未采集" />
+          <StatPair title="单位开通情况" rate={pct(activated.length, total)} done={activated.length} doneLabel="已开通" undone={total - activated.length} undoneLabel="未开通" />
+          <StatPair title="数据采集情况" rate={pct(infoCollected.length, total)} done={infoCollected.length} doneLabel="已采集" undone={total - infoCollected.length} undoneLabel="未采集" />
           <div style={{ background: '#FAFBFC', borderRadius: 8, padding: 14, border: '1px solid #E5E7EB' }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 10 }}>AI风险等级一致性</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#6B7280' }}>AI风险等级一致</span>
-                <span style={{ color: '#374151', fontWeight: 600 }}>461 <span style={{ color: '#9CA3AF', fontWeight: 400 }}>(户)</span></span>
+                <span style={{ color: '#374151', fontWeight: 600 }}>{aiConsistent.length.toLocaleString()} <span style={{ color: '#9CA3AF', fontWeight: 400 }}>(户)</span></span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#6B7280' }}>AI风险等级不一致</span>
-                <span style={{ color: '#374151', fontWeight: 600 }}>565 <span style={{ color: '#9CA3AF', fontWeight: 400 }}>(户)</span></span>
+                <span style={{ color: '#374151', fontWeight: 600 }}>{aiInconsistent.length.toLocaleString()} <span style={{ color: '#9CA3AF', fontWeight: 400 }}>(户)</span></span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#6B7280' }}>AI未识别风险等级</span>
-                <span style={{ color: '#374151', fontWeight: 600 }}>134 <span style={{ color: '#9CA3AF', fontWeight: 400 }}>(户)</span></span>
+                <span style={{ color: '#374151', fontWeight: 600 }}>{aiUnrecognized.length.toLocaleString()} <span style={{ color: '#9CA3AF', fontWeight: 400 }}>(户)</span></span>
               </div>
             </div>
           </div>
@@ -167,11 +353,11 @@ export function DailySupervisionDimension() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#6B7280' }}>已标注</span>
-                <span style={{ color: '#374151', fontWeight: 600 }}>929 <span style={{ color: '#9CA3AF', fontWeight: 400 }}>(户)</span></span>
+                <span style={{ color: '#374151', fontWeight: 600 }}>{riskMarked.length.toLocaleString()} <span style={{ color: '#9CA3AF', fontWeight: 400 }}>(户)</span></span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#6B7280' }}>未标注</span>
-                <span style={{ color: '#374151', fontWeight: 600 }}>231 <span style={{ color: '#9CA3AF', fontWeight: 400 }}>(户)</span></span>
+                <span style={{ color: '#374151', fontWeight: 600 }}>{(total - riskMarked.length).toLocaleString()} <span style={{ color: '#9CA3AF', fontWeight: 400 }}>(户)</span></span>
               </div>
             </div>
           </div>
@@ -182,11 +368,11 @@ export function DailySupervisionDimension() {
       <section>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 14 }}>企业、场所五维分析</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-          <FiveDimItem title="安全制度建立情况" rate="31.02%" done={361} doneLabel="已建立" undone={799} undoneLabel="未建立" />
-          <FiveDimItem title="风险点识别情况" rate="82.93%" done={962} doneLabel="已识别" undone={198} undoneLabel="未识别" />
-          <FiveDimItem title="检查计划制定情况" rate="81.47%" done={945} doneLabel="已制定" undone={215} undoneLabel="未制定" />
-          <FiveDimItem title="自查自纠情况" rate="80.69%" done={936} doneLabel="已自查" undone={224} undoneLabel="未自查" />
-          <FiveDimItem title="隐患整改闭环情况" rate="81.42%" done={941} doneLabel="已到位" undone={219} undoneLabel="未到位" />
+          <FiveDimItem title="安全制度建立情况" rate={pct(dutyEstablished.length, total)} done={dutyEstablished.length} doneLabel="已建立" undone={total - dutyEstablished.length} undoneLabel="未建立" />
+          <FiveDimItem title="风险点识别情况" rate={pct(riskIdentified.length, total)} done={riskIdentified.length} doneLabel="已识别" undone={total - riskIdentified.length} undoneLabel="未识别" />
+          <FiveDimItem title="检查计划制定情况" rate={pct(planMade.length, total)} done={planMade.length} doneLabel="已制定" undone={total - planMade.length} undoneLabel="未制定" />
+          <FiveDimItem title="自查自纠情况" rate={pct(selfCheck.length, total)} done={selfCheck.length} doneLabel="已自查" undone={total - selfCheck.length} undoneLabel="未自查" />
+          <FiveDimItem title="隐患整改闭环情况" rate={pct(hazardClosed.length, total)} done={hazardClosed.length} doneLabel="已到位" undone={total - hazardClosed.length} undoneLabel="未到位" />
         </div>
       </section>
 
@@ -219,76 +405,58 @@ export function DailySupervisionDimension() {
         </div>
 
         <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, padding: 20 }}>
-          <TreeNode label="责任主体总量" count={1160} rate="100.0%">
-            <TreeNode label="已开通企业" count={1092} rate="94.1%" color="#10B981">
-              <TreeNode label="专家已推送待办" count={1016} rate="87.6%" color="#10B981">
+          <TreeNode label="责任主体总量" count={total} rate="100.0%">
+            <TreeNode label="已开通企业" count={activated.length} rate={pct(activated.length, total)} color="#10B981">
+              <TreeNode label="专家已推送待办" count={pushed.length} rate={pct(pushed.length, activated.length)} color="#10B981">
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
                     <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>完成整改</span>
-                    <span style={{ fontSize: 12, color: '#6B7280' }}>352 (30.3%)</span>
+                    <span style={{ fontSize: 12, color: '#6B7280' }}>{completed.length} ({pct(completed.length, total)})</span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingLeft: 16 }}>
-                    <RiskTag level="重大风险" count={177} rate="15.3%" />
-                    <RiskTag level="一般风险" count={8} rate="0.7%" />
-                    <RiskTag level="较大风险" count={149} rate="12.8%" />
-                    <RiskTag level="低风险" count={18} rate="1.6%" />
+                    {renderRiskTags(completed)}
                   </div>
                 </div>
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F59E0B', display: 'inline-block' }} />
                     <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>部分完成</span>
-                    <span style={{ fontSize: 12, color: '#6B7280' }}>85 (7.3%)</span>
+                    <span style={{ fontSize: 12, color: '#6B7280' }}>{partial.length} ({pct(partial.length, total)})</span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingLeft: 16 }}>
-                    <RiskTag level="重大风险" count={50} rate="4.3%" />
-                    <RiskTag level="一般风险" count={2} rate="0.2%" />
-                    <RiskTag level="较大风险" count={30} rate="2.6%" />
-                    <RiskTag level="低风险" count={3} rate="0.3%" />
+                    {renderRiskTags(partial)}
                   </div>
                 </div>
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#9CA3AF', display: 'inline-block' }} />
                     <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>未完成</span>
-                    <span style={{ fontSize: 12, color: '#6B7280' }}>579 (49.9%)</span>
+                    <span style={{ fontSize: 12, color: '#6B7280' }}>{uncompleted.length} ({pct(uncompleted.length, total)})</span>
                   </div>
                   <div style={{ paddingLeft: 16 }}>
-                    <TreeNode label="已读" count={307} rate="26.5%" color="#10B981">
+                    <TreeNode label="已读" count={readList.length} rate={pct(readList.length, total)} color="#10B981">
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                        <RiskTag level="重大风险" count={45} rate="3.9%" />
-                        <RiskTag level="一般风险" count={140} rate="12.1%" />
-                        <RiskTag level="较大风险" count={97} rate="8.4%" />
-                        <RiskTag level="低风险" count={25} rate="2.2%" />
+                        {renderRiskTags(readList)}
                       </div>
                     </TreeNode>
-                    <TreeNode label="未读" count={272} rate="23.4%" color="#9CA3AF">
+                    <TreeNode label="未读" count={unreadList.length} rate={pct(unreadList.length, total)} color="#9CA3AF">
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                        <RiskTag level="重大风险" count={87} rate="7.5%" />
-                        <RiskTag level="一般风险" count={69} rate="5.9%" />
-                        <RiskTag level="较大风险" count={59} rate="5.1%" />
-                        <RiskTag level="低风险" count={56} rate="4.8%" />
+                        {renderRiskTags(unreadList)}
                       </div>
                     </TreeNode>
                   </div>
                 </div>
-                <TreeNode label="专家未推送待办" count={76} rate="6.6%" color="#9CA3AF">
+                <TreeNode label="专家未推送待办" count={notPushed.length} rate={pct(notPushed.length, activated.length)} color="#9CA3AF">
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                    <RiskTag level="重大风险" count={3} rate="0.3%" />
-                    <RiskTag level="一般风险" count={5} rate="0.4%" />
-                    <RiskTag level="较大风险" count={3} rate="0.3%" />
-                    <RiskTag level="低风险" count={64} rate="5.5%" />
+                    {renderRiskTags(notPushed)}
                   </div>
                 </TreeNode>
               </TreeNode>
             </TreeNode>
-            <TreeNode label="未开通企业" count={68} rate="5.9%" color="#9CA3AF">
+            <TreeNode label="未开通企业" count={unactivated.length} rate={pct(unactivated.length, total)} color="#9CA3AF">
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                <RiskTag level="重大风险" count={2} rate="0.2%" />
-                <RiskTag level="一般风险" count={6} rate="0.7%" />
-                <RiskTag level="较大风险" count={1} rate="0.1%" />
-                <RiskTag level="低风险" count={48} rate="4.1%" />
+                {renderRiskTags(unactivated)}
               </div>
             </TreeNode>
           </TreeNode>

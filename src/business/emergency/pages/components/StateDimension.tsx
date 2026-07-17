@@ -160,8 +160,6 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
     let trainEnterprise = 0       // 教育培训户数
     let totalSelfHazard = 0       // 自查隐患总数
     let rectifiedSelfHazard = 0   // 自查隐患已整改
-    let totalMonitorHazard = 0    // 监管隐患总数
-    let rectifiedMonitorHazard = 0 // 监管隐患已整改
     let totalMajorHazard = 0      // 重大隐患总数
     let rectifiedMajorHazard = 0  // 重大隐患已整改
 
@@ -181,13 +179,10 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
 
       const isRectified = d.rectify_status === 'completed'
       const selfHazard = d.hazard_self || 0
-      const monitorHazard = d.hazard_monitor || 0
       const majorHazard = d.hazard_major || 0
 
       totalSelfHazard += selfHazard
       rectifiedSelfHazard += isRectified ? selfHazard : Math.floor(selfHazard * 0.7)
-      totalMonitorHazard += monitorHazard
-      rectifiedMonitorHazard += isRectified ? monitorHazard : Math.floor(monitorHazard * 0.7)
       totalMajorHazard += majorHazard
       rectifiedMajorHazard += isRectified ? majorHazard : Math.floor(majorHazard * 0.7)
     })
@@ -197,8 +192,6 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
       trainEnterprise,
       totalSelfHazard,
       rectifiedSelfHazard,
-      totalMonitorHazard,
-      rectifiedMonitorHazard,
       totalMajorHazard,
       rectifiedMajorHazard,
     }
@@ -273,18 +266,6 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>已整改</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#059669', lineHeight: 1.2 }}>{stats.rectifiedSelfHazard.toLocaleString()}</div>
-          </div>
-        </div>
-        {/* 监管隐患数 / 已整改 */}
-        <div style={{ flex: 1, background: 'white', borderRadius: 8, padding: '10px 14px', border: '1px solid #9CA3AF', display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>监管隐患数</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#EA580C', lineHeight: 1.2 }}>{stats.totalMonitorHazard.toLocaleString()}</div>
-          </div>
-          <div style={{ width: 2, height: 28, background: '#9CA3AF' }} />
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>已整改</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#059669', lineHeight: 1.2 }}>{stats.rectifiedMonitorHazard.toLocaleString()}</div>
           </div>
         </div>
         {/* 重大事故隐患数 / 已整改 */}
