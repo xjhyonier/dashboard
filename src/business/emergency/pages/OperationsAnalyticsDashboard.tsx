@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -430,6 +430,15 @@ const td = (extra?: React.CSSProperties): React.CSSProperties => ({
 
 // ─── 主组件 ────────────────────────────────────────────────────
 export function OperationsAnalyticsDashboard() {
+  // 移动端检测
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   const regionData = useMemo(() => generateRegionData(), [])
 
   // 全局筛选
@@ -785,7 +794,7 @@ export function OperationsAnalyticsDashboard() {
   }, [moduleFilter, totals.activeUsers, accessData.activeUsers])
 
   return (
-    <div style={{ padding: '24px', maxWidth: 1500, margin: '0 auto' }}>
+    <div style={{ padding: isMobile ? '12px' : '24px', maxWidth: isMobile ? '100%' : 1500, margin: '0 auto' }}>
       <PageHeader title="一起安平台数据分析看板" actions={
         <button
           onClick={() => setShowChangelog(true)}
@@ -798,8 +807,8 @@ export function OperationsAnalyticsDashboard() {
 
       {/* ─── 全局筛选栏（sticky） ────────────────────── */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16,
-        flexWrap: 'wrap', padding: '8px 0',
+        display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 8, marginBottom: isMobile ? 12 : 16,
+        flexWrap: 'wrap', padding: isMobile ? '4px 0' : '8px 0',
         position: 'sticky', top: 60, zIndex: 40, background: '#F9FAFB',
       }}>
         {/* 时间筛选 */}
@@ -880,9 +889,9 @@ export function OperationsAnalyticsDashboard() {
       </div>
 
       {/* ─── 平台使用概况 KPI ────────────────────────── */}
-      <div style={{ display: 'flex', gap: 14, marginBottom: 20, justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', gap: isMobile ? 8 : 14, marginBottom: isMobile ? 12 : 20, justifyContent: 'space-between', flexWrap: 'wrap' }}>
         {/* 安全责任主体总数 */}
-        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 16, flex: 1, justifyContent: 'center' }}>
+        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: isMobile ? '8px 10px' : '10px 14px', display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, flex: isMobile ? '0 0 calc(50% - 8px)' : 1, justifyContent: 'center' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>安全责任主体总数</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>{(totals.manufacturingEnterprises + totals.fireVenues).toLocaleString()}</div>
@@ -900,7 +909,7 @@ export function OperationsAnalyticsDashboard() {
           </div>
         </div>
         {/* 活跃人数 / 总激活人数 */}
-        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 16, flex: 1, justifyContent: 'center' }}>
+        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: isMobile ? '8px 10px' : '10px 14px', display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, flex: isMobile ? '0 0 calc(50% - 8px)' : 1, justifyContent: 'center' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>活跃人数</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#4F46E5', lineHeight: 1.2 }}>{accessData.activeUsers.toLocaleString()}</div>
@@ -914,7 +923,7 @@ export function OperationsAnalyticsDashboard() {
           </div>
         </div>
         {/* 活跃户数 / 总注册户数 */}
-        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 16, flex: 1, justifyContent: 'center' }}>
+        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: isMobile ? '8px 10px' : '10px 14px', display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, flex: isMobile ? '0 0 calc(50% - 8px)' : 1, justifyContent: 'center' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>活跃户数</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#3B82F6', lineHeight: 1.2 }}>{accessData.activeEnterprises.toLocaleString()}</div>
@@ -928,7 +937,7 @@ export function OperationsAnalyticsDashboard() {
           </div>
         </div>
         {/* 人均访问 / 户均访问 */}
-        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 16, flex: 1, justifyContent: 'center' }}>
+        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: isMobile ? '8px 10px' : '10px 14px', display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, flex: isMobile ? '0 0 calc(50% - 8px)' : 1, justifyContent: 'center' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>人均访问次数</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#059669', lineHeight: 1.2 }}>{accessData.activeUsers > 0 ? (accessData.visits / accessData.activeUsers).toFixed(2) : '0'}</div>
@@ -942,7 +951,7 @@ export function OperationsAnalyticsDashboard() {
           </div>
         </div>
         {/* 30日留存人数 / 30日留存户数 */}
-        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 16, flex: 1, justifyContent: 'center' }}>
+        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: isMobile ? '8px 10px' : '10px 14px', display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, flex: isMobile ? '0 0 calc(50% - 8px)' : 1, justifyContent: 'center' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>30日留存人数</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#DC2626', lineHeight: 1.2 }}>{accessData.retention30dUsers.toLocaleString()}</div>
@@ -956,7 +965,7 @@ export function OperationsAnalyticsDashboard() {
           </div>
         </div>
         {/* 7日留存人数 / 7日留存户数 */}
-        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 16, flex: 1, justifyContent: 'center' }}>
+        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: isMobile ? '8px 10px' : '10px 14px', display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, flex: isMobile ? '0 0 calc(50% - 8px)' : 1, justifyContent: 'center' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 2, whiteSpace: 'nowrap' }}>7日留存人数</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#D97706', lineHeight: 1.2 }}>{accessData.retention7dUsers.toLocaleString()}</div>
@@ -972,9 +981,9 @@ export function OperationsAnalyticsDashboard() {
       </div>
 
       {/* ─── 趋势图 + 地域排行（左右并排） ─────────────── */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexDirection: isMobile ? 'column' : 'row' }}>
         {/* 活跃趋势 */}
-        <div style={{ flex: 6, background: 'white', border: '1px solid #9CA3AF', borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 6, background: 'white', border: '1px solid #9CA3AF', borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column', minHeight: isMobile ? 360 : undefined }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 12 }}>活跃趋势（按月）</div>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
             {[
@@ -995,7 +1004,7 @@ export function OperationsAnalyticsDashboard() {
               </span>
             ))}
           </div>
-          <div style={{ flex: 1, minHeight: 0 }}>
+          <div style={{ height: isMobile ? 300 : undefined, flex: isMobile ? undefined : 1, minHeight: isMobile ? 300 : 0 }}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={monthlyTrend}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
@@ -1062,7 +1071,7 @@ export function OperationsAnalyticsDashboard() {
       {/* ─── 五维分析数据 ────────────────────────────── */}
       <div style={{ background: 'white', border: '1px solid #9CA3AF', borderRadius: 8, padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 12 }}>五维分析</div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
           <FiveDimCard title="安全制度建立情况" doneLabel="已建立" done={totals.docLedgerEstablishedEnt} undoneLabel="未建立" undone={Math.max(0, totals.docLedgerEnt - totals.docLedgerEstablishedEnt)} color="#3B82F6" />
           <FiveDimCard title="风险点识别情况" doneLabel="已识别" done={totals.riskConfirmedTotal} undoneLabel="未识别" undone={Math.max(0, totals.riskTotal - totals.riskConfirmedTotal)} color="#7C3AED" />
           <FiveDimCard title="检查计划制定情况" doneLabel="已制定" done={totals.checkPlanDone} undoneLabel="未制定" undone={Math.max(0, totals.docLedgerEnt - totals.checkPlanDone)} color="#4F46E5" />
@@ -1078,20 +1087,21 @@ export function OperationsAnalyticsDashboard() {
             <button key={tab.key} onClick={() => setFuncTab(tab.key)}
               title={tab.tooltip}
               style={{
-                flex: 1, padding: '10px 0', border: 'none', background: 'transparent',
+                flex: 1, padding: isMobile ? '8px 2px' : '10px 0', border: 'none', background: 'transparent',
                 borderBottom: funcTab === tab.key ? '2px solid #4F46E5' : '2px solid transparent',
                 marginBottom: -2, color: funcTab === tab.key ? '#4F46E5' : '#6B7280',
-                cursor: 'pointer', fontSize: 13, fontWeight: funcTab === tab.key ? 600 : 500,
+                cursor: 'pointer', fontSize: isMobile ? 11 : 13, fontWeight: funcTab === tab.key ? 600 : 500,
+                whiteSpace: 'nowrap',
               }}>
               {tab.label}
             </button>
           ))}
         </div>
-        <div style={{ padding: 16 }}>
+        <div style={{ padding: isMobile ? 8 : 16 }}>
 
           {/* 隐患排查 */}
           {funcTab === 'hazard' && (
-            <FunctionPanel
+            <FunctionPanel isMobile={isMobile}
               kpis={<>
                 <KpiBlock label="总任务数" value={totals.hazardTotal} unit="条" color="#4F46E5" compact />
                 <KpiBlock label="已检查任务数" value={totals.hazardChecked} unit="条" color="#3B82F6" compact />
@@ -1113,7 +1123,7 @@ export function OperationsAnalyticsDashboard() {
 
           {/* 镇街检查 */}
           {funcTab === 'check' && (
-            <FunctionPanel
+            <FunctionPanel isMobile={isMobile}
               kpis={<>
                 <KpiBlock label="覆盖户数" value={totals.checkCoverageEnt} unit="" color="#4F46E5" compact />
                 <TripleCard label="检查次数" value={totals.checkTotal} subValue={totals.aiSuperviseCount} subLabel="AI监管" pct={0} pct2={totals.superviseCount} pct2Label="监督检查" color="#3B82F6" />
@@ -1135,7 +1145,7 @@ export function OperationsAnalyticsDashboard() {
 
           {/* 教育培训 */}
           {funcTab === 'training' && (
-            <FunctionPanel
+            <FunctionPanel isMobile={isMobile}
               kpis={<>
                 <KpiBlock label="年度计划制定户数" value={totals.trainPlanEnt} unit="户" color="#3B82F6" compact />
                 <KpiBlock label="开展日常安全教育的户数" value={totals.trainDailyEnt} unit="户" color="#059669" compact />
@@ -1180,7 +1190,7 @@ export function OperationsAnalyticsDashboard() {
 
           {/* 风险管控 */}
           {funcTab === 'risk' && (
-            <FunctionPanel
+            <FunctionPanel isMobile={isMobile}
               kpis={<>
                 {/* 风险点总数 / 户均数量 | 已确认风险点总数 / 户均数量 */}
                 <div style={{ background: 'white', borderRadius: 8, border: '1px solid #9CA3AF', padding: '10px 14px', flex: '1 1 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -1202,7 +1212,7 @@ export function OperationsAnalyticsDashboard() {
 
           {/* 制度台账 */}
           {funcTab === 'docLedger' && (
-            <FunctionPanel
+            <FunctionPanel isMobile={isMobile}
               kpis={<>
                 <KpiBlock label="安全责任主体总数" value={totals.manufacturingEnterprises + totals.fireVenues} unit="" color="#4F46E5" compact />
                 <TripleCard label="台账已建立户数" value={totals.docLedgerEstablishedEnt} subValue={totals.docLedgerEstablishedCount} subLabel="已建立数量" pct={0} pct2={totals.docLedgerEstablishedEnt > 0 ? Number((totals.docLedgerEstablishedCount / totals.docLedgerEstablishedEnt).toFixed(2)) : 0} pct2Label="户均建立数" color="#3B82F6" />
@@ -1225,7 +1235,7 @@ export function OperationsAnalyticsDashboard() {
 
           {/* 现场管理 */}
           {funcTab === 'siteManagement' && (
-            <FunctionPanel
+            <FunctionPanel isMobile={isMobile}
               kpis={<>
                 <MultiCard labels={['作业票总数', '已完成', '待验收', '待作业许可', '待现场签批']} values={[totals.siteWorkPermitTotal, totals.siteWorkPermitDone, totals.siteWorkPermitWait, totals.siteWorkPermitLicense, totals.siteWorkPermitSign]} units={['','','','','']} colors={['#4F46E5','#059669','#D97706','#3B82F6','#9CA3AF']} />
                 <KpiBlock label="作业票报备总数" value={totals.siteReportTotal} unit="" color="#7C3AED" compact />
@@ -1254,7 +1264,7 @@ export function OperationsAnalyticsDashboard() {
         >
           <div style={{
             background: 'white', borderRadius: 10, boxShadow: '0 8px 40px rgba(0,0,0,0.15)',
-            width: 520, maxHeight: '70vh', overflow: 'auto', padding: '24px 28px',
+            width: isMobile ? 'calc(100% - 24px)' : 520, maxHeight: '70vh', overflow: 'auto', padding: isMobile ? '16px 18px' : '24px 28px',
           }}
             onClick={e => e.stopPropagation()}
           >
@@ -1640,10 +1650,10 @@ function FiveDimCard({ title, doneLabel, done, undoneLabel, undone, color }: {
   )
 }
 
-function FunctionPanel({ kpis, tables }: { kpis: React.ReactNode; tables?: React.ReactNode }) {
+function FunctionPanel({ kpis, tables, isMobile }: { kpis: React.ReactNode; tables?: React.ReactNode; isMobile?: boolean }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{kpis}</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 8 : 12 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>{kpis}</div>
       {tables}
     </div>
   )
