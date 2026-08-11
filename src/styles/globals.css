@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-text antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface rounded-xl shadow-md backdrop-blur-xl border border-border p-6;
+  }
+  
+  .card-compact {
+    @apply bg-surface rounded-lg shadow-sm border border-border p-4;
+  }
+}
