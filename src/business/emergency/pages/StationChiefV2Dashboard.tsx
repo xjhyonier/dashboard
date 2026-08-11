@@ -12,6 +12,7 @@ import { SpecialDimension } from './components/SpecialDimension'
 import { TrendDimension } from './components/TrendDimension'
 import { YuzhiSyncDimension } from './components/YuzhiSyncDimension'
 import { YuzhiSyncDashboard } from './YuzhiSyncDashboard'
+import { AiGlassesDashboard } from './AiGlassesDashboard'
 
 import { initDatabase, getWorkGroups, getHazards, getEnterpriseStats, getExperts, getEnterprises } from '../../../db'
 import type { WorkGroup, Hazard, Expert, Enterprise } from '../../../db/types'
@@ -19,7 +20,7 @@ import type { WorkGroup, Hazard, Expert, Enterprise } from '../../../db/types'
 const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'state', 'hazard', 'trend', 'yuzhi']
 
 // 顶级页面标识
-type TopLevelPage = 'station' | 'daily' | 'yuzhi' | 'yuzhi-sync'
+type TopLevelPage = 'station' | 'daily' | 'yuzhi' | 'yuzhi-sync' | 'ai-glasses'
 
 // 日常监管筛选下拉统一样式
 const dailySelectStyle = (active: boolean): React.CSSProperties => ({
@@ -117,7 +118,7 @@ export function StationChiefV2Dashboard() {
 
   // 顶级页面：station（应急消防管理站看板）或 yuzhi（村社数据看板）
   const pageParam = searchParams.get('page')
-  const topPage: TopLevelPage = pageParam === 'daily' ? 'daily' : pageParam === 'yuzhi-sync' ? 'yuzhi-sync' : pageParam === 'yuzhi' ? 'yuzhi' : 'station'
+  const topPage: TopLevelPage = pageParam === 'ai-glasses' ? 'ai-glasses' : pageParam === 'daily' ? 'daily' : pageParam === 'yuzhi-sync' ? 'yuzhi-sync' : pageParam === 'yuzhi' ? 'yuzhi' : 'station'
 
   // 日期筛选状态
   const [timeRange, setTimeRange] = useState<TimeRange>('month')
@@ -549,6 +550,23 @@ export function StationChiefV2Dashboard() {
         >
           三方同步任务看板
         </button>
+        <button
+          onClick={() => setSearchParams({ page: 'ai-glasses' })}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            borderBottom: topPage === 'ai-glasses' ? '2px solid #4F46E5' : '2px solid transparent',
+            marginBottom: -2,
+            background: 'transparent',
+            color: topPage === 'ai-glasses' ? '#4F46E5' : '#6B7280',
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: topPage === 'ai-glasses' ? 700 : 500,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          AI眼镜检查看板
+        </button>
       </div>
 
       {topPage === 'daily' ? (
@@ -696,6 +714,8 @@ export function StationChiefV2Dashboard() {
         <YuzhiSyncDimension />
       ) : topPage === 'yuzhi-sync' ? (
         <YuzhiSyncDashboard />
+      ) : topPage === 'ai-glasses' ? (
+        <AiGlassesDashboard />
       ) : (
         <>
       <PageHeader

@@ -6,7 +6,8 @@
 - 位置指被修改的模块/区域（如"全局筛选栏"、"全局指标卡"、"趋势图"、"组织与人员维度"等）
 
 ## recharts Bar 组件颜色排序
-- **recharts ComposedChart 中多个 Bar 组件存在"左旋渲染"问题**：JSX 声明顺序与 DOM 实际渲染顺序不一致。
-- **规律**：DOM 中的 Bar 顺序 = JSX 声明顺序向左旋转 1 位（即第一个声明的 Bar 会渲染到最后一个位置，其余依次前移）。
-- **示例**：若要视觉从左到右为 A/B/C/D，JSX 声明应为 D/A/B/C。
-- **验证方法**：通过查询 `.recharts-bar` 的 DOM 元素中的 `path[fill]` 来确认实际渲染顺序。
+- **真实浏览器（用户环境）结论**：ComposedChart 中多个 Bar 的 **视觉 x 顺序 = JSX 声明顺序向左旋转 1 位**（JSX[A,B,C,D] → 视觉[B,C,D,A]）。若要视觉从左到右为目标顺序 [X,Y,Z]，JSX 应声明为 [Z,X,Y]（目标顺序的左旋反向）。
+- **headless Chrome 例外**：无头浏览器渲染时无左旋，视觉 = JSX 声明顺序。**不要用 headless 验证 Bar 视觉顺序**——只有真实浏览器（带 GPU 渲染）才会触发左旋。
+- **验证方法**：用真实有头浏览器打开页面查看，或用 playwright launch headless: false（若环境支持）。用 `.recharts-rectangle` 的 getBoundingClientRect().left 排序在真实浏览器中可复现视觉顺序。
+- **图例/浮窗顺序统一方案**：用自定义 `<Legend content={<OrderedLegend order={[...]} />} />` 与 `<Tooltip content={<OrderedTooltip order={[...]} />} />`，按目标顺序重排 payload，与 Bar 视觉顺序对齐。
+- **历史误判（2026-08-11）**：曾用 headless Chrome 测得"无左旋"，据此去掉左旋补偿，导致用户浏览器顺序错乱。**以真实浏览器为准**。
