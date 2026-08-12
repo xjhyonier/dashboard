@@ -13,6 +13,7 @@ import { TrendDimension } from './components/TrendDimension'
 import { YuzhiSyncDimension } from './components/YuzhiSyncDimension'
 import { YuzhiSyncDashboard } from './YuzhiSyncDashboard'
 import { AiGlassesDashboard } from './AiGlassesDashboard'
+import { ChaxuanYitiDashboard } from './ChaxuanYitiDashboard'
 
 import { initDatabase, getWorkGroups, getHazards, getEnterpriseStats, getExperts, getEnterprises } from '../../../db'
 import type { WorkGroup, Hazard, Expert, Enterprise } from '../../../db/types'
@@ -20,7 +21,7 @@ import type { WorkGroup, Hazard, Expert, Enterprise } from '../../../db/types'
 const VALID_DIMENSIONS: Dimension[] = ['duty', 'industry', 'special', 'state', 'hazard', 'trend', 'yuzhi']
 
 // 顶级页面标识
-type TopLevelPage = 'station' | 'daily' | 'yuzhi' | 'yuzhi-sync' | 'ai-glasses'
+type TopLevelPage = 'station' | 'daily' | 'yuzhi' | 'yuzhi-sync' | 'ai-glasses' | 'chaxuan-yiti'
 
 // 日常监管筛选下拉统一样式
 const dailySelectStyle = (active: boolean): React.CSSProperties => ({
@@ -118,7 +119,7 @@ export function StationChiefV2Dashboard() {
 
   // 顶级页面：station（应急消防管理站看板）或 yuzhi（村社数据看板）
   const pageParam = searchParams.get('page')
-  const topPage: TopLevelPage = pageParam === 'ai-glasses' ? 'ai-glasses' : pageParam === 'daily' ? 'daily' : pageParam === 'yuzhi-sync' ? 'yuzhi-sync' : pageParam === 'yuzhi' ? 'yuzhi' : 'station'
+  const topPage: TopLevelPage = pageParam === 'chaxuan-yiti' ? 'chaxuan-yiti' : pageParam === 'ai-glasses' ? 'ai-glasses' : pageParam === 'daily' ? 'daily' : pageParam === 'yuzhi-sync' ? 'yuzhi-sync' : pageParam === 'yuzhi' ? 'yuzhi' : 'station'
 
   // 日期筛选状态
   const [timeRange, setTimeRange] = useState<TimeRange>('month')
@@ -567,6 +568,23 @@ export function StationChiefV2Dashboard() {
         >
           AI眼镜检查看板
         </button>
+        <button
+          onClick={() => setSearchParams({ page: 'chaxuan-yiti' })}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            borderBottom: topPage === 'chaxuan-yiti' ? '2px solid #4F46E5' : '2px solid transparent',
+            marginBottom: -2,
+            background: 'transparent',
+            color: topPage === 'chaxuan-yiti' ? '#4F46E5' : '#6B7280',
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: topPage === 'chaxuan-yiti' ? 700 : 500,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          查宣一体
+        </button>
       </div>
 
       {topPage === 'daily' ? (
@@ -716,6 +734,8 @@ export function StationChiefV2Dashboard() {
         <YuzhiSyncDashboard />
       ) : topPage === 'ai-glasses' ? (
         <AiGlassesDashboard />
+      ) : topPage === 'chaxuan-yiti' ? (
+        <ChaxuanYitiDashboard />
       ) : (
         <>
       <PageHeader
