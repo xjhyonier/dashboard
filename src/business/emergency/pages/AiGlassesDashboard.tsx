@@ -392,16 +392,16 @@ export function AiGlassesDashboard() {
                 } />
                 {trendCategory === 'coverage' ? (
                   <>
-                    {/* JSX 顺序左旋 1 位后视觉 = [checkEnt, safeEnt, hazardEnt] = [紫, 绿, 橙] */}
-                    <Bar dataKey="hazardEnt" name="有隐患企业数" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                    {/* JSX 声明顺序 = 视觉顺序（实测无左旋）：紫(检查) → 绿(无隐患) → 橙(有隐患) */}
                     <Bar dataKey="checkEnt" name="检查企业数" fill="#4F46E5" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="safeEnt" name="无隐患企业数" fill="#059669" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="hazardEnt" name="有隐患企业数" fill="#F59E0B" radius={[4, 4, 0, 0]} />
                   </>
                 ) : (
                   <>
-                    {/* JSX 顺序左旋后视觉 = [hazardRectified, hazardTotal] + Line */}
-                    <Bar yAxisId="left" dataKey="hazardRectified" name="已整改数" fill="#34D399" radius={[4, 4, 0, 0]} />
+                    {/* 红(隐患总数) → 绿(已整改数) → 黄线(整改完成率) */}
                     <Bar yAxisId="left" dataKey="hazardTotal" name="隐患总数" fill="#DC2626" radius={[4, 4, 0, 0]} />
+                    <Bar yAxisId="left" dataKey="hazardRectified" name="已整改数" fill="#34D399" radius={[4, 4, 0, 0]} />
                     <Line yAxisId="right" type="monotone" dataKey="rectifyRate" name="整改完成率" stroke="#F59E0B" strokeWidth={2} dot={{ r: 3 }} />
                   </>
                 )}
