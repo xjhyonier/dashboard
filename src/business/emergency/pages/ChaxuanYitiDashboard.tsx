@@ -164,6 +164,18 @@ const WEEKLY_TREND = [
   { week: '8月第3周', pushUsers: 12864, pushCount: 23540, pushRate: 68.5, clickUsers: 8812, clickCount: 16127, playCount: 14203, avgPlayTime: 12.6, pointsIssued: 45600, pointsConsumed: 31280, checkCount: 1750, hazardFound: 98, rectified: 79, rectifyRate: 80.1, majorHazard: 12, majorRectified: 9, majorRate: 75.0 },
 ]
 
+// 宣教明细：按宣教内容列出推送/点击/播放数据
+const PROMOTION_DETAIL = [
+  { name: '电动自行车充电安全宣教', pushUsers: 3860, pushCount: 7200, pushRate: 71.2, clickUsers: 2745, clickCount: 5130, playCount: 4610, playDuration: 2766, avgPlayTime: 12.2, avgProgress: 81.5 },
+  { name: '燃气使用安全须知', pushUsers: 3420, pushCount: 6550, pushRate: 69.8, clickUsers: 2388, clickCount: 4502, playCount: 4020, playDuration: 2412, avgPlayTime: 11.8, avgProgress: 79.3 },
+  { name: '消防通道清理专项', pushUsers: 2980, pushCount: 5400, pushRate: 66.5, clickUsers: 1982, clickCount: 3720, playCount: 3310, playDuration: 1953, avgPlayTime: 12.6, avgProgress: 77.8 },
+  { name: '有限空间作业安全', pushUsers: 2650, pushCount: 4680, pushRate: 70.1, clickUsers: 1857, clickCount: 3498, playCount: 3105, playDuration: 1863, avgPlayTime: 12.0, avgProgress: 80.2 },
+  { name: '企业主体责任落实培训', pushUsers: 2310, pushCount: 4100, pushRate: 68.4, clickUsers: 1580, clickCount: 2950, playCount: 2612, playDuration: 1541, avgPlayTime: 12.4, avgProgress: 78.6 },
+  { name: '消防安全知识答题', pushUsers: 1980, pushCount: 3520, pushRate: 65.9, clickUsers: 1305, clickCount: 2420, playCount: 2140, playDuration: 1284, avgPlayTime: 12.1, avgProgress: 76.4 },
+  { name: '极端天气防范提醒', pushUsers: 1750, pushCount: 3080, pushRate: 67.2, clickUsers: 1176, clickCount: 2180, playCount: 1910, playDuration: 1146, avgPlayTime: 12.3, avgProgress: 79.0 },
+  { name: '职业健康防护宣教', pushUsers: 1520, pushCount: 2650, pushRate: 64.8, clickUsers: 985, clickCount: 1820, playCount: 1588, playDuration: 953, avgPlayTime: 12.5, avgProgress: 75.9 },
+]
+
 export function ChaxuanYitiDashboard() {
   // ─── 时间筛选 ─────────────────────────────────────────────
   const [timeRange, setTimeRange] = useState<'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom'>('thisWeek')
@@ -201,6 +213,39 @@ export function ChaxuanYitiDashboard() {
   // ─── 趋势图维度切换 ──────────────────────────────────────
   const [trendDim, setTrendDim] = useState<'push' | 'click' | 'points'>('push')
   const [hazardDim, setHazardDim] = useState<'hazard' | 'major'>('hazard')
+
+  // ─── 宣教明细表格排序 ──────────────────────────────────
+  type DetailKey = keyof typeof PROMOTION_DETAIL[number]
+  const [sortKey, setSortKey] = useState<DetailKey | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const handleSort = (key: DetailKey) => {
+    if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    else { setSortKey(key); setSortDir('asc') }
+  }
+  const sortedDetail = useMemo(() => {
+    const rows = [...PROMOTION_DETAIL]
+    if (!sortKey) return rows
+    rows.sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey]
+      const cmp = typeof av === 'number' && typeof bv === 'number' ? av - bv : String(av).localeCompare(String(bv))
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    return rows
+  }, [sortKey, sortDir])
+
+  // 宣教明细表头列配置（key 对应数据字段，序号列单独渲染）
+  const DETAIL_COLS: { key: DetailKey; label: string }[] = [
+    { key: 'name', label: '宣教内容名称' },
+    { key: 'pushUsers', label: '推送人数' },
+    { key: 'pushCount', label: '推送次数' },
+    { key: 'pushRate', label: '推送点击率' },
+    { key: 'clickUsers', label: '点击人数' },
+    { key: 'clickCount', label: '点击次数' },
+    { key: 'playCount', label: '播放次数' },
+    { key: 'playDuration', label: '播放时长' },
+    { key: 'avgPlayTime', label: '人均播放时长' },
+    { key: 'avgProgress', label: '平均播放进度' },
+  ]
 
   // 宣教推送与学习：按 `、` 分组，组内 `|` 指标放同一个框
   const PROMO_GROUPS = useMemo(() => [
@@ -334,8 +379,59 @@ export function ChaxuanYitiDashboard() {
         </div>
       </SectionBlock>
 
-      {/* 模块3：隐患整改（宽度按指标数比例 1fr : 3fr : 3fr，同一行，指标字体黑色） */}
-      <SectionBlock title="3、隐患整改">
+      {/* 3、宣教明细数据：按宣教内容列出推送/点击/播放明细，每列可排序 */}
+      <SectionBlock title="3、宣教明细数据">
+        <div style={{ overflowX: 'auto', border: '1px solid #E5E7EB', borderRadius: 8 }}>
+          <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 1120, fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: '#F9FAFB' }}>
+                <th style={{ padding: '9px 10px', textAlign: 'center', fontWeight: 600, color: '#374151', borderBottom: '1px solid #E5E7EB', whiteSpace: 'nowrap', borderRight: '1px solid #F3F4F6' }}>序号</th>
+                {DETAIL_COLS.map(col => {
+                  const active = sortKey === col.key
+                  const isText = col.key === 'name'
+                  return (
+                    <th
+                      key={col.key}
+                      onClick={() => handleSort(col.key)}
+                      title="点击排序"
+                      style={{
+                        padding: '9px 10px', textAlign: isText ? 'left' : 'center', fontWeight: 600,
+                        color: active ? '#4F46E5' : '#374151', borderBottom: '1px solid #E5E7EB',
+                        whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none', borderRight: '1px solid #F3F4F6',
+                      }}
+                    >
+                      {col.label}
+                      <span style={{ marginLeft: 4, fontSize: 10, color: active ? '#4F46E5' : '#C4C8CF' }}>
+                        {active ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
+                      </span>
+                    </th>
+                  )
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {sortedDetail.map((row, idx) => (
+                <tr key={row.name} style={{ background: idx % 2 === 0 ? 'white' : '#FAFAFB' }}>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#9CA3AF', whiteSpace: 'nowrap' }}>{idx + 1}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#111827', fontWeight: 500, whiteSpace: 'nowrap' }}>{row.name}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.pushUsers.toLocaleString()}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.pushCount.toLocaleString()}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.pushRate}%</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.clickUsers.toLocaleString()}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.clickCount.toLocaleString()}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.playCount.toLocaleString()}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.playDuration.toLocaleString()} 分钟</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.avgPlayTime} 分钟</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap', borderRight: 'none' }}>{row.avgProgress}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </SectionBlock>
+
+      {/* 模块4：隐患整改（宽度按指标数比例 1fr : 3fr : 3fr，同一行，指标字体黑色） */}
+      <SectionBlock title="4、隐患整改">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr 3fr', gap: 12, alignItems: 'stretch' }}>
           <KpiCard label="检查次数" value={1750} mom={4.2} />
           <RowCard items={[
@@ -351,8 +447,8 @@ export function ChaxuanYitiDashboard() {
         </div>
       </SectionBlock>
 
-      {/* 模块4：隐患每周趋势图（维度切换：隐患总数 / 重大事故隐患数） */}
-      <SectionBlock title="4、隐患每周变化趋势（近两月）">
+      {/* 模块5：隐患每周趋势图（维度切换：隐患总数 / 重大事故隐患数） */}
+      <SectionBlock title="5、隐患每周变化趋势（近两月）">
         <div style={{ display: 'flex', gap: 2, background: '#F3F4F6', padding: 2, borderRadius: 6, width: 'fit-content', marginBottom: 12 }}>
           {([
             { key: 'hazard' as const, label: '隐患总数' },
