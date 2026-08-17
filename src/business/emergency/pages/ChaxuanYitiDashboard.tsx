@@ -85,9 +85,9 @@ function RowCard({ items }: {
 
 // 趋势图序列元信息
 const SERIES_META: Record<string, { name: string; color: string; dashed?: boolean }> = {
-  pushUsers: { name: '推送人数', color: '#4F46E5' },
+  pushUsers: { name: '推送户数', color: '#4F46E5' },
   pushCount: { name: '推送次数', color: '#06B6D4' },
-  pushRate: { name: '推送点击率', color: '#A855F7', dashed: true },
+  pushRate: { name: '推送次数点击率', color: '#A855F7', dashed: true },
   clickUsers: { name: '点击人数', color: '#059669' },
   clickCount: { name: '点击次数', color: '#0EA5E9' },
   playCount: { name: '播放次数', color: '#D97706' },
@@ -176,6 +176,22 @@ const PROMOTION_DETAIL = [
   { name: '职业健康防护宣教', pushUsers: 1520, pushCount: 2650, pushRate: 64.8, clickUsers: 985, clickCount: 1820, playCount: 1588, playDuration: 953, avgPlayTime: 12.5, avgProgress: 75.9 },
 ]
 
+// 宣教推送与学习 字段说明
+const PROMO_NOTE: { field: string; desc: string }[] = [
+  { field: '推送户数', desc: '通过检查推送的单位数（去重）' },
+  { field: '推送次数', desc: '通过检查推送的总次数' },
+  { field: '户均推送次数', desc: '推送次数 / 推送户数' },
+  { field: '推送次数点击率', desc: '点击次数 / 推送次数' },
+  { field: '点击人数', desc: '宣教内容总点击人数' },
+  { field: '点击次数', desc: '宣教内容总点击次数' },
+  { field: '播放次数', desc: '宣教内容总播放次数' },
+  { field: '播放时长', desc: '宣教内容总播放时长' },
+  { field: '人均播放时长', desc: '播放时长 / 点击人数' },
+  { field: '平均播放进度', desc: '播放时长 / 视频总时长' },
+  { field: '积分发放数', desc: '通过观看宣教内容发放的积分总数' },
+  { field: '积分消耗数', desc: '通过观看宣教内容发放的积分中被消耗的数量' },
+]
+
 export function ChaxuanYitiDashboard() {
   // ─── 时间筛选 ─────────────────────────────────────────────
   const [timeRange, setTimeRange] = useState<'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom'>('thisWeek')
@@ -236,9 +252,9 @@ export function ChaxuanYitiDashboard() {
   // 宣教明细表头列配置（key 对应数据字段，序号列单独渲染）
   const DETAIL_COLS: { key: DetailKey; label: string }[] = [
     { key: 'name', label: '宣教内容名称' },
-    { key: 'pushUsers', label: '推送人数' },
+    { key: 'pushUsers', label: '推送户数' },
     { key: 'pushCount', label: '推送次数' },
-    { key: 'pushRate', label: '推送点击率' },
+    { key: 'pushRate', label: '推送次数点击率' },
     { key: 'clickUsers', label: '点击人数' },
     { key: 'clickCount', label: '点击次数' },
     { key: 'playCount', label: '播放次数' },
@@ -252,10 +268,10 @@ export function ChaxuanYitiDashboard() {
     {
       title: '推送',
       items: [
-        { label: '推送人数', value: 12864, mom: 1.3 },
+        { label: '推送户数', value: 12864, mom: 1.3 },
         { label: '推送次数', value: 23540, mom: 1.5 },
-        { label: '人均推送次数', value: 1.83, mom: 0.2, unit: '次' },
-        { label: '推送点击率', value: '68.5%', mom: 1.1 },
+        { label: '户均推送次数', value: 1.83, mom: 0.2, unit: '次' },
+        { label: '推送次数点击率', value: '68.5%', mom: 1.1 },
       ],
     },
     {
@@ -285,6 +301,9 @@ export function ChaxuanYitiDashboard() {
   ], [])
 
   const trendOrder = trendDim === 'push' ? ['pushUsers', 'pushCount', 'pushRate'] : trendDim === 'click' ? ['clickUsers', 'clickCount', 'playCount', 'avgPlayTime'] : ['pointsIssued', 'pointsConsumed']
+
+  // ─── 宣教推送与学习 字段说明弹窗 ─────────────────────────
+  const [showPromoNote, setShowPromoNote] = useState(false)
 
   return (
     <PageShell>
@@ -317,7 +336,21 @@ export function ChaxuanYitiDashboard() {
       </div>
 
       {/* 模块1：宣教推送与学习 */}
-      <SectionBlock title="1、宣教推送与学习">
+      <SectionBlock title={
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          1、宣教推送与学习
+          <button
+            onClick={() => setShowPromoNote(true)}
+            title="字段说明"
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 20, height: 20, borderRadius: '50%', border: '1px solid #9CA3AF',
+              background: 'transparent', color: '#6B7280', fontSize: 12, lineHeight: 1,
+              cursor: 'pointer', padding: 0,
+            }}
+          >?</button>
+        </span>
+      }>
         {/* 3 个分组框同一行，宽度按指标数比例分配（4fr : 6fr : 2fr），积分框自然收窄 */}
         <div style={{ display: 'grid', gridTemplateColumns: PROMO_GROUPS.map(g => `${g.items.length}fr`).join(' '), gap: 12, alignItems: 'stretch' }}>
           {PROMO_GROUPS.map(g => (
@@ -325,6 +358,37 @@ export function ChaxuanYitiDashboard() {
           ))}
         </div>
       </SectionBlock>
+
+      {/* 宣教推送与学习 - 字段说明弹窗 */}
+      {showPromoNote && (
+        <div
+          onClick={() => setShowPromoNote(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(17,24,39,0.4)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'white', borderRadius: 12, padding: '20px 24px', maxWidth: 560, width: 'calc(100% - 48px)', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 12px 40px rgba(0,0,0,0.2)' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>宣教推送与学习 · 字段说明</div>
+              <button
+                onClick={() => setShowPromoNote(false)}
+                style={{ border: 'none', background: 'transparent', fontSize: 18, lineHeight: 1, color: '#9CA3AF', cursor: 'pointer', padding: '2px 6px' }}
+              >×</button>
+            </div>
+            <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>
+              <tbody>
+                {PROMO_NOTE.map((row, i) => (
+                  <tr key={row.field} style={{ background: i % 2 === 0 ? 'white' : '#FAFAFB' }}>
+                    <td style={{ padding: '8px 12px', borderBottom: '1px solid #F3F4F6', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap', width: 130 }}>{row.field}</td>
+                    <td style={{ padding: '8px 12px', borderBottom: '1px solid #F3F4F6', color: '#6B7280' }}>{row.desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* 模块2：每周变化趋势图（推送/点击/积分） */}
       <SectionBlock title="2、每周变化趋势（近两月）">
@@ -355,9 +419,9 @@ export function ChaxuanYitiDashboard() {
               <Legend content={<TrendLegend order={trendOrder} />} />
               {trendDim === 'push' && (
                 <>
-                  <Line yAxisId="left" type="monotone" dataKey="pushUsers" name="推送人数" stroke="#4F46E5" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line yAxisId="left" type="monotone" dataKey="pushUsers" name="推送户数" stroke="#4F46E5" strokeWidth={2} dot={{ r: 3 }} />
                   <Line yAxisId="left" type="monotone" dataKey="pushCount" name="推送次数" stroke="#06B6D4" strokeWidth={2} dot={{ r: 3 }} />
-                  <Line yAxisId="right" type="monotone" dataKey="pushRate" name="推送点击率" stroke="#A855F7" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 3 }} />
+                  <Line yAxisId="right" type="monotone" dataKey="pushRate" name="推送次数点击率" stroke="#A855F7" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 3 }} />
                 </>
               )}
               {trendDim === 'click' && (
