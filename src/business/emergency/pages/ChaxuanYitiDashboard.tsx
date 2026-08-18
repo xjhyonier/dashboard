@@ -164,16 +164,16 @@ const WEEKLY_TREND = [
   { week: '8月第3周', pushUsers: 12864, pushCount: 23540, pushRate: 68.5, clickUsers: 8812, clickCount: 16127, playCount: 14203, avgPlayTime: 12.6, pointsIssued: 45600, pointsConsumed: 31280, checkCount: 1750, hazardFound: 98, rectified: 79, rectifyRate: 80.1, majorHazard: 12, majorRectified: 9, majorRate: 75.0 },
 ]
 
-// 宣教明细：按宣教内容列出推送/点击/播放数据
+// 宣教明细：按宣教内容列出推送/点击/播放数据（type: 视频/图文，图文无播放数据置 null）
 const PROMOTION_DETAIL = [
-  { name: '电动自行车充电安全宣教', pushUsers: 3860, pushCount: 7200, pushRate: 71.2, clickUsers: 2745, clickCount: 5130, playCount: 4610, playDuration: 2766, avgPlayTime: 12.2, avgProgress: 81.5 },
-  { name: '燃气使用安全须知', pushUsers: 3420, pushCount: 6550, pushRate: 69.8, clickUsers: 2388, clickCount: 4502, playCount: 4020, playDuration: 2412, avgPlayTime: 11.8, avgProgress: 79.3 },
-  { name: '消防通道清理专项', pushUsers: 2980, pushCount: 5400, pushRate: 66.5, clickUsers: 1982, clickCount: 3720, playCount: 3310, playDuration: 1953, avgPlayTime: 12.6, avgProgress: 77.8 },
-  { name: '有限空间作业安全', pushUsers: 2650, pushCount: 4680, pushRate: 70.1, clickUsers: 1857, clickCount: 3498, playCount: 3105, playDuration: 1863, avgPlayTime: 12.0, avgProgress: 80.2 },
-  { name: '企业主体责任落实培训', pushUsers: 2310, pushCount: 4100, pushRate: 68.4, clickUsers: 1580, clickCount: 2950, playCount: 2612, playDuration: 1541, avgPlayTime: 12.4, avgProgress: 78.6 },
-  { name: '消防安全知识答题', pushUsers: 1980, pushCount: 3520, pushRate: 65.9, clickUsers: 1305, clickCount: 2420, playCount: 2140, playDuration: 1284, avgPlayTime: 12.1, avgProgress: 76.4 },
-  { name: '极端天气防范提醒', pushUsers: 1750, pushCount: 3080, pushRate: 67.2, clickUsers: 1176, clickCount: 2180, playCount: 1910, playDuration: 1146, avgPlayTime: 12.3, avgProgress: 79.0 },
-  { name: '职业健康防护宣教', pushUsers: 1520, pushCount: 2650, pushRate: 64.8, clickUsers: 985, clickCount: 1820, playCount: 1588, playDuration: 953, avgPlayTime: 12.5, avgProgress: 75.9 },
+  { name: '电动自行车充电安全宣教', type: '视频', pushUsers: 3860, pushCount: 7200, pushRate: 71.2, clickUsers: 2745, clickCount: 5130, playCount: 4610, playDuration: 2766, avgPlayTime: 12.2, avgProgress: 81.5 },
+  { name: '燃气使用安全须知', type: '图文', pushUsers: 3420, pushCount: 6550, pushRate: 69.8, clickUsers: 2388, clickCount: 4502, playCount: null, playDuration: null, avgPlayTime: null, avgProgress: null },
+  { name: '消防通道清理专项', type: '视频', pushUsers: 2980, pushCount: 5400, pushRate: 66.5, clickUsers: 1982, clickCount: 3720, playCount: 3310, playDuration: 1953, avgPlayTime: 12.6, avgProgress: 77.8 },
+  { name: '有限空间作业安全', type: '视频', pushUsers: 2650, pushCount: 4680, pushRate: 70.1, clickUsers: 1857, clickCount: 3498, playCount: 3105, playDuration: 1863, avgPlayTime: 12.0, avgProgress: 80.2 },
+  { name: '企业主体责任落实培训', type: '图文', pushUsers: 2310, pushCount: 4100, pushRate: 68.4, clickUsers: 1580, clickCount: 2950, playCount: null, playDuration: null, avgPlayTime: null, avgProgress: null },
+  { name: '消防安全知识答题', type: '视频', pushUsers: 1980, pushCount: 3520, pushRate: 65.9, clickUsers: 1305, clickCount: 2420, playCount: 2140, playDuration: 1284, avgPlayTime: 12.1, avgProgress: 76.4 },
+  { name: '极端天气防范提醒', type: '图文', pushUsers: 1750, pushCount: 3080, pushRate: 67.2, clickUsers: 1176, clickCount: 2180, playCount: null, playDuration: null, avgPlayTime: null, avgProgress: null },
+  { name: '职业健康防护宣教', type: '图文', pushUsers: 1520, pushCount: 2650, pushRate: 64.8, clickUsers: 985, clickCount: 1820, playCount: null, playDuration: null, avgPlayTime: null, avgProgress: null },
 ]
 
 // 宣教推送与学习 字段说明
@@ -243,6 +243,11 @@ export function ChaxuanYitiDashboard() {
     if (!sortKey) return rows
     rows.sort((a, b) => {
       const av = a[sortKey], bv = b[sortKey]
+      // null 恒排最后（图文行的播放字段无数据）
+      if (av === null || bv === null) {
+        if (av === null && bv === null) return 0
+        return av === null ? 1 : -1
+      }
       const cmp = typeof av === 'number' && typeof bv === 'number' ? av - bv : String(av).localeCompare(String(bv))
       return sortDir === 'asc' ? cmp : -cmp
     })
@@ -252,6 +257,7 @@ export function ChaxuanYitiDashboard() {
   // 宣教明细表头列配置（key 对应数据字段，序号列单独渲染）
   const DETAIL_COLS: { key: DetailKey; label: string }[] = [
     { key: 'name', label: '宣教内容名称' },
+    { key: 'type', label: '内容类型' },
     { key: 'pushUsers', label: '推送户数' },
     { key: 'pushCount', label: '推送次数' },
     { key: 'pushRate', label: '推送次数点击率' },
@@ -414,7 +420,7 @@ export function ChaxuanYitiDashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
               <XAxis dataKey="week" fontSize={11} tick={{ fill: '#9CA3AF' }} />
               <YAxis yAxisId="left" fontSize={11} tick={{ fill: '#9CA3AF' }} />
-              <YAxis yAxisId="right" orientation="right" fontSize={11} tick={{ fill: '#9CA3AF' }} />
+              <YAxis yAxisId="right" orientation="right" fontSize={11} tick={{ fill: '#9CA3AF' }} unit={trendDim === 'push' ? '%' : trendDim === 'click' ? ' 分钟' : undefined} />
               <Tooltip content={<TrendTooltip order={trendOrder} />} />
               <Legend content={<TrendLegend order={trendOrder} />} />
               {trendDim === 'push' && (
@@ -478,15 +484,23 @@ export function ChaxuanYitiDashboard() {
                 <tr key={row.name} style={{ background: idx % 2 === 0 ? 'white' : '#FAFAFB' }}>
                   <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#9CA3AF', whiteSpace: 'nowrap' }}>{idx + 1}</td>
                   <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#111827', fontWeight: 500, whiteSpace: 'nowrap' }}>{row.name}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <span style={{
+                      display: 'inline-block', padding: '2px 10px', borderRadius: 10, fontSize: 11, fontWeight: 500,
+                      background: row.type === '视频' ? '#EFF6FF' : '#F3F4F6',
+                      color: row.type === '视频' ? '#2563EB' : '#6B7280',
+                      border: `1px solid ${row.type === '视频' ? '#BFDBFE' : '#E5E7EB'}`,
+                    }}>{row.type}</span>
+                  </td>
                   <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.pushUsers.toLocaleString()}</td>
                   <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.pushCount.toLocaleString()}</td>
                   <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.pushRate}%</td>
                   <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.clickUsers.toLocaleString()}</td>
                   <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.clickCount.toLocaleString()}</td>
-                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.playCount.toLocaleString()}</td>
-                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.playDuration.toLocaleString()} 分钟</td>
-                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap' }}>{row.avgPlayTime} 分钟</td>
-                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: '#374151', whiteSpace: 'nowrap', borderRight: 'none' }}>{row.avgProgress}%</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: row.playCount === null ? '#C4C8CF' : '#374151', whiteSpace: 'nowrap' }}>{row.playCount === null ? '-' : row.playCount.toLocaleString()}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: row.playDuration === null ? '#C4C8CF' : '#374151', whiteSpace: 'nowrap' }}>{row.playDuration === null ? '-' : `${row.playDuration.toLocaleString()} 分钟`}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: row.avgPlayTime === null ? '#C4C8CF' : '#374151', whiteSpace: 'nowrap' }}>{row.avgPlayTime === null ? '-' : `${row.avgPlayTime} 分钟`}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center', color: row.avgProgress === null ? '#C4C8CF' : '#374151', whiteSpace: 'nowrap', borderRight: 'none' }}>{row.avgProgress === null ? '-' : `${row.avgProgress}%`}</td>
                 </tr>
               ))}
             </tbody>
