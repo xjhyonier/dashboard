@@ -98,7 +98,204 @@ function generateCheckDetails(enterpriseNames: string[], inspectorNames: string[
     const closed: CheckDetail['closed'] = Math.random() < 0.82 ? '是' : '否'
     list.push({ seq: i + 1, type, name, creditCode, inspector, time, closed })
   }
+      return list
+    }
+
+// ===== 隐患 / 重大隐患明细 mock 数据 =====
+interface HazardDetail {
+  seq: number
+  name: string
+  creditCode: string
+  description: string
+  level: string
+  status: string
+  discoveredAt: string
+  deadline: string
+  overdueDays: number
+}
+
+const HAZARD_DESCS = [
+  '消防通道被货物堵塞，疏散标识缺失',
+  '灭火器压力不足且超期未检验',
+  '电气线路私拉乱接，未穿管保护',
+  '易燃物品堆放区未配置灭火器材',
+  '安全出口锁闭，应急照明损坏',
+  '动火作业未办理审批手续',
+  '危化品仓储未落实通风防爆措施',
+  '消防控制室值班人员脱岗',
+  '疏散楼梯间堆放杂物影响通行',
+  '油烟管道未定期清洗存在火灾隐患',
+  '电动自行车违规在室内充电',
+  '防火门闭门器损坏无法正常关闭',
+]
+const HAZARD_LEVELS = ['重大隐患', '较大隐患', '一般隐患']
+const HAZARD_STATUSES = ['已整改', '整改中', '待整改', '已逾期']
+
+function generateHazardDetails(enterpriseNames: string[], count = 50, majorOnly = false): HazardDetail[] {
+  const ents = enterpriseNames.length ? enterpriseNames : CHECK_FALLBACK_ENT_NAMES
+  const list: HazardDetail[] = []
+  for (let i = 0; i < count; i++) {
+    const name = ents[(i * 7 + 3) % ents.length]
+    const creditCode = '9133' + String(Math.floor(Math.random() * 1e14)).padStart(14, '0').slice(0, 14)
+    const description = HAZARD_DESCS[(i * 5 + 1) % HAZARD_DESCS.length]
+    const level = majorOnly ? '重大隐患' : HAZARD_LEVELS[(i * 3) % HAZARD_LEVELS.length]
+    // 重大隐患以“已整改 / 整改中”为主，普通隐患覆盖全部状态
+    const status = majorOnly
+      ? (HAZARD_STATUSES[(i * 2) % 2] === '待整改' ? '整改中' : HAZARD_STATUSES[(i * 2) % 2])
+      : HAZARD_STATUSES[(i * 2) % HAZARD_STATUSES.length]
+    const mon = ((i * 7) % 8) + 1
+    const day = 1 + ((i * 3) % 24)
+    const discovered = new Date(2026, mon - 1, day)
+    const discoveredAt = `2026-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const dlDays = 15 + (i % 45)
+    const deadlineDate = new Date(discovered)
+    deadlineDate.setDate(discovered.getDate() + dlDays)
+    const deadline = `${deadlineDate.getFullYear()}-${String(deadlineDate.getMonth() + 1).padStart(2, '0')}-${String(deadlineDate.getDate()).padStart(2, '0')}`
+    const overdueDays = status === '已逾期' ? (1 + (i % 30)) : 0
+    list.push({ seq: i + 1, name, creditCode, description, level, status, discoveredAt, deadline, overdueDays })
+  }
   return list
+}
+
+// 隐患明细表通用列配置（隐患总数 / 重大隐患总数 共用）
+type HazardDetailCol = {
+  label: string
+  key: keyof HazardDetail
+  numeric?: boolean
+  render?: (d: HazardDetail) => React.ReactNode
+}
+
+const HAZARD_PAGE_SIZE = 10
+const hazardPageBtnStyle = (disabled: boolean): React.CSSProperties => ({
+  border: '1px solid #D1D5DB',
+  background: disabled ? '#F3F4F6' : 'white',
+  color: disabled ? '#9CA3AF' : '#374151',
+  fontSize: 12,
+  borderRadius: 6,
+  padding: '4px 10px',
+  cursor: disabled ? 'not-allowed' : 'pointer',
+})
+
+const hazardDetailColumns: HazardDetailCol[] = [
+  { label: '序号', key: 'seq', numeric: true },
+  { label: '企业名称', key: 'name' },
+  { label: '社会信用代码', key: 'creditCode' },
+  { label: '隐患描述', key: 'description' },
+  { label: '隐患等级', key: 'level', render: d => (
+    <span style={{ color: d.level === '重大隐患' ? '#DC2626' : d.level === '较大隐患' ? '#D97706' : '#6B7280', fontWeight: 600 }}>{d.level}</span>
+  ) },
+  { label: '状态', key: 'status', render: d => (
+    <span style={{ color: d.status === '已逾期' ? '#DC2626' : d.status === '已整改' ? '#059669' : '#D97706', fontWeight: 600 }}>{d.status}</span>
+  ) },
+  { label: '发现时间', key: 'discoveredAt' },
+  { label: '整改期限', key: 'deadline' },
+  { label: '逾期天数', key: 'overdueDays', numeric: true, render: d => (
+    <span style={{ color: d.overdueDays > 0 ? '#DC2626' : '#9CA3AF', fontWeight: d.overdueDays > 0 ? 600 : 400 }}>{d.overdueDays}</span>
+  ) },
+]
+
+function HazardDetailModal({
+  title, rows, total, columns, sortKey, sortDir, onToggleSort,
+  page, pages, onPage, onClose, onExport, accent,
+}: {
+  title: string
+  rows: HazardDetail[]
+  total: number
+  columns: HazardDetailCol[]
+  sortKey: keyof HazardDetail | null
+  sortDir: 'asc' | 'desc'
+  onToggleSort: (k: keyof HazardDetail) => void
+  page: number
+  pages: number
+  onPage: (p: number) => void
+  onClose: () => void
+  onExport: () => void
+  accent: string
+}) {
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: 'white', borderRadius: 10, width: 'min(1100px, 100%)', maxHeight: '86vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid #E5E7EB' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>{title}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 12, color: '#6B7280' }}>共 {total} 条</span>
+            <button
+              onClick={onExport}
+              style={{ border: `1px solid ${accent}`, background: '#EEF2FF', color: accent, fontSize: 12, fontWeight: 600, borderRadius: 6, padding: '5px 12px', cursor: 'pointer' }}
+            >导出 CSV</button>
+            <button onClick={onClose} style={{ border: 'none', background: 'transparent', fontSize: 20, lineHeight: 1, color: '#9CA3AF', cursor: 'pointer' }}>×</button>
+          </div>
+        </div>
+        <div style={{ overflow: 'auto', padding: 0 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: '#F9FAFB', position: 'sticky', top: 0, zIndex: 1 }}>
+                {columns.map(col => {
+                  const active = sortKey === col.key
+                  return (
+                    <th
+                      key={col.key}
+                      onClick={() => onToggleSort(col.key)}
+                      style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: active ? accent : '#374151', borderBottom: '2px solid #E5E7EB', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                    >
+                      {col.label}
+                      <span style={{ marginLeft: 4, fontSize: 10, color: active ? accent : '#9CA3AF' }}>
+                        {active ? (sortDir === 'asc' ? '▲' : '▼') : '⇅'}
+                      </span>
+                    </th>
+                  )
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((d, i) => (
+                <tr key={i} style={{ background: i % 2 ? '#FFFFFF' : '#FCFCFD' }}>
+                  {columns.map(col => (
+                    <td
+                      key={col.key}
+                      style={{
+                        padding: '8px 12px',
+                        textAlign: col.key === 'name' || col.key === 'description' ? 'left' : 'center',
+                        color: '#374151',
+                        borderBottom: '1px solid #F0F0F0',
+                        whiteSpace: col.key === 'description' ? 'normal' : 'nowrap',
+                      }}
+                    >
+                      {col.render ? col.render(d) : String(d[col.key])}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 18px', borderTop: '1px solid #E5E7EB' }}>
+          <span style={{ fontSize: 12, color: '#6B7280' }}>
+            第 {page + 1} / {pages} 页 · 每页 {HAZARD_PAGE_SIZE} 条
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button disabled={page <= 0} onClick={() => onPage(0)} style={hazardPageBtnStyle(page <= 0)}>首页</button>
+            <button disabled={page <= 0} onClick={() => onPage(Math.max(0, page - 1))} style={hazardPageBtnStyle(page <= 0)}>上一页</button>
+            {Array.from({ length: pages }, (_, p) => (
+              <button
+                key={p}
+                onClick={() => onPage(p)}
+                style={{ minWidth: 30, border: '1px solid ' + (p === page ? accent : '#D1D5DB'), background: p === page ? accent : 'white', color: p === page ? 'white' : '#374151', fontSize: 12, borderRadius: 6, padding: '4px 8px', cursor: 'pointer' }}
+              >{p + 1}</button>
+            ))}
+            <button disabled={page >= pages - 1} onClick={() => onPage(Math.min(pages - 1, page + 1))} style={hazardPageBtnStyle(page >= pages - 1)}>下一页</button>
+            <button disabled={page >= pages - 1} onClick={() => onPage(pages - 1)} style={hazardPageBtnStyle(page >= pages - 1)}>末页</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export function StationChiefV2Dashboard() {
@@ -226,6 +423,88 @@ export function StationChiefV2Dashboard() {
     const a = document.createElement('a')
     a.href = url
     a.download = `检查次数明细_${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  // 隐患总数明细弹窗
+  const [showHazardDetail, setShowHazardDetail] = useState(false)
+  const [hazardDetailPage, setHazardDetailPage] = useState(0)
+  const [hazardDetailSortKey, setHazardDetailSortKey] = useState<keyof HazardDetail | null>(null)
+  const [hazardDetailSortDir, setHazardDetailSortDir] = useState<'asc' | 'desc'>('asc')
+  const hazardDetails = useMemo(() => {
+    const names = enterprises.length ? enterprises.map(e => e.name) : CHECK_FALLBACK_ENT_NAMES
+    return generateHazardDetails(names, 50, false)
+  }, [enterprises])
+  const hazardDetailSorted = useMemo(() => {
+    if (!hazardDetailSortKey) return hazardDetails
+    const key = hazardDetailSortKey
+    const dir = hazardDetailSortDir === 'asc' ? 1 : -1
+    return [...hazardDetails].sort((a, b) => {
+      const va = a[key], vb = b[key]
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir
+      return String(va).localeCompare(String(vb), 'zh-Hans-CN') * dir
+    })
+  }, [hazardDetails, hazardDetailSortKey, hazardDetailSortDir])
+  const hazardDetailPages = Math.max(1, Math.ceil(hazardDetailSorted.length / HAZARD_PAGE_SIZE))
+  const hazardDetailPaged = hazardDetailSorted.slice(hazardDetailPage * HAZARD_PAGE_SIZE, hazardDetailPage * HAZARD_PAGE_SIZE + HAZARD_PAGE_SIZE)
+  const toggleHazardSort = (key: keyof HazardDetail) => {
+    if (hazardDetailSortKey === key) setHazardDetailSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    else { setHazardDetailSortKey(key); setHazardDetailSortDir('asc') }
+    setHazardDetailPage(0)
+  }
+  const exportHazardDetails = () => {
+    const headers = ['序号', '企业名称', '社会信用代码', '隐患描述', '隐患等级', '状态', '发现时间', '整改期限', '逾期天数']
+    const rows = hazardDetails.map(d => [d.seq, d.name, d.creditCode, d.description, d.level, d.status, d.discoveredAt, d.deadline, d.overdueDays])
+    const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `隐患总数明细_${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  // 重大隐患总数明细弹窗
+  const [showSeriousDetail, setShowSeriousDetail] = useState(false)
+  const [seriousDetailPage, setSeriousDetailPage] = useState(0)
+  const [seriousDetailSortKey, setSeriousDetailSortKey] = useState<keyof HazardDetail | null>(null)
+  const [seriousDetailSortDir, setSeriousDetailSortDir] = useState<'asc' | 'desc'>('asc')
+  const seriousDetails = useMemo(() => {
+    const names = enterprises.length ? enterprises.map(e => e.name) : CHECK_FALLBACK_ENT_NAMES
+    return generateHazardDetails(names, 50, true)
+  }, [enterprises])
+  const seriousDetailSorted = useMemo(() => {
+    if (!seriousDetailSortKey) return seriousDetails
+    const key = seriousDetailSortKey
+    const dir = seriousDetailSortDir === 'asc' ? 1 : -1
+    return [...seriousDetails].sort((a, b) => {
+      const va = a[key], vb = b[key]
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir
+      return String(va).localeCompare(String(vb), 'zh-Hans-CN') * dir
+    })
+  }, [seriousDetails, seriousDetailSortKey, seriousDetailSortDir])
+  const seriousDetailPages = Math.max(1, Math.ceil(seriousDetailSorted.length / HAZARD_PAGE_SIZE))
+  const seriousDetailPaged = seriousDetailSorted.slice(seriousDetailPage * HAZARD_PAGE_SIZE, seriousDetailPage * HAZARD_PAGE_SIZE + HAZARD_PAGE_SIZE)
+  const toggleSeriousSort = (key: keyof HazardDetail) => {
+    if (seriousDetailSortKey === key) setSeriousDetailSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    else { setSeriousDetailSortKey(key); setSeriousDetailSortDir('asc') }
+    setSeriousDetailPage(0)
+  }
+  const exportSeriousDetails = () => {
+    const headers = ['序号', '企业名称', '社会信用代码', '隐患描述', '隐患等级', '状态', '发现时间', '整改期限', '逾期天数']
+    const rows = seriousDetails.map(d => [d.seq, d.name, d.creditCode, d.description, d.level, d.status, d.discoveredAt, d.deadline, d.overdueDays])
+    const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `重大隐患总数明细_${new Date().toISOString().slice(0, 10)}.csv`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -1238,16 +1517,40 @@ export function StationChiefV2Dashboard() {
           gap: 4,
           minWidth: 0,
         }}>
-          <div style={{ fontSize: 11, color: '#6B7280', textAlign: 'center', fontWeight: 600, paddingBottom: 4, borderBottom: '1px dashed #E5E7EB', whiteSpace: 'nowrap' }}>
-            隐患总数 = 已整改 + 整改中
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 4, borderBottom: '1px dashed #E5E7EB' }}>
+            <div style={{ width: 56 }} />
+            <div style={{ fontSize: 11, color: '#6B7280', textAlign: 'center', fontWeight: 600, whiteSpace: 'nowrap' }}>
+              隐患总数 = 已整改 + 整改中
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); setHazardDetailPage(0); setShowHazardDetail(true) }}
+              style={{
+                width: 56,
+                padding: '2px 0',
+                border: '1px solid #6B7280',
+                borderRadius: 4,
+                background: '#FFF',
+                color: '#374151',
+                fontSize: 10,
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                lineHeight: 1,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#F3F4F6' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#FFF' }}
+            >
+              查看明细
+            </button>
           </div>
           <div style={{ display: 'flex', gap: 8, flex: 1 }}>
             <KpiCard
               selectedKpi={selectedKpi}
               setSelectedKpi={setSelectedKpi}
-              item={{ key: 'hazard', label: '隐患总数', value: kpiTotals.hazard, unit: '条', color: '#374151', tip: '镇街监督检查发现的隐患总数' }}
+              item={{ key: 'hazard', label: '隐患总数', value: kpiTotals.hazard, unit: '条', color: '#374151', tip: '点击查看隐患总数明细' }}
               compact
               mom={kpiTotals.hazardMoM}
+              onCustomClick={() => { setHazardDetailPage(0); setShowHazardDetail(true) }}
             />
             <KpiCard
               selectedKpi={selectedKpi}
@@ -1277,16 +1580,40 @@ export function StationChiefV2Dashboard() {
           gap: 4,
           minWidth: 0,
         }}>
-          <div style={{ fontSize: 11, color: '#991B1B', textAlign: 'center', fontWeight: 600, paddingBottom: 4, borderBottom: '1px dashed #FECACA', whiteSpace: 'nowrap' }}>
-            重大隐患总数 = 已整改 + 整改中
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 4, borderBottom: '1px dashed #FECACA' }}>
+            <div style={{ width: 56 }} />
+            <div style={{ fontSize: 11, color: '#991B1B', textAlign: 'center', fontWeight: 600, whiteSpace: 'nowrap' }}>
+              重大隐患总数 = 已整改 + 整改中
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); setSeriousDetailPage(0); setShowSeriousDetail(true) }}
+              style={{
+                width: 56,
+                padding: '2px 0',
+                border: '1px solid #DC2626',
+                borderRadius: 4,
+                background: '#FFF',
+                color: '#991B1B',
+                fontSize: 10,
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                lineHeight: 1,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#FFF' }}
+            >
+              查看明细
+            </button>
           </div>
           <div style={{ display: 'flex', gap: 8, flex: 1 }}>
             <KpiCard
               selectedKpi={selectedKpi}
               setSelectedKpi={setSelectedKpi}
-              item={{ key: 'serious', label: '重大隐患总数', value: kpiTotals.serious, unit: '条', color: '#DC2626' }}
+              item={{ key: 'serious', label: '重大隐患总数', value: kpiTotals.serious, unit: '条', color: '#DC2626', tip: '点击查看重大隐患总数明细' }}
               compact
               mom={kpiTotals.seriousMoM}
+              onCustomClick={() => { setSeriousDetailPage(0); setShowSeriousDetail(true) }}
             />
             <KpiCard
               selectedKpi={selectedKpi}
@@ -1639,6 +1966,44 @@ export function StationChiefV2Dashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 隐患总数明细弹窗 */}
+      {showHazardDetail && (
+        <HazardDetailModal
+          title="隐患总数明细"
+          rows={hazardDetailPaged}
+          total={hazardDetails.length}
+          columns={hazardDetailColumns}
+          sortKey={hazardDetailSortKey}
+          sortDir={hazardDetailSortDir}
+          onToggleSort={toggleHazardSort}
+          page={hazardDetailPage}
+          pages={hazardDetailPages}
+          onPage={setHazardDetailPage}
+          onClose={() => setShowHazardDetail(false)}
+          onExport={exportHazardDetails}
+          accent="#4F46E5"
+        />
+      )}
+
+      {/* 重大隐患总数明细弹窗 */}
+      {showSeriousDetail && (
+        <HazardDetailModal
+          title="重大隐患总数明细"
+          rows={seriousDetailPaged}
+          total={seriousDetails.length}
+          columns={hazardDetailColumns}
+          sortKey={seriousDetailSortKey}
+          sortDir={seriousDetailSortDir}
+          onToggleSort={toggleSeriousSort}
+          page={seriousDetailPage}
+          pages={seriousDetailPages}
+          onPage={setSeriousDetailPage}
+          onClose={() => setShowSeriousDetail(false)}
+          onExport={exportSeriousDetails}
+          accent="#DC2626"
+        />
       )}
 
     </div>
