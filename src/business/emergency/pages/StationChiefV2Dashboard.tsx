@@ -1121,8 +1121,31 @@ export function StationChiefV2Dashboard() {
           gap: 4,
           minWidth: 0,
         }}>
-          <div style={{ fontSize: 11, color: '#B45309', textAlign: 'center', fontWeight: 600, paddingBottom: 4, borderBottom: '1px dashed #FED7AA', whiteSpace: 'nowrap' }}>
-            检查次数 = 日常监管次数 + 监督检查次数
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 4, borderBottom: '1px dashed #FED7AA' }}>
+            <div style={{ width: 56 }} />
+            <div style={{ fontSize: 11, color: '#B45309', textAlign: 'center', fontWeight: 600, whiteSpace: 'nowrap' }}>
+              检查次数 = 日常监管次数 + 监督检查次数
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); setCheckDetailPage(0); setShowCheckDetail(true) }}
+              style={{
+                width: 56,
+                padding: '2px 0',
+                border: '1px solid #F59E0B',
+                borderRadius: 4,
+                background: '#FFF',
+                color: '#B45309',
+                fontSize: 10,
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                lineHeight: 1,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#FFFBEB'; e.currentTarget.style.borderColor = '#D97706' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#FFF'; e.currentTarget.style.borderColor = '#F59E0B' }}
+            >
+              查看明细
+            </button>
           </div>
           <div style={{ display: 'flex', gap: 8, flex: 1 }}>
             <KpiCard
