@@ -61,6 +61,46 @@ const prevQuarterEnd = new Date(prevQuarterYear, prevQuarterStartMonth + 3, 0)
 
 type TimeRange = 'month' | 'quarter' | 'year' | 'prevMonth' | 'prevQuarter'
 
+// ===== 检查次数明细 mock 数据 =====
+interface CheckDetail {
+  seq: number
+  type: '远程监管' | '监督检查'
+  name: string
+  creditCode: string
+  inspector: string
+  time: string
+  closed: '是' | '否'
+}
+
+const CHECK_FALLBACK_ENT_NAMES = [
+  '杭州临平智造实业有限公司', '余杭良渚文化产业园管理公司', '浙江恒达机械有限公司', '杭州云栖科技股份有限公司',
+  '嘉兴联运物流仓储中心', '杭州九安消防设备厂', '宁波远东化工集团', '温州康宁医养中心',
+  '绍兴锦绣纺织印染', '湖州绿建新型建材', '金华小商品贸易行', '台州精密模具有限公司',
+  '衢州新能源科技', '丽水生态农业开发', '舟山远洋渔业公司', '杭州数智安防工程',
+  '萧山智能制造基地', '滨江互联网软件园', '拱墅商业综合体', '西湖文旅集团',
+]
+const CHECK_FALLBACK_INSPECTORS = ['小新', '赞赞', '仝运槐', '张杭伟', '王创达', '梁新舒', '陈涛', '段晓辉', '郑富彬', '张平水', '吴灿刚', '刘浩鑫']
+
+function generateCheckDetails(enterpriseNames: string[], inspectorNames: string[], count = 50): CheckDetail[] {
+  const ents = enterpriseNames.length ? enterpriseNames : CHECK_FALLBACK_ENT_NAMES
+  const insps = inspectorNames.length ? inspectorNames : CHECK_FALLBACK_INSPECTORS
+  const list: CheckDetail[] = []
+  for (let i = 0; i < count; i++) {
+    // 远程监管约占 62%（对应 日常监管5120 / 总8240）
+    const type: CheckDetail['type'] = Math.random() < 0.62 ? '远程监管' : '监督检查'
+    const name = ents[(i * 7 + 3) % ents.length]
+    const creditCode = '9133' + String(Math.floor(Math.random() * 1e14)).padStart(14, '0').slice(0, 14)
+    const inspector = insps[(i * 5 + 2) % insps.length]
+    const day = 1 + ((i * 3) % 20)
+    const hh = 8 + ((i * 7) % 10)
+    const mm = (i * 13) % 60
+    const time = `2026-08-${String(day).padStart(2, '0')} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
+    const closed: CheckDetail['closed'] = Math.random() < 0.82 ? '是' : '否'
+    list.push({ seq: i + 1, type, name, creditCode, inspector, time, closed })
+  }
+  return list
+}
+
 export function StationChiefV2Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -142,6 +182,55 @@ export function StationChiefV2Dashboard() {
 
   // 全局 KPI 筛选状态
   const [selectedKpi, setSelectedKpi] = useState<string | null>(null)
+  // 检查次数明细弹窗
+  const [showCheckDetail, setShowCheckDetail] = useState(false)
+  const [checkDetailPage, setCheckDetailPage] = useState(0)
+  const [checkDetailSortKey, setCheckDetailSortKey] = useState<keyof CheckDetail | null>(null)
+  const [checkDetailSortDir, setCheckDetailSortDir] = useState<'asc' | 'desc'>('asc')
+  const checkDetails = useMemo(() => {
+    const names = enterprises.length ? enterprises.map(e => e.name) : CHECK_FALLBACK_ENT_NAMES
+    const insp = experts.length ? experts.map(e => e.name) : CHECK_FALLBACK_INSPECTORS
+    return generateCheckDetails(names, insp, 50)
+  }, [enterprises, experts])
+  // 排序后的全量数据（先排序再分页）
+  const checkDetailSorted = useMemo(() => {
+    if (!checkDetailSortKey) return checkDetails
+    const key = checkDetailSortKey
+    const dir = checkDetailSortDir === 'asc' ? 1 : -1
+    return [...checkDetails].sort((a, b) => {
+      const va = a[key], vb = b[key]
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir
+      return String(va).localeCompare(String(vb), 'zh-Hans-CN') * dir
+    })
+  }, [checkDetails, checkDetailSortKey, checkDetailSortDir])
+  const CHECK_PAGE_SIZE = 10
+  const checkDetailPages = Math.max(1, Math.ceil(checkDetailSorted.length / CHECK_PAGE_SIZE))
+  const checkDetailPaged = checkDetailSorted.slice(checkDetailPage * CHECK_PAGE_SIZE, checkDetailPage * CHECK_PAGE_SIZE + CHECK_PAGE_SIZE)
+  // 点击排序表头：同列切换升/降序，新列默认升序
+  const toggleSort = (key: keyof CheckDetail) => {
+    if (checkDetailSortKey === key) {
+      setCheckDetailSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setCheckDetailSortKey(key)
+      setCheckDetailSortDir('asc')
+    }
+    setCheckDetailPage(0)
+  }
+  // 导出检查明细为 CSV（含 BOM 防中文乱码）
+  const exportCheckDetails = () => {
+    const headers = ['序号', '检查类型', '企业名称', '社会信用代码', '检查人/执行人', '检查时间', '是否办结']
+    const rows = checkDetails.map(d => [d.seq, d.type, d.name, d.creditCode, d.inspector, d.time, d.closed])
+    const csv = '﻿' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `检查次数明细_${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   // 风险等级筛选状态
   const [riskLevel, setRiskLevel] = useState<'all' | 'major' | 'high' | 'medium' | 'low'>('all')
@@ -382,7 +471,7 @@ export function StationChiefV2Dashboard() {
   }
 
   // KPI 卡片渲染组件
-  const KpiCard = ({ selectedKpi, setSelectedKpi, item, accentBar, compact, mom, yoy }: {
+  const KpiCard = ({ selectedKpi, setSelectedKpi, item, accentBar, compact, mom, yoy, onCustomClick }: {
     selectedKpi: string | null
     setSelectedKpi: (k: string | null) => void
     item: { key: string; label: string; value: number; unit: string; color: string; tip?: string }
@@ -390,6 +479,7 @@ export function StationChiefV2Dashboard() {
     compact?: boolean
     mom?: number | null
     yoy?: number | null
+    onCustomClick?: () => void
   }) => {
     const isActive = selectedKpi === item.key
 
@@ -411,7 +501,7 @@ export function StationChiefV2Dashboard() {
     return (
       <div
         key={item.key}
-        onClick={() => setSelectedKpi(isActive ? null : item.key)}
+        onClick={() => onCustomClick ? onCustomClick() : setSelectedKpi(isActive ? null : item.key)}
         style={{
           flex: compact ? 1 : undefined,
           flexShrink: compact ? undefined : 0,
@@ -1038,8 +1128,9 @@ export function StationChiefV2Dashboard() {
             <KpiCard
               selectedKpi={selectedKpi}
               setSelectedKpi={setSelectedKpi}
-              item={{ key: 'checkCount', label: '检查次数', value: 8240, unit: '次', color: '#B45309' }}
+              item={{ key: 'checkCount', label: '检查次数', value: 8240, unit: '次', color: '#B45309', tip: '点击查看检查次数明细' }}
               compact
+              onCustomClick={() => { setCheckDetailPage(0); setShowCheckDetail(true) }}
             />
             <KpiCard
               selectedKpi={selectedKpi}
@@ -1419,6 +1510,114 @@ export function StationChiefV2Dashboard() {
           </div>
         </div>
       )}
+
+      {/* 检查次数明细弹窗 */}
+      {showCheckDetail && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setShowCheckDetail(false)}
+        >
+          <div
+            style={{ background: 'white', borderRadius: 10, width: 'min(960px, 100%)', maxHeight: '86vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>检查次数明细</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 12, color: '#6B7280' }}>共 {checkDetails.length} 条（检查次数合计 8,240 次）</span>
+                <button
+                  onClick={exportCheckDetails}
+                  style={{ border: '1px solid #4F46E5', background: '#EEF2FF', color: '#4F46E5', fontSize: 12, fontWeight: 600, borderRadius: 6, padding: '5px 12px', cursor: 'pointer' }}
+                >导出 CSV</button>
+                <button onClick={() => setShowCheckDetail(false)} style={{ border: 'none', background: 'transparent', fontSize: 20, lineHeight: 1, color: '#9CA3AF', cursor: 'pointer' }}>×</button>
+              </div>
+            </div>
+            <div style={{ overflow: 'auto', padding: 0 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: '#F9FAFB', position: 'sticky', top: 0, zIndex: 1 }}>
+                    {([
+                      { label: '序号', key: 'seq' as const },
+                      { label: '检查类型', key: 'type' as const },
+                      { label: '企业名称', key: 'name' as const },
+                      { label: '社会信用代码', key: 'creditCode' as const },
+                      { label: '检查人 / 执行人', key: 'inspector' as const },
+                      { label: '检查时间', key: 'time' as const },
+                      { label: '是否办结', key: 'closed' as const },
+                    ]).map(col => {
+                      const active = checkDetailSortKey === col.key
+                      return (
+                        <th
+                          key={col.key}
+                          onClick={() => toggleSort(col.key)}
+                          style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: active ? '#4F46E5' : '#374151', borderBottom: '2px solid #E5E7EB', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                        >
+                          {col.label}
+                          <span style={{ marginLeft: 4, fontSize: 10, color: active ? '#4F46E5' : '#9CA3AF' }}>
+                            {active ? (checkDetailSortDir === 'asc' ? '▲' : '▼') : '⇅'}
+                          </span>
+                        </th>
+                      )
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {checkDetailPaged.map((d, i) => (
+                    <tr key={i} style={{ background: i % 2 ? '#FFFFFF' : '#FCFCFD' }}>
+                      <td style={{ padding: '8px 12px', textAlign: 'center', color: '#6B7280', borderBottom: '1px solid #F0F0F0' }}>{d.seq}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center', borderBottom: '1px solid #F0F0F0' }}>
+                        <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600, color: d.type === '远程监管' ? '#B45309' : '#92400E', background: d.type === '远程监管' ? '#FEF3C7' : '#FDE68A' }}>{d.type}</span>
+                      </td>
+                      <td style={{ padding: '8px 12px', textAlign: 'left', color: '#111827', borderBottom: '1px solid #F0F0F0', whiteSpace: 'nowrap' }}>{d.name}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center', fontFamily: 'monospace', fontSize: 11, color: '#4B5563', borderBottom: '1px solid #F0F0F0', whiteSpace: 'nowrap' }}>{d.creditCode}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center', color: '#374151', borderBottom: '1px solid #F0F0F0', whiteSpace: 'nowrap' }}>{d.inspector}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center', color: '#4B5563', borderBottom: '1px solid #F0F0F0', whiteSpace: 'nowrap' }}>{d.time}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center', borderBottom: '1px solid #F0F0F0' }}>
+                        <span style={{ color: d.closed === '是' ? '#059669' : '#DC2626', fontWeight: 600 }}>{d.closed}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 18px', borderTop: '1px solid #E5E7EB' }}>
+              <span style={{ fontSize: 12, color: '#6B7280' }}>
+                第 {checkDetailPage + 1} / {checkDetailPages} 页 · 每页 {CHECK_PAGE_SIZE} 条
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  disabled={checkDetailPage <= 0}
+                  onClick={() => setCheckDetailPage(0)}
+                  style={{ border: '1px solid #D1D5DB', background: checkDetailPage <= 0 ? '#F3F4F6' : 'white', color: checkDetailPage <= 0 ? '#9CA3AF' : '#374151', fontSize: 12, borderRadius: 6, padding: '4px 10px', cursor: checkDetailPage <= 0 ? 'not-allowed' : 'pointer' }}
+                >首页</button>
+                <button
+                  disabled={checkDetailPage <= 0}
+                  onClick={() => setCheckDetailPage(p => Math.max(0, p - 1))}
+                  style={{ border: '1px solid #D1D5DB', background: checkDetailPage <= 0 ? '#F3F4F6' : 'white', color: checkDetailPage <= 0 ? '#9CA3AF' : '#374151', fontSize: 12, borderRadius: 6, padding: '4px 10px', cursor: checkDetailPage <= 0 ? 'not-allowed' : 'pointer' }}
+                >上一页</button>
+                {Array.from({ length: checkDetailPages }, (_, p) => (
+                  <button
+                    key={p}
+                    onClick={() => setCheckDetailPage(p)}
+                    style={{ minWidth: 30, border: '1px solid ' + (p === checkDetailPage ? '#4F46E5' : '#D1D5DB'), background: p === checkDetailPage ? '#4F46E5' : 'white', color: p === checkDetailPage ? 'white' : '#374151', fontSize: 12, borderRadius: 6, padding: '4px 8px', cursor: 'pointer' }}
+                  >{p + 1}</button>
+                ))}
+                <button
+                  disabled={checkDetailPage >= checkDetailPages - 1}
+                  onClick={() => setCheckDetailPage(p => Math.min(checkDetailPages - 1, p + 1))}
+                  style={{ border: '1px solid #D1D5DB', background: checkDetailPage >= checkDetailPages - 1 ? '#F3F4F6' : 'white', color: checkDetailPage >= checkDetailPages - 1 ? '#9CA3AF' : '#374151', fontSize: 12, borderRadius: 6, padding: '4px 10px', cursor: checkDetailPage >= checkDetailPages - 1 ? 'not-allowed' : 'pointer' }}
+                >下一页</button>
+                <button
+                  disabled={checkDetailPage >= checkDetailPages - 1}
+                  onClick={() => setCheckDetailPage(checkDetailPages - 1)}
+                  style={{ border: '1px solid #D1D5DB', background: checkDetailPage >= checkDetailPages - 1 ? '#F3F4F6' : 'white', color: checkDetailPage >= checkDetailPages - 1 ? '#9CA3AF' : '#374151', fontSize: 12, borderRadius: 6, padding: '4px 10px', cursor: checkDetailPage >= checkDetailPages - 1 ? 'not-allowed' : 'pointer' }}
+                >末页</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

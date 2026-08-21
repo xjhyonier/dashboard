@@ -1,8 +1,15 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react'
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { PageHeader } from '../../../components/layout/PageHeader'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
+import * as echarts from 'echarts/core'
+import { MapChart } from 'echarts/charts'
+import { TooltipComponent, VisualMapComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+// 全国地图（不含南海诸岛）简化 GeoJSON，本地化避免运行时过滤与体积问题
+import chinaMainGeo from '../../../assets/geo/china-main.json'
+echarts.use([MapChart, TooltipComponent, VisualMapComponent, CanvasRenderer])
 
 // ─── 类型定义 ────────────────────────────────────────────────────
 type FunctionTab = 'hazard' | 'check' | 'training' | 'risk' | 'docLedger' | 'siteManagement'
@@ -418,14 +425,14 @@ const generateActiveEnterprises = (): ActiveEnterprise[] => {
 
 // ─── 通用样式 ───────────────────────────────────────────────────
 const th: React.CSSProperties = {
-  padding: '6px 8px', background: '#F3F4F6', fontWeight: 600, fontSize: 12,
+  padding: '4px 8px', background: '#F3F4F6', fontWeight: 600, fontSize: 12,
   color: '#374151', borderBottom: '2px solid #E5E7EB', borderRight: '1px solid #E5E7EB',
-  whiteSpace: 'nowrap', textAlign: 'center',
+  whiteSpace: 'nowrap', textAlign: 'center', lineHeight: '20px',
 }
 const td = (extra?: React.CSSProperties): React.CSSProperties => ({
   padding: '5px 8px', fontSize: 12, color: '#374151',
   borderBottom: '1px solid #F3F4F6', borderRight: '1px solid #F3F4F6',
-  verticalAlign: 'middle', textAlign: 'center', ...extra,
+  verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap', lineHeight: '30px', ...extra,
 })
 
 // ─── 主组件 ────────────────────────────────────────────────────
@@ -535,6 +542,29 @@ export function OperationsAnalyticsDashboard() {
     : selectedDistricts.length > 0 ? 'district'
     : selectedCities.length > 0 ? 'city'
     : 'province' as 'province' | 'city' | 'district' | 'street'
+
+  // 地图联动：从筛选单选值推导地图层级；地图点击回调设置筛选
+  const drill = useMemo(() => {
+    let province = selectedProvinces.length === 1 ? selectedProvinces[0] : undefined
+    let city = selectedCities.length === 1 ? selectedCities[0] : undefined
+    const district = selectedDistricts.length === 1 ? selectedDistricts[0] : undefined
+    // 单独选区县（省/市未选）时，从区域数据反查所属省市
+    if (district) {
+      const row = regionData.find(r => r.district === district)
+      if (row) {
+        if (!province) province = row.province
+        if (!city) city = row.city
+      }
+    }
+    return { province, city, district }
+  }, [selectedProvinces, selectedCities, selectedDistricts, regionData])
+
+  const handleMapDrill = useCallback((level: 'province' | 'city' | 'district', name: string) => {
+    const allStreets = Object.values(STREETS).flat()
+    if (level === 'province') { setSelectedProvinces([name]); setSelectedCities([]); setSelectedDistricts([]); setSelectedStreets(allStreets) }
+    else if (level === 'city') { setSelectedCities([name]); setSelectedDistricts([]); setSelectedStreets(allStreets) }
+    else { setSelectedDistricts([name]); setSelectedStreets(allStreets) }
+  }, [])
 
   const filteredRegions = useMemo(() => {
     let data = regionData
@@ -980,15 +1010,23 @@ export function OperationsAnalyticsDashboard() {
         </div>
       </div>
 
-      {/* ─── 趋势图 + 地域排行（左右并排） ─────────────── */}
+      {/* ─── 热力地图 + 活跃趋势（左右并排） ─────────────── */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexDirection: isMobile ? 'column' : 'row' }}>
+        {/* 全国热力地图（支持省/市/区县点击下钻，与上方筛选项联动） */}
+        <div style={{ flex: 5, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <HeatmapPanel
+            isMobile={isMobile}
+            drill={drill}
+            onDrill={handleMapDrill}
+          />
+        </div>
         {/* 活跃趋势 */}
-        <div style={{ flex: 6, background: 'white', border: '1px solid #9CA3AF', borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column', minHeight: isMobile ? 360 : undefined }}>
+        <div style={{ flex: 5, background: 'white', border: '1px solid #9CA3AF', borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column', minHeight: isMobile ? 280 : 300 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 12 }}>活跃趋势（按月）</div>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
             {[
-              { key: 'activeUsers', label: '活跃人数', color: '#4F46E5' },
-              { key: 'activeEnterprises', label: '活跃户数', color: '#3B82F6' },
+              { key: 'activeUsers', label: '活跃人数', color: '#6366F1' },
+              { key: 'activeEnterprises', label: '活跃户数', color: '#22D3EE' },
               { key: 'avgVisitsPerUser', label: '人均访问次数', color: '#059669' },
               { key: 'avgVisitsPerEnt', label: '户均访问次数', color: '#7C3AED' },
             ].map(s => (
@@ -1012,22 +1050,25 @@ export function OperationsAnalyticsDashboard() {
               <YAxis yAxisId="left" fontSize={11} tick={{ fill: '#9CA3AF' }} />
               <YAxis yAxisId="right" orientation="right" fontSize={11} tick={{ fill: '#9CA3AF' }} />
               <Tooltip />
-              {chartVisible.activeUsers && <Bar yAxisId="left" dataKey="activeUsers" name="活跃人数" fill="#4F46E5" radius={[4, 4, 0, 0]} />}
-              {chartVisible.activeEnterprises && <Bar yAxisId="left" dataKey="activeEnterprises" name="活跃户数" fill="#3B82F6" radius={[4, 4, 0, 0]} />}
+              {chartVisible.activeUsers && <Bar yAxisId="left" dataKey="activeUsers" name="活跃人数" fill="#6366F1" radius={[4, 4, 0, 0]} />}
+              {chartVisible.activeEnterprises && <Bar yAxisId="left" dataKey="activeEnterprises" name="活跃户数" fill="#22D3EE" radius={[4, 4, 0, 0]} />}
               {chartVisible.avgVisitsPerUser && <Line yAxisId="right" type="monotone" dataKey="avgVisitsPerUser" name="人均访问次数" stroke="#059669" strokeWidth={2} dot={{ r: 4 }} />}
               {chartVisible.avgVisitsPerEnt && <Line yAxisId="right" type="monotone" dataKey="avgVisitsPerEnt" name="户均访问次数" stroke="#7C3AED" strokeWidth={2} dot={{ r: 4 }} strokeDasharray="5 3" />}
             </ComposedChart>
           </ResponsiveContainer>
           </div>
         </div>
+      </div>
 
-        {/* 地域排行 */}
-        <div style={{ flex: 4, background: 'white', border: '1px solid #9CA3AF', borderRadius: 8, padding: 14 }}>
+      {/* ─── 活跃排行榜 + 企业近30天活跃排行榜 TOP10（左右并排） ── */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexDirection: isMobile ? 'column' : 'row', alignItems: 'flex-start' }}>
+        {/* 活跃排行榜 */}
+        <div style={{ flex: 4, background: 'white', border: '1px solid #9CA3AF', borderRadius: 8, padding: 14, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 12 }}>
             活跃排行榜
           </div>
-          <div style={{ maxHeight: 340, overflowY: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowY: 'auto', maxHeight: 340 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', lineHeight: '30px' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                 <tr>
                   <th style={{ ...th, width: 40, background: '#F3F4F6' }}>#</th>
@@ -1058,10 +1099,10 @@ export function OperationsAnalyticsDashboard() {
           </table>
           </div>
         </div>
+        <div style={{ flex: 8, minWidth: 0 }}>
+          <EnterpriseTop10 moduleFilter={moduleFilter} totalsActiveUsers={totals.activeUsers} accessActiveUsers={accessData.activeUsers} />
+        </div>
       </div>
-
-      {/* ─── 企业近30天活跃排行榜 TOP10 ──────────────── */}
-      <EnterpriseTop10 moduleFilter={moduleFilter} totalsActiveUsers={totals.activeUsers} accessActiveUsers={accessData.activeUsers} />
 
       {/* ─── 二、业务数据 ────────────────────────────── */}
       <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 12, paddingLeft: 4, borderLeft: '3px solid #4F46E5' }}>
@@ -1659,6 +1700,330 @@ function FunctionPanel({ kpis, tables, isMobile }: { kpis: React.ReactNode; tabl
   )
 }
 
+// ─── 全国热力地图（ECharts 真实地图，支持省/市/区县点击下钻） ──
+const GEO_BASE = 'https://geo.datav.aliyun.com/areas_v3/bound'
+
+function heatStats(seedKey: string): { totalSubjects: number; activeUsers: number; activeEnt: number } {
+  const seed = hashRegion(`hm_${seedKey}`)
+  const totalSubjects = 50000 + (seed % 90000)
+  const activeEnt = Math.floor(totalSubjects * (0.35 + (seed % 40) / 100))
+  const activeUsers = Math.floor(activeEnt * (1.5 + (seed % 25) / 100))
+  return { totalSubjects, activeUsers, activeEnt }
+}
+
+interface HeatmapLoc { name: string; adcode: number }
+
+// 街道/镇名池（区县下钻后以方块展示，按安全责任主体总数降序）
+const STREET_POOL = ['中心街道', '东湖街道', '西兴街道', '南苑街道', '北山街道', '城关街道', '仓前街道', '五常街道', '良渚街道', '仁和街道', '临平街道', '闲林街道', '运河街道', '崇贤街道', '星桥街道', '瓶窑镇', '径山镇', '黄湖镇']
+
+function genStreets(districtName: string): { name: string; totalSubjects: number; activeUsers: number; activeEnt: number }[] {
+  const count = 8 + (hashRegion(`streets_${districtName}`) % 5) // 8-12 个街道
+  const list: string[] = []
+  let s = hashRegion(`streets_${districtName}`)
+  for (let i = 0; i < count; i++) {
+    // s 经 (s*31+13)|0 可能溢出为负数，负数 % length 得负索引 → STREET_POOL[负数]=undefined → 名称渲染为空
+    // 取模后加 length 再取模，保证索引恒为非负
+    const idx = (((s + i * 7) % STREET_POOL.length) + STREET_POOL.length) % STREET_POOL.length
+    const item = STREET_POOL[idx]
+    if (!list.includes(item)) list.push(item)
+    s = (s * 31 + 13) | 0
+  }
+  return list
+    .map(name => {
+      const sub = hashRegion(`street_${districtName}_${name}`)
+      const totalSubjects = 20000 + (sub % 180000) // 2万-20万，扩大差异
+      const activeEnt = Math.floor(totalSubjects * (0.2 + (sub % 60) / 100))
+      const activeUsers = Math.floor(activeEnt * (1.2 + (sub % 30) / 100))
+      return { name, totalSubjects, activeUsers, activeEnt }
+    })
+    .sort((a, b) => b.totalSubjects - a.totalSubjects) // 安全责任主体总数降序
+}
+
+interface HeatmapPanelProps {
+  isMobile: boolean
+  drill?: { province?: string; city?: string; district?: string }
+  onDrill?: (level: 'province' | 'city' | 'district', name: string, adcode: number) => void
+}
+
+function HeatmapPanel({ isMobile, drill, onDrill }: HeatmapPanelProps) {
+  const chartRef = useRef<HTMLDivElement>(null)
+  const instRef = useRef<echarts.ECharts | null>(null)
+  const nationRef = useRef<{ name: string; adcode: number }[]>([])
+  const drillRef = useRef('')
+  const [curData, setCurData] = useState<{ name: string; adcode: number }[]>([])
+  const [province, setProvince] = useState<HeatmapLoc | undefined>(undefined)
+  const [city, setCity] = useState<HeatmapLoc | undefined>(undefined)
+  const [district, setDistrict] = useState<HeatmapLoc | undefined>(undefined)
+  const [totals, setTotals] = useState({ totalSubjects: 0, activeUsers: 0, activeEnt: 0 })
+  const [loading, setLoading] = useState(false)
+  const [loadErr, setLoadErr] = useState(false)
+
+  // 外部筛选联动（分步：drill 变→设省；省地图加载后→设市；市地图加载后→设区）
+  useEffect(() => {
+    const key = JSON.stringify(drill)
+    if (key === drillRef.current) return
+    drillRef.current = key
+    const d = drill || {}
+    if (!d.province) { setProvince(undefined); setCity(undefined); setDistrict(undefined); return }
+    const loc = nationRef.current.find(x => x.name === d.province)
+    if (loc) setProvince({ name: loc.name, adcode: loc.adcode })
+  }, [drill])
+
+  useEffect(() => {
+    if (!province || !drill?.province) return
+    if (!drill.city) { setCity(undefined); return }
+    const cLoc = curData.find(x => x.name === drill.city)
+    if (cLoc) setCity({ name: cLoc.name, adcode: cLoc.adcode })
+  }, [province, drill, curData])
+
+  useEffect(() => {
+    if (!city || !drill?.city) return
+    if (!drill.district) { setDistrict(undefined); return }
+    const dLoc = curData.find(x => x.name === drill.district)
+    if (dLoc) setDistrict({ name: dLoc.name, adcode: dLoc.adcode })
+  }, [city, drill, curData])
+
+  // 区县级：生成街道数据（方块展示）
+  const streets = useMemo(() => (district ? genStreets(district.name) : []), [district])
+  // 区县级指标汇总
+  const streetTotals = useMemo(() => streets.reduce((acc, s) => ({
+    totalSubjects: acc.totalSubjects + s.totalSubjects,
+    activeUsers: acc.activeUsers + s.activeUsers,
+    activeEnt: acc.activeEnt + s.activeEnt,
+  }), { totalSubjects: 0, activeUsers: 0, activeEnt: 0 }), [streets])
+  const displayTotals = district ? streetTotals : totals
+
+  // 街道方块样式：同一蓝色系 6 级（浅→深），深色背景自动切换白色文字
+  const maxStreet = Math.max(...streets.map(s => s.totalSubjects))
+  const minStreet = Math.min(...streets.map(s => s.totalSubjects))
+  const streetStyle = (v: number): { bg: string; text: string } => {
+    const t = maxStreet > minStreet ? (v - minStreet) / (maxStreet - minStreet) : 0.5
+    const step = Math.round(t * 5)
+    // [背景, 文字色]：前 3 级浅色用深蓝文字，后 3 级深色用白色文字
+    const palettes: [string, string][] = [
+      ['rgba(219,234,254,0.55)', '#1E3A8A'],
+      ['rgba(147,197,253,0.6)', '#1E3A8A'],
+      ['rgba(96,165,250,0.7)', '#1E3A8A'],
+      ['rgba(59,130,246,0.75)', '#FFFFFF'],
+      ['rgba(37,99,235,0.8)', '#FFFFFF'],
+      ['rgba(29,78,216,0.85)', '#FFFFFF'],
+    ]
+    return { bg: palettes[step][0], text: palettes[step][1] }
+  }
+
+  // 初始化图表实例
+  useEffect(() => {
+    if (!chartRef.current) return
+    instRef.current = echarts.init(chartRef.current)
+    const onResize = () => instRef.current?.resize()
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      instRef.current?.dispose()
+      instRef.current = null
+    }
+  }, [])
+
+  // 从区县返回上级时,地图 div 由 display:none 恢复为 block,实例尺寸需重算,否则地图缩在左上角
+  useEffect(() => {
+    if (district) return
+    const t = setTimeout(() => instRef.current?.resize(), 60)
+    return () => clearTimeout(t)
+  }, [district])
+
+  // 按当前层级加载地图并渲染（区县级用街道方块展示，不加载地图）
+  useEffect(() => {
+    const inst = instRef.current
+    if (!inst) return
+    if (district) { setLoading(false); setLoadErr(false); return () => {} }
+    let cancelled = false
+    let mapName = 'chinaMain', adcode = 100000, prefix = 'prov', urlSuffix = '_full.json'
+    if (province && !city) { mapName = 'provMap'; adcode = province.adcode; prefix = 'city' }
+    else if (city) { mapName = 'cityMap'; adcode = city.adcode; prefix = 'dist' }
+    setLoading(true); setLoadErr(false)
+
+    // 全国地图：直接用本地不含南海的简化 GeoJSON
+    if (mapName === 'chinaMain') {
+      echarts.registerMap(mapName, chinaMainGeo as any)
+      const data = (chinaMainGeo.features || []).map((f: any) => {
+        const name = f.properties?.name || ''
+        const st = heatStats(`${prefix}_${name}`)
+        return { name, value: st.activeEnt, totalSubjects: st.totalSubjects, activeUsers: st.activeUsers, activeEnt: st.activeEnt, adcode: f.properties?.adcode }
+      })
+      setCurData(data.map(d => ({ name: d.name, adcode: d.adcode })))
+      nationRef.current = data.map(d => ({ name: d.name, adcode: d.adcode }))
+      const sum = data.reduce((acc: typeof totals, d) => ({
+        totalSubjects: acc.totalSubjects + d.totalSubjects,
+        activeUsers: acc.activeUsers + d.activeUsers,
+        activeEnt: acc.activeEnt + d.activeEnt,
+      }), { totalSubjects: 0, activeUsers: 0, activeEnt: 0 })
+      setTotals(sum)
+      const maxV = Math.max(1, ...data.map(d => d.value))
+      instRef.current.setOption({
+        tooltip: {
+          trigger: 'item',
+          backgroundColor: 'rgba(255,255,255,0.97)', borderColor: '#E5E7EB', borderWidth: 1,
+          textStyle: { color: '#111827', fontSize: 12 },
+          formatter: (p: any) => {
+            const d = p?.data || {}
+            if (!d.name) return ''
+            return `<b>${d.name}</b><br/>安全责任主体总数：${(d.totalSubjects ?? 0).toLocaleString()}<br/>活跃人数：${(d.activeUsers ?? 0).toLocaleString()}<br/>活跃户数：${(d.activeEnt ?? 0).toLocaleString()}`
+          },
+        },
+        visualMap: {
+          min: 0, max: maxV, left: 4, top: 'middle', bottom: 'auto', itemWidth: 10, itemHeight: 110,
+          text: ['高', '低'], textStyle: { fontSize: 10, color: '#9CA3AF' },
+          inRange: { color: ['#EBF1FB', '#B8D0F0', '#5A90D8', '#2563EB'] },
+        },
+        series: [{
+          type: 'map', map: mapName, roam: true, top: 8, left: 40, right: 10, bottom: 8,
+          ...(mapName === 'chinaMain' ? { layoutCenter: ['50%', '65%'], layoutSize: '130%' } : { aspectScale: 0.75 }),
+          label: { show: true, fontSize: 9, fontWeight: 500, color: '#1E293B' },
+          itemStyle: { borderColor: '#FFFFFF', borderWidth: 0.6, areaColor: '#F3F4F6' },
+          emphasis: { label: { show: true, fontSize: 11, fontWeight: 'bold' }, itemStyle: { areaColor: '#FDE68A' } },
+          data,
+        }],
+      }, true)
+      setLoading(false)
+      return () => { cancelled = true }
+    }
+
+    fetch(`${GEO_BASE}/${adcode}${urlSuffix}`)
+      .then(r => { if (!r.ok) throw new Error('bad'); return r.json() })
+      .then(geo => {
+        if (cancelled || !instRef.current) return
+        echarts.registerMap(mapName, geo as any)
+        const data = (geo.features || []).map((f: any) => {
+          const name = f.properties?.name || ''
+          const st = heatStats(`${prefix}_${name}`)
+          return { name, value: st.activeEnt, totalSubjects: st.totalSubjects, activeUsers: st.activeUsers, activeEnt: st.activeEnt, adcode: f.properties?.adcode }
+        })
+        // 供外部筛选联动查找 adcode
+        setCurData(data.map(d => ({ name: d.name, adcode: d.adcode })))
+        if (mapName === 'chinaMain') nationRef.current = data.map(d => ({ name: d.name, adcode: d.adcode }))
+        const sum = data.reduce((acc: typeof totals, d) => ({
+          totalSubjects: acc.totalSubjects + d.totalSubjects,
+          activeUsers: acc.activeUsers + d.activeUsers,
+          activeEnt: acc.activeEnt + d.activeEnt,
+        }), { totalSubjects: 0, activeUsers: 0, activeEnt: 0 })
+        setTotals(sum)
+        const maxV = Math.max(1, ...data.map(d => d.value))
+        instRef.current.setOption({
+          tooltip: {
+            trigger: 'item',
+            backgroundColor: 'rgba(255,255,255,0.97)', borderColor: '#E5E7EB', borderWidth: 1,
+            textStyle: { color: '#111827', fontSize: 12 },
+            formatter: (p: any) => {
+              const d = p?.data || {}
+              if (!d.name) return ''
+              return `<b>${d.name}</b><br/>安全责任主体总数：${(d.totalSubjects ?? 0).toLocaleString()}<br/>活跃人数：${(d.activeUsers ?? 0).toLocaleString()}<br/>活跃户数：${(d.activeEnt ?? 0).toLocaleString()}`
+            },
+          },
+          visualMap: {
+            min: 0, max: maxV, left: 4, top: 'middle', bottom: 'auto', itemWidth: 10, itemHeight: 110,
+            text: ['高', '低'], textStyle: { fontSize: 10, color: '#9CA3AF' },
+            inRange: { color: ['#EBF1FB', '#B8D0F0', '#5A90D8', '#2563EB'] },
+          },
+          series: [{
+            type: 'map', map: mapName, roam: true, top: 8, left: 40, right: 10, bottom: 8,
+            ...(mapName === 'chinaMain' ? { layoutCenter: ['50%', '65%'], layoutSize: '130%' } : { aspectScale: 0.75 }),
+            label: { show: true, fontSize: 9, fontWeight: 500, color: '#1E293B' },
+            itemStyle: { borderColor: '#FFFFFF', borderWidth: 0.6, areaColor: '#F3F4F6' },
+            emphasis: { label: { show: true, fontSize: 11, fontWeight: 'bold' }, itemStyle: { areaColor: '#FDE68A' } },
+            data,
+          }],
+        }, true)
+        setLoading(false)
+      })
+      .catch(() => { if (!cancelled) { setLoadErr(true); setLoading(false) } })
+    return () => { cancelled = true }
+  }, [province, city, district])
+
+  // 点击下钻
+  useEffect(() => {
+    const inst = instRef.current
+    if (!inst) return
+    const onClick = (p: any) => {
+      const adcode = p?.data?.adcode
+      const name = p?.data?.name
+      if (!adcode || !name) return
+      if (!province) { setProvince({ name, adcode }); onDrill?.('province', name, adcode) }
+      else if (!city) { setCity({ name, adcode }); onDrill?.('city', name, adcode) }
+      else if (!district) { setDistrict({ name, adcode }); onDrill?.('district', name, adcode) }
+    }
+    inst.on('click', onClick)
+    return () => { inst.off('click', onClick) }
+  }, [province, city, district])
+
+  // 区县→返回上级（district 变 false）时，ECharts 实例需 resize 恢复显示
+  useEffect(() => {
+    if (!district) {
+      const t = setTimeout(() => instRef.current?.resize(), 50)
+      return () => clearTimeout(t)
+    }
+  }, [district])
+
+  const breadcrumb: { label: string; onClick?: () => void }[] = [
+    { label: '全国', onClick: () => { setProvince(undefined); setCity(undefined); setDistrict(undefined) } },
+    ...(province ? [{ label: province.name, onClick: () => { setCity(undefined); setDistrict(undefined) } }] : []),
+    ...(city ? [{ label: city.name, onClick: () => setDistrict(undefined) }] : []),
+    ...(district ? [{ label: district.name }] : []),
+  ]
+
+  return (
+    <div style={{ background: 'white', border: '1px solid #9CA3AF', borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 4, position: 'relative', zIndex: 10 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>活跃分布（全国）</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6B7280' }}>
+          {breadcrumb.map((b, i) => (
+            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              {i > 0 && <span style={{ color: '#C4C8CF' }}>/</span>}
+              {b.onClick
+                ? <span onClick={b.onClick} style={{ cursor: 'pointer', color: '#4F46E5', fontWeight: 500, whiteSpace: 'nowrap' }}>{b.label}</span>
+                : <span style={{ color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>{b.label}</span>}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ECharts 地图：区县层用 display:none 完全隐藏（避免背景地图挡住方块/面包屑），返回上级后通过 resize 恢复 */}
+      <div style={{ position: 'relative', height: isMobile ? 300 : 380, display: district ? 'none' : 'block' }}>
+        <div ref={chartRef} style={{ width: '100%', height: '100%' }} />
+        {(loading || loadErr) && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.7)', color: loadErr ? '#DC2626' : '#6B7280', fontSize: 12, zIndex: 6 }}>
+            {loadErr ? '地图数据加载失败，请检查网络后重试' : '地图加载中...'}
+          </div>
+        )}
+      </div>
+
+      {/* 区县级：街道方块（独立于地图 div,district 时显示,按安全责任主体总数降序,常显三项指标,深色背景白字） */}
+      {district && (
+        <div style={{ position: 'relative', height: isMobile ? 300 : 380, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8, padding: '4px 0 8px', alignContent: 'start', overflowY: 'auto', background: 'white' }}>
+          {streets.map((s, i) => {
+            const st = streetStyle(s.totalSubjects)
+            return (
+              <div
+                key={s.name}
+                style={{ position: 'relative', background: st.bg, borderRadius: 8, padding: '9px 8px', textAlign: 'center', border: '1px solid rgba(37,99,235,0.2)', boxShadow: '0 1px 3px rgba(37,99,235,0.08)' }}
+              >
+                <div style={{ fontSize: 14, fontWeight: 700, color: st.text, opacity: 0.9 }}>{i + 1}</div>
+                {/* 街道名称：完整显示，必要时换行不被裁 */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: st.text, marginTop: 1, lineHeight: 1.3, wordBreak: 'break-all' }}>{s.name}</div>
+                {/* 常显三个指标：安全责任主体总数 / 活跃人数 / 活跃户数 */}
+                <div style={{ fontSize: 10.5, color: st.text, marginTop: 5, lineHeight: 1.6, opacity: 0.95 }}>
+                  <div>安全责任主体：{s.totalSubjects.toLocaleString()}</div>
+                  <div>活跃人数：{s.activeUsers.toLocaleString()}</div>
+                  <div>活跃户数：{s.activeEnt.toLocaleString()}</div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function EnterpriseTop10({ moduleFilter, totalsActiveUsers, accessActiveUsers }: { moduleFilter: ModuleFilterValue; totalsActiveUsers: number; accessActiveUsers: number }) {
   const enterprises = useMemo(() => generateActiveEnterprises(), [])
   const scale = moduleFilter === 'all' ? 1 : (totalsActiveUsers > 0 ? accessActiveUsers / totalsActiveUsers : 0.3)
@@ -1694,9 +2059,9 @@ function EnterpriseTop10({ moduleFilter, totalsActiveUsers, accessActiveUsers }:
   return (
     <div style={{ background: 'white', border: '1px solid #9CA3AF', borderRadius: 8, padding: 14, marginBottom: 20 }}>
       <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 10 }}>企业近30天活跃排行榜 TOP10</div>
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 340 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-          <thead>
+          <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
             <tr>
               <th style={th}>排名</th>
               <th style={{ ...th, textAlign: 'left' }}>企业名称</th>
@@ -1705,8 +2070,8 @@ function EnterpriseTop10({ moduleFilter, totalsActiveUsers, accessActiveUsers }:
               <th style={th}>市</th>
               <th style={th}>区</th>
               <th style={th}>街道</th>
-              <SortTh label="累计活跃天数" field="activeDays" current={eSortField} dir={eSortDir} onClick={() => handleESort('activeDays')} />
-              <SortTh label="累计活跃人数" field="activeUsers" current={eSortField} dir={eSortDir} onClick={() => handleESort('activeUsers')} />
+              <SortTh label="活跃天数" field="activeDays" current={eSortField} dir={eSortDir} onClick={() => handleESort('activeDays')} />
+              <SortTh label="活跃人数" field="activeUsers" current={eSortField} dir={eSortDir} onClick={() => handleESort('activeUsers')} />
               <th style={th}>企业人数</th>
               <SortTh label="人均访问次数" field="avgVisits" current={eSortField} dir={eSortDir} onClick={() => handleESort('avgVisits')} last />
             </tr>
@@ -1754,8 +2119,8 @@ function DetailTable({ columns, rows }: { columns: string[]; rows: (string | num
   }, [rows, dtSort])
 
   return (
-    <div style={{ maxHeight: 340, overflowY: 'auto', marginTop: 4 }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+    <div style={{ height: 340, overflowY: 'auto', marginTop: 4 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, lineHeight: '30px' }}>
         <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
           <tr>
             <th style={{ ...th, width: 40, background: '#F3F4F6' }}>#</th>
