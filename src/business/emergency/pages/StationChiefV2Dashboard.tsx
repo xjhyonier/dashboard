@@ -1403,7 +1403,7 @@ export function StationChiefV2Dashboard() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 4, borderBottom: '1px dashed #FED7AA' }}>
             <div style={{ width: 56 }} />
             <div style={{ fontSize: 11, color: '#B45309', textAlign: 'center', fontWeight: 600, whiteSpace: 'nowrap' }}>
-              检查次数 = 日常监管次数 + 监督检查次数
+              检查次数 = 远程监管次数 + 监督检查次数
             </div>
             <button
               onClick={(e) => { e.stopPropagation(); setCheckDetailPage(0); setShowCheckDetail(true) }}
@@ -1437,7 +1437,7 @@ export function StationChiefV2Dashboard() {
             <KpiCard
               selectedKpi={selectedKpi}
               setSelectedKpi={setSelectedKpi}
-              item={{ key: 'dailyCheckCount', label: '日常监管次数', value: 5120, unit: '次', color: '#D97706' }}
+              item={{ key: 'dailyCheckCount', label: '远程监管次数', value: 5120, unit: '次', color: '#D97706' }}
               compact
             />
             <KpiCard
@@ -1467,7 +1467,7 @@ export function StationChiefV2Dashboard() {
           minWidth: 0,
         }}>
           <div style={{ fontSize: 11, color: '#065F46', textAlign: 'center', fontWeight: 600, paddingBottom: 4, borderBottom: '1px dashed #A7F3D0', whiteSpace: 'nowrap' }}>
-            日常监管隐患推送数据统计
+            远程监管隐患推送数据统计
           </div>
           <div style={{ display: 'flex', gap: 8, flex: 1 }}>
             <KpiCard
