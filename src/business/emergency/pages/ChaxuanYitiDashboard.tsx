@@ -511,7 +511,7 @@ export function ChaxuanYitiDashboard() {
       {/* 模块4：隐患整改（宽度按指标数比例 1fr : 3fr : 3fr，同一行，指标字体黑色） */}
       <SectionBlock title="4、隐患整改">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr 3fr', gap: 12, alignItems: 'stretch' }}>
-          <KpiCard label="检查次数" value={1750} mom={4.2} />
+          <KpiCard label="推送次数" value={1750} mom={4.2} />
           <RowCard items={[
             { label: '发现隐患数', value: 98, mom: -4.9 },
             { label: '已整改', value: 79, mom: 3.1 },
