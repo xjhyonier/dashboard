@@ -523,6 +523,9 @@ export function StationChiefV2Dashboard() {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [filterFireType, setFilterFireType] = useState<'all' | 'fireKey' | 'nineSmall' | 'general'>('all')
   const [showChangelog, setShowChangelog] = useState(false)
+
+  // 责任主体分析 - 子 tab：企业看板 / 园区看板
+  const [stateSubTab, setStateSubTab] = useState<'enterprise' | 'park'>('enterprise')
   const changeLogDefault = useMemo(() => [
     {
       id: 9,
@@ -1691,10 +1694,58 @@ export function StationChiefV2Dashboard() {
       {dimension === 'duty' && <DutyDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} setSelectedKpi={setSelectedKpi} onNavigateToHazard={handleNavigateToHazard} onNavigateToState={handleNavigateToState} filterEntityType={filterEntityType} />}
       {dimension === 'industry' && <IndustryDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} filterEntityType={filterEntityType} />}
       {dimension === 'special' && <SpecialDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} selectedKpi={selectedKpi} onNavigateToHazard={handleNavigateToHazard} filterEntityType={filterEntityType} />}
-      {dimension === 'state' && <StateDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} filterEntityType={filterEntityType} navigateParams={{
-        teamName: searchParams.get('teamName') || undefined,
-        enterpriseName: searchParams.get('enterpriseName') || undefined,
-      }} />}
+      {dimension === 'state' && (
+        <div>
+          {/* 责任主体分析 - 子 tab 切换 */}
+          <div style={{
+            display: 'flex',
+            gap: 0,
+            marginBottom: 16,
+            borderBottom: '2px solid #E5E7EB',
+            background: 'white',
+          }}>
+            {[
+              { key: 'enterprise', label: '企业看板' },
+              { key: 'park', label: '园区看板' },
+            ].map(sub => {
+              const isActive = stateSubTab === sub.key
+              return (
+                <button
+                  key={sub.key}
+                  onClick={() => setStateSubTab(sub.key as 'enterprise' | 'park')}
+                  style={{
+                    padding: '8px 18px',
+                    border: 'none',
+                    borderBottom: isActive ? '2px solid #4F46E5' : '2px solid transparent',
+                    marginBottom: -2,
+                    background: 'transparent',
+                    color: isActive ? '#4F46E5' : '#6B7280',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: isActive ? 700 : 500,
+                    transition: 'color 0.15s, border-color 0.15s',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {sub.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {stateSubTab === 'enterprise' && <StateDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} filterEntityType={filterEntityType} navigateParams={{
+            teamName: searchParams.get('teamName') || undefined,
+            enterpriseName: searchParams.get('enterpriseName') || undefined,
+          }} />}
+
+          {stateSubTab === 'park' && (
+            <div style={{ textAlign: 'center', padding: '80px 0', color: '#9CA3AF' }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#6B7280', marginBottom: 8 }}>园区看板</div>
+              <div style={{ fontSize: 13 }}>该模块正在建设中，敬请期待。</div>
+            </div>
+          )}
+        </div>
+      )}
       {dimension === 'hazard' && <HazardDimension
         dateRange={dateRange}
         riskLevel={searchParams.get('riskLevel') as any || riskLevel}
