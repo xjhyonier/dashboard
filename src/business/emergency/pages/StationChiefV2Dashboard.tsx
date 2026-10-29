@@ -6,6 +6,7 @@ import type { Dimension, HazardNavigateParams, RiskLevel } from './components/ty
 import { DutyDimension } from './components/DutyDimension'
 import { DailySupervisionDimension } from './components/DailySupervisionDimension'
 import { StateDimension } from './components/StateDimension'
+import { ParkDimension } from './components/ParkDimension'
 import { HazardDimension } from './components/HazardDimension'
 import { IndustryDimension } from './components/IndustryDimension'
 import { SpecialDimension } from './components/SpecialDimension'
@@ -1738,12 +1739,7 @@ export function StationChiefV2Dashboard() {
             enterpriseName: searchParams.get('enterpriseName') || undefined,
           }} />}
 
-          {stateSubTab === 'park' && (
-            <div style={{ textAlign: 'center', padding: '80px 0', color: '#9CA3AF' }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#6B7280', marginBottom: 8 }}>园区看板</div>
-              <div style={{ fontSize: 13 }}>该模块正在建设中，敬请期待。</div>
-            </div>
-          )}
+          {stateSubTab === 'park' && <ParkDimension />}
         </div>
       )}
       {dimension === 'hazard' && <HazardDimension
