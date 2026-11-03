@@ -1,8 +1,6 @@
 import { useState, useMemo } from 'react'
-import {
-  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-} from 'recharts'
 import { PageShell, PageHeader, SectionBlock } from '../../../components/layout'
+import { exportToCSV, exportButtonStyle } from './components/exportUtils'
 
 // ─── 通用样式 ─────────────────────────────────────────────────────────────
 const th: React.CSSProperties = {
@@ -27,154 +25,133 @@ const td = (extra?: React.CSSProperties): React.CSSProperties => ({
   ...extra,
 })
 
-// ─── 趋势图序列元信息（统一顺序：图例/浮窗/柱状图） ─────────────────
-const SERIES_META: Record<string, { name: string; color: string }> = {
-  checkEnt: { name: '检查企业数', color: '#4F46E5' },
-  hazardEnt: { name: '有隐患企业数', color: '#F59E0B' },
-  safeEnt: { name: '无隐患企业数', color: '#059669' },
-  hazardTotal: { name: '隐患总数', color: '#DC2626' },
-  hazardRectified: { name: '已整改数', color: '#34D399' },
-  rectifyRate: { name: '整改完成率', color: '#F59E0B' },
+// 确定性哈希（mock 数据按 key 稳定生成）
+function hashStr(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) {
+    h = (h * 31 + s.charCodeAt(i)) >>> 0
+  }
+  return h
 }
 
-// 自定义 Tooltip：按指定顺序排列浮窗数据
-function TrendTooltip({ active, payload, order }: { active?: boolean; payload?: any[]; order: string[] }) {
-  if (!active || !payload || payload.length === 0) return null
-  const sorted = [...payload].sort((a, b) => order.indexOf(a.dataKey) - order.indexOf(b.dataKey))
-  const month = payload[0]?.payload?.month
+// ─── 统计表行结构 ────────────────────────────────────────────────────────
+interface StatRow {
+  dept?: string        // 所属部门（按人员统计用，位于统计对象左侧）
+  统计对象: string
+  检查次数: number
+  检查户数: number
+  发现隐患: number
+  已推送隐患: number
+  重大隐患: number
+  已整改隐患: number
+  隐患整改率: string // 'xx.x%' 或 '-'
+  indent?: number     // 缩进层级：0/缺省=一级，1=子项（如手机看/AR眼镜看属 AI巡查）
+  isGroup?: boolean   // 组行（如 AI巡查，数值=子项之和）
+}
+
+// 按 key 生成一行统计（确定性）
+function genStat(name: string): Omit<StatRow, '统计对象'> {
+  const h = hashStr(name)
+  const 检查次数 = 600 + (h % 1400)
+  const 检查户数 = Math.round(检查次数 * (0.6 + ((h >> 3) % 30) / 100))
+  const 发现隐患 = Math.round(检查次数 * (0.4 + ((h >> 5) % 25) / 100))
+  const 已推送隐患 = Math.round(发现隐患 * (0.5 + ((h >> 7) % 40) / 100))
+  const 重大隐患 = h % 18
+  const 已整改隐患 = Math.round(发现隐患 * (0.6 + ((h >> 9) % 35) / 100))
+  const 隐患整改率 = 发现隐患 === 0 ? '-' : `${((已整改隐患 / 发现隐患) * 100).toFixed(1)}%`
+  return { 检查次数, 检查户数, 发现隐患, 已推送隐患, 重大隐患, 已整改隐患, 隐患整改率 }
+}
+
+// 合计行（加和；整改率由合计的 已整改/发现 重算）
+function sumRows(rows: Omit<StatRow, '统计对象'>[]): Omit<StatRow, '统计对象'> {
+  const r = rows.reduce(
+    (acc, x) => ({
+      检查次数: acc.检查次数 + x.检查次数,
+      检查户数: acc.检查户数 + x.检查户数,
+      发现隐患: acc.发现隐患 + x.发现隐患,
+      已推送隐患: acc.已推送隐患 + x.已推送隐患,
+      重大隐患: acc.重大隐患 + x.重大隐患,
+      已整改隐患: acc.已整改隐患 + x.已整改隐患,
+      隐患整改率: '',
+    }),
+    { 检查次数: 0, 检查户数: 0, 发现隐患: 0, 已推送隐患: 0, 重大隐患: 0, 已整改隐患: 0, 隐患整改率: '' }
+  )
+  r.隐患整改率 = r.发现隐患 === 0 ? '-' : `${((r.已整改隐患 / r.发现隐患) * 100).toFixed(1)}%`
+  return r
+}
+
+// 整改率配色：高绿 / 中橙 / 低红 / 空灰
+function rateColor(rate: string): string {
+  if (rate === '-') return '#9CA3AF'
+  const n = parseFloat(rate)
+  if (n >= 80) return '#059669'
+  if (n >= 60) return '#D97706'
+  return '#DC2626'
+}
+
+// ─── 统计表组件（按检查方式 / 按人员 共用） ─────────────────────────────
+function StatTable({ rows, firstColLabel = '统计对象', showDept = false }: { rows: StatRow[]; firstColLabel?: string; showDept?: boolean }) {
   return (
-    <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 6, padding: '8px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', fontSize: 12, minWidth: 150 }}>
-      <div style={{ fontWeight: 700, color: '#111827', marginBottom: 4 }}>{month}</div>
-      {sorted.map(item => {
-        const meta = SERIES_META[item.dataKey]
-        if (!meta) return null
-        const isPct = item.dataKey === 'rectifyRate'
-        return (
-          <div key={item.dataKey} style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: meta.color }} />
-            <span style={{ color: '#6B7280' }}>{meta.name}</span>
-            <span style={{ marginLeft: 'auto', fontWeight: 600, color: '#111827' }}>
-              {isPct ? `${item.value}%` : Number(item.value).toLocaleString()}
-            </span>
-          </div>
-        )
-      })}
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr>
+            {showDept && <th style={{ ...th, textAlign: 'left', minWidth: 110 }}>所属部门</th>}
+            <th style={{ ...th, textAlign: 'left', minWidth: 130 }}>{firstColLabel}</th>
+            <th style={th}>检查次数</th>
+            <th style={th}>检查户数</th>
+            <th style={th}>发现隐患</th>
+            <th style={th}>已推送隐患</th>
+            <th style={th}>重大隐患</th>
+            <th style={th}>已整改隐患</th>
+            <th style={{ ...th, borderRight: 'none' }}>隐患整改率</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => {
+            const isTotal = r.统计对象 === '合计'
+            const isSub = (r.indent ?? 0) > 0
+            const namePadLeft = isSub ? 28 : 8
+            const subPrefix = isSub ? '└ ' : ''
+            return (
+              <tr key={r.统计对象} style={{ background: isTotal ? '#F9FAFB' : i % 2 === 0 ? 'white' : '#FAFBFC' }}>
+                {showDept && <td style={{ ...td({ textAlign: 'left', fontWeight: isTotal ? 700 : 400, color: isTotal ? '#111827' : isSub ? '#9CA3AF' : '#6B7280' }) }}>{r.dept || '-'}</td>}
+                <td style={{ ...td({ textAlign: 'left', fontWeight: isTotal ? 700 : r.isGroup ? 600 : isSub ? 400 : 500, color: isTotal ? '#111827' : isSub ? '#6B7280' : '#374151', paddingLeft: namePadLeft }) }}>{subPrefix}{r.统计对象}</td>
+                <td style={td({ textAlign: 'center', fontWeight: isTotal ? 600 : r.isGroup ? 600 : 400, color: isSub ? '#6B7280' : '#374151' })}>{r.检查次数.toLocaleString()}</td>
+                <td style={td({ textAlign: 'center', color: isSub ? '#6B7280' : '#374151' })}>{r.检查户数.toLocaleString()}</td>
+                <td style={td({ textAlign: 'center', color: isSub ? '#F59E0B' : '#D97706' })}>{r.发现隐患.toLocaleString()}</td>
+                <td style={td({ textAlign: 'center', color: isSub ? '#6B7280' : '#374151' })}>{r.已推送隐患.toLocaleString()}</td>
+                <td style={{ ...td({ textAlign: 'center', color: r.重大隐患 > 0 ? '#DC2626' : isSub ? '#9CA3AF' : '#374151', fontWeight: r.重大隐患 > 0 ? 600 : 400 }) }}>{r.重大隐患.toLocaleString()}</td>
+                <td style={td({ textAlign: 'center', color: isSub ? '#34D399' : '#059669' })}>{r.已整改隐患.toLocaleString()}</td>
+                <td style={{ ...td({ textAlign: 'center', fontWeight: 600, color: rateColor(r.隐患整改率), borderRight: 'none' }) }}>{r.隐患整改率}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
 }
 
-// 自定义图例：按指定顺序显示下方指标
-function TrendLegend({ payload, order }: { payload?: any[]; order: string[] }) {
-  const sorted = [...(payload || [])].sort((a, b) => order.indexOf(a.dataKey) - order.indexOf(b.dataKey))
-  return (
-    <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap', fontSize: 12 }}>
-      {sorted.map(item => {
-        const meta = SERIES_META[item.dataKey]
-        if (!meta) return null
-        return (
-          <span key={item.dataKey} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 2, background: meta.color }} />
-            <span style={{ color: '#374151' }}>{meta.name}</span>
-          </span>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── 单元格：一行指标 + 子指标（如 已整改/完成率） ─────────────────────
-const MetricCell = ({ value, sub, subLabel, color }: {
-  value: string
-  sub?: string
-  subLabel?: string
-  color?: string
-}) => (
-  <div style={{ textAlign: 'center' }}>
-    <div style={{ fontSize: 14, fontWeight: 700, color: color || '#111827', lineHeight: 1.3, whiteSpace: 'nowrap' }}>
-      {value}
-    </div>
-    {sub != null && (
-      <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2, whiteSpace: 'nowrap' }}>
-        {subLabel ? `${subLabel} ` : ''}{sub}
-      </div>
-    )}
-  </div>
-)
-
-// ─── Mock 数据 ─────────────────────────────────────────────────────────────
-const COVERAGE_ROWS = [
-  { label: '检查企业数', app: '8,923', glasses: '3,176', total: '12,099' },
-  { label: '有隐患的企业数', app: '2,134', glasses: '986', total: '3,120' },
-  { label: '有隐患企业占比', app: '23.9%', glasses: '31.0%', total: '25.8%' },
-  { label: '无隐患企业数', app: '6,789', glasses: '2,190', total: '8,979' },
-]
-
-const HAZARD_ROWS = [
-  {
-    label: '隐患总数/已整改数/整改完成率',
-    app: '5,120 / 3,840 / 75.0%',
-    glasses: '2,350 / 1,680 / 71.5%',
-    total: '7,470 / 5,520 / 73.9%',
-    color: '#111827',
-  },
-  {
-    label: '一般隐患总数/已整改数/整改完成率',
-    app: '4,300 / 3,380 / 78.6%',
-    glasses: '1,980 / 1,470 / 74.2%',
-    total: '6,280 / 4,850 / 77.2%',
-    color: '#111827',
-  },
-  {
-    label: '重大事故隐患总数/已整改数/整改完成率',
-    app: '820 / 460 / 56.1%',
-    glasses: '370 / 210 / 56.8%',
-    total: '1,190 / 670 / 56.3%',
-    color: '#DC2626',
-  },
-  {
-    label: '平均检查时长',
-    app: '12.5 分钟',
-    glasses: '8.2 分钟',
-    total: '11.4 分钟',
-    color: '#111827',
-  },
+// 表头列定义（导出用；人员表含「所属部门」首列，首列标签按表切换：检查方式 / 检查人员）
+const EXPORT_COLUMNS = (firstColLabel: string, showDept = false) => [
+  ...(showDept ? [{ key: 'dept' as const, label: '所属部门' }] : []),
+  { key: '统计对象' as const, label: firstColLabel },
+  { key: '检查次数' as const, label: '检查次数' },
+  { key: '检查户数' as const, label: '检查户数' },
+  { key: '发现隐患' as const, label: '发现隐患' },
+  { key: '已推送隐患' as const, label: '已推送隐患' },
+  { key: '重大隐患' as const, label: '重大隐患' },
+  { key: '已整改隐患' as const, label: '已整改隐患' },
+  { key: '隐患整改率' as const, label: '隐患整改率' },
 ]
 
 export function AiGlassesDashboard() {
-  // ─── 趋势图：分类维度切换 + 月度数据 ─────────────────────
-  const [trendCategory, setTrendCategory] = useState<'coverage' | 'hazard'>('coverage')
+  // ─── 部门筛选 ────────────────────────────────────────────
+  const [deptFilter, setDeptFilter] = useState('全部')
 
-  // 近12个月月度趋势数据（mock，确定性）
-  const MONTHLY_TREND = useMemo(() => {
-    const months = ['2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08']
-    return months.map((m, i) => {
-      const growth = i / 11
-      return {
-        month: m.slice(2).replace('-', '月') + '月',
-        // 企业覆盖：检查企业数（合计）随月份增长
-        checkEnt: Math.round(8500 + growth * 3600 + (i % 3) * 120),
-        hazardEnt: Math.round(1900 + growth * 1220 + (i % 4) * 60),
-        safeEnt: Math.round(6600 + growth * 2380 + (i % 3) * 80),
-        // 隐患与整改：隐患总数 / 已整改数 / 完成率
-        hazardTotal: Math.round(4800 + growth * 2670 + (i % 5) * 90),
-        hazardRectified: Math.round(3300 + growth * 2220 + (i % 4) * 70),
-        rectifyRate: Number((68 + growth * 6 + (i % 3) * 0.8).toFixed(1)),
-      }
-    })
-  }, [])
   // ─── 时间筛选：快捷项 + 自定义日期 ─────────────────────────
-  const [timeRange, setTimeRange] = useState<'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom'>('thisMonth')
-  const [dateFrom, setDateFrom] = useState(() => {
-    const now = new Date()
-    const y = now.getFullYear()
-    const m = now.getMonth()
-    return `${y}-${String(m + 1).padStart(2, '0')}-01`
-  })
-  const [dateTo, setDateTo] = useState(() => {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  })
-
+  const [timeRange, setTimeRange] = useState<'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom'>('thisWeek')
   const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
   const applyQuick = (key: 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth') => {
@@ -200,11 +177,58 @@ export function AiGlassesDashboard() {
     setTimeRange(key)
   }
 
+  const [dateFrom, setDateFrom] = useState(() => {
+    const now = new Date()
+    const day = now.getDay() === 0 ? 6 : now.getDay() - 1
+    const from = new Date(now); from.setDate(now.getDate() - day)
+    return fmt(from)
+  })
+  const [dateTo, setDateTo] = useState(() => fmt(new Date()))
+
+  // ─── 按检查方式统计（层级：AI巡查 = 手机看 + AR眼镜看；合计不含重复） ──────
+  const methodRows = useMemo<StatRow[]>(() => {
+    const suishoupai = genStat('随手拍')
+    const shouji = genStat('手机看')
+    const arYanjing = genStat('AR眼镜看')
+    const lixian = genStat('离线报送')
+    // AI巡查组行 = 两个子项之和
+    const aiTotal = sumRows([shouji, arYanjing])
+    // 合计 = 随手拍 + AI巡查(组) + 离线报送（不重复计子项）
+    const grand = sumRows([suishoupai, aiTotal, lixian])
+    return [
+      { 统计对象: '随手拍', ...suishoupai },
+      { 统计对象: 'AI巡查', ...aiTotal, isGroup: true },
+      { 统计对象: '手机看', ...shouji, indent: 1 },
+      { 统计对象: 'AR眼镜看', ...arYanjing, indent: 1 },
+      { 统计对象: '离线报送', ...lixian },
+      { 统计对象: '合计', ...grand },
+    ]
+  }, [])
+
+  // ─── 按人员统计（含所属部门；合计随部门筛选重算） ────────────────
+  const DEPTS = ['综合协调组', '监督检查组', '宣传培训组', '应急救援组']
+  const PERSONNEL = [
+    '雷重臣', '朱佳佳', '武佳恒', '林文', '曹维', '何纬乐', '刘思佳', '黑拉拉子',
+    '陶检', '曹威', '余松霖', '徐伟', '李多海', '罗金元', '周济', '曹亚军',
+    '王安睿', '田木基洛布', '刘亚磊', '刘瑞麟', '王科文', '于东旭', '贾义', '覃弘通', '李春',
+  ]
+  const personRows = useMemo<StatRow[]>(() => {
+    const detail = PERSONNEL
+      .map((name, idx) => ({ dept: DEPTS[idx % DEPTS.length], name, idx }))
+      .filter(p => deptFilter === '全部' || p.dept === deptFilter)
+      .map(p => ({ dept: p.dept, 统计对象: p.name, ...genStat(`${p.name}-${p.idx}`) }))
+    const total = sumRows(detail.map(d => {
+      const { dept, 统计对象, ...rest } = d
+      return rest
+    }))
+    return [...detail, { dept: '—', 统计对象: '合计', ...total }]
+  }, [deptFilter])
+
   return (
     <PageShell>
       <PageHeader title="AI眼镜检查看板" />
 
-      {/* 时间筛选 */}
+      {/* 数据时间筛选 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 12, color: '#6B7280' }}>数据时间:</span>
         {([
@@ -251,165 +275,69 @@ export function AiGlassesDashboard() {
             fontSize: 12, color: '#374151', background: 'white', outline: 'none',
           }}
         />
+        <button
+          onClick={() => applyQuick('thisWeek')}
+          style={{
+            padding: '3px 10px', borderRadius: 4, border: '1px solid #E5E7EB',
+            background: 'white', color: '#6B7280', fontSize: 12, cursor: 'pointer',
+          }}
+        >
+          清除
+        </button>
         <span style={{ fontSize: 12, color: '#6B7280', marginLeft: 4 }}>
           当前范围：{dateFrom} ~ {dateTo}
         </span>
+        <span style={{ fontSize: 12, color: '#6B7280', marginLeft: 12 }}>所属部门:</span>
+        <select
+          value={deptFilter}
+          onChange={e => setDeptFilter(e.target.value)}
+          style={{
+            padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
+            fontSize: 12, color: '#374151', background: 'white', outline: 'none', cursor: 'pointer',
+          }}
+        >
+          {['全部', ...DEPTS].map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
       </div>
 
-      {/* 顶部说明 */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap',
-        padding: '10px 14px', background: '#F9FAFB', borderRadius: 8, border: '1px solid #E5E7EB',
-        fontSize: 12, color: '#6B7280',
-      }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 10, height: 10, borderRadius: 2, background: '#4F46E5' }} />
-          一起安APP实时看：通过 APP 端实时巡查采集的数据
-        </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 10, height: 10, borderRadius: 2, background: '#0EA5E9' }} />
-          AI眼镜实时看：通过 AI 眼镜设备实时巡查采集的数据
-        </span>
-      </div>
-
-      <SectionBlock title="">
-        {/* 数据表格 */}
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={{ ...th, width: 110, textAlign: 'center' }}>分类</th>
-                <th style={{ ...th, width: 270, textAlign: 'left' }}>指标</th>
-                <th style={{ ...th, minWidth: 200 }}>一起安APP实时看</th>
-                <th style={{ ...th, minWidth: 200 }}>AI眼镜实时看</th>
-                <th style={{ ...th, minWidth: 200, borderRight: 'none' }}>合计</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* 分类一：企业覆盖（淡蓝） */}
-              {COVERAGE_ROWS.map((row, idx) => (
-                <tr key={row.label} style={{ background: '#EFF6FF' }}>
-                  {idx === 0 && (
-                    <td rowSpan={COVERAGE_ROWS.length} style={{
-                      padding: '8px 10px', fontSize: 13, fontWeight: 700, color: '#1E40AF',
-                      background: '#DBEAFE', textAlign: 'center', verticalAlign: 'middle',
-                      borderRight: '1px solid #93C5FD', borderBottom: '1px solid #BFDBFE',
-                    }}>
-                      企业覆盖
-                    </td>
-                  )}
-                  <td style={{ ...td({ textAlign: 'left', fontWeight: 500, color: '#374151' }) }}>{row.label}</td>
-                  <td style={td({ textAlign: 'center' })}><MetricCell value={row.app} /></td>
-                  <td style={td({ textAlign: 'center' })}><MetricCell value={row.glasses} /></td>
-                  <td style={{ ...td({ textAlign: 'center', borderRight: 'none' }) }}><MetricCell value={row.total} /></td>
-                </tr>
-              ))}
-
-              {/* 分类二：隐患与整改（淡黄） */}
-              {HAZARD_ROWS.map((row, idx) => (
-                <tr key={row.label} style={{ background: '#FFFBEB' }}>
-                  {idx === 0 && (
-                    <td rowSpan={HAZARD_ROWS.length} style={{
-                      padding: '8px 10px', fontSize: 13, fontWeight: 700, color: '#92400E',
-                      background: '#FEF3C7', textAlign: 'center', verticalAlign: 'middle',
-                      borderRight: '1px solid #FCD34D', borderBottom: '1px solid #FDE68A',
-                    }}>
-                      隐患与整改
-                    </td>
-                  )}
-                  <td style={{ ...td({ textAlign: 'left', fontWeight: 500, color: '#374151', whiteSpace: 'nowrap' }) }}>{row.label}</td>
-                  <td style={td({ textAlign: 'center', fontSize: 13, fontWeight: 700, color: row.color, whiteSpace: 'nowrap' })}>{row.app}</td>
-                  <td style={td({ textAlign: 'center', fontSize: 13, fontWeight: 700, color: row.color, whiteSpace: 'nowrap' })}>{row.glasses}</td>
-                  <td style={{ ...td({ textAlign: 'center', fontSize: 13, fontWeight: 700, color: row.color, whiteSpace: 'nowrap', borderRight: 'none' }) }}>{row.total}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* 单位说明 */}
-        <div style={{ marginTop: 12, fontSize: 12, color: '#9CA3AF' }}>
-          注：平均检查时长为单次巡查耗时（分钟）；有隐患企业占比 = 有隐患的企业数 ÷ 检查企业数。
-        </div>
-
-        {/* 每月变化趋势图（按分类切换） */}
-        <div style={{ background: 'white', border: '1px solid #9CA3AF', borderRadius: 8, padding: 14, marginTop: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>每月变化趋势（近12个月）</div>
-            <div style={{ display: 'flex', gap: 2, background: '#F3F4F6', padding: 2, borderRadius: 6 }}>
-              <button
-                onClick={() => setTrendCategory('coverage')}
-                style={{
-                  padding: '4px 14px', borderRadius: 4, border: 'none', fontSize: 12, cursor: 'pointer',
-                  background: trendCategory === 'coverage' ? '#3B82F6' : 'transparent',
-                  color: trendCategory === 'coverage' ? 'white' : '#6B7280',
-                  fontWeight: trendCategory === 'coverage' ? 600 : 400,
-                }}
-              >
-                企业覆盖
-              </button>
-              <button
-                onClick={() => setTrendCategory('hazard')}
-                style={{
-                  padding: '4px 14px', borderRadius: 4, border: 'none', fontSize: 12, cursor: 'pointer',
-                  background: trendCategory === 'hazard' ? '#3B82F6' : 'transparent',
-                  color: trendCategory === 'hazard' ? 'white' : '#6B7280',
-                  fontWeight: trendCategory === 'hazard' ? 600 : 400,
-                }}
-              >
-                隐患与整改
-              </button>
-            </div>
-          </div>
-          <div style={{ height: 320 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              {/* 关键：composedChart 加 key={trendCategory}，切换分类时整个图表实例重建，
-                  每次都按"首次挂载"路径渲染，Bar 顺序稳定 = 左旋后视觉（紫绿橙）。 */}
-              <ComposedChart
-                key={trendCategory}
-                data={MONTHLY_TREND}
-                margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                <XAxis dataKey="month" fontSize={11} tick={{ fill: '#9CA3AF' }} />
-                {trendCategory === 'coverage' ? (
-                  <YAxis fontSize={11} tick={{ fill: '#9CA3AF' }} />
-                ) : (
-                  <>
-                    <YAxis yAxisId="left" fontSize={11} tick={{ fill: '#9CA3AF' }} />
-                    <YAxis yAxisId="right" orientation="right" fontSize={11} tick={{ fill: '#9CA3AF' }} unit="%" />
-                  </>
-                )}
-                <Tooltip content={
-                  trendCategory === 'coverage'
-                    ? <TrendTooltip order={['checkEnt', 'safeEnt', 'hazardEnt']} />
-                    : <TrendTooltip order={['hazardTotal', 'hazardRectified', 'rectifyRate']} />
-                } />
-                <Legend content={
-                  trendCategory === 'coverage'
-                    ? <TrendLegend order={['checkEnt', 'safeEnt', 'hazardEnt']} />
-                    : <TrendLegend order={['hazardTotal', 'hazardRectified', 'rectifyRate']} />
-                } />
-                {trendCategory === 'coverage' ? (
-                  <>
-                    {/* JSX 声明顺序 = 视觉顺序（实测无左旋）：紫(检查) → 绿(无隐患) → 橙(有隐患) */}
-                    <Bar dataKey="checkEnt" name="检查企业数" fill="#4F46E5" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="safeEnt" name="无隐患企业数" fill="#059669" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="hazardEnt" name="有隐患企业数" fill="#F59E0B" radius={[4, 4, 0, 0]} />
-                  </>
-                ) : (
-                  <>
-                    {/* 红(隐患总数) → 绿(已整改数) → 黄线(整改完成率) */}
-                    <Bar yAxisId="left" dataKey="hazardTotal" name="隐患总数" fill="#DC2626" radius={[4, 4, 0, 0]} />
-                    <Bar yAxisId="left" dataKey="hazardRectified" name="已整改数" fill="#34D399" radius={[4, 4, 0, 0]} />
-                    <Line yAxisId="right" type="monotone" dataKey="rectifyRate" name="整改完成率" stroke="#F59E0B" strokeWidth={2} dot={{ r: 3 }} />
-                  </>
-                )}
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+      {/* 模块一：按检查方式统计 */}
+      <SectionBlock
+        title="按检查方式统计"
+        actions={
+          <button
+            style={exportButtonStyle}
+            onClick={() => {
+              // 导出时子项名前加「└ 」体现层级（合计已为去重后的口径）
+              const exportRows = methodRows.map(r => (r.indent ? { ...r, 统计对象: `└ ${r.统计对象}` } : r))
+              exportToCSV(exportRows, EXPORT_COLUMNS('检查方式'), '按检查方式统计')
+            }}
+          >
+            导出
+          </button>
+        }
+      >
+        <StatTable rows={methodRows} firstColLabel="检查方式" />
       </SectionBlock>
+
+      {/* 模块二：按人员统计 */}
+      <SectionBlock
+        title="按人员统计"
+        actions={
+          <button
+            style={exportButtonStyle}
+            onClick={() => exportToCSV(personRows, EXPORT_COLUMNS('检查人员', true), '按人员统计')}
+          >
+            导出
+          </button>
+        }
+      >
+        <StatTable rows={personRows} firstColLabel="检查人员" showDept />
+      </SectionBlock>
+
+      {/* 底部说明 */}
+      <div style={{ marginTop: 12, fontSize: 12, color: '#9CA3AF' }}>
+        说明：检查户数按统计周期去重；整改率 = 已整改隐患 ÷ 发现隐患。
+      </div>
     </PageShell>
   )
 }
