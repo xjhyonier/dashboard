@@ -7,6 +7,7 @@ import type { StateDimensionProps } from './types'
 import { initDatabase, getEnterprises, getExperts, getEnterpriseDimensions, getRiskPoints } from '../../../../db'
 import type { Enterprise, EnterpriseDimensions, Expert, RiskPoint } from '../../../../db/types'
 import { exportToCSV } from './exportUtils'
+import { getLandlordName, getPlaceCategory } from './placeCategory'
 
 // 合并企业数据
 interface EnterpriseWithDimensions extends Enterprise {
@@ -32,7 +33,7 @@ const getRiskLevelLabel = (level: string): string => {
   return map[level] || level
 }
 
-export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams }: StateDimensionProps) {
+export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams, placeCategory = 'all' }: StateDimensionProps) {
   const [enterprises, setEnterprises] = useState<EnterpriseWithDimensions[]>([])
   const [experts, setExperts] = useState<Expert[]>([])
   const [dimensionsMap, setDimensionsMap] = useState<Record<string, EnterpriseDimensions>>({})
@@ -133,17 +134,22 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
         const filterFn = nodeIdToFilter(selectedNode.id)
         result = result.filter(filterFn)
       }
-      // 关键词筛选
+      // 企业场所分类筛选
+      if (placeCategory && placeCategory !== 'all') {
+        result = result.filter(e => getPlaceCategory(e.name) === placeCategory)
+      }
+      // 关键词筛选（支持责任主体名称 / 房东名称 / 工作组 / 行业）
       if (entKeyword.trim()) {
         const kw = entKeyword.trim().toLowerCase()
         result = result.filter(e =>
           e.name.toLowerCase().includes(kw) ||
+          getLandlordName(e.name).toLowerCase().includes(kw) ||
           e.work_group.toLowerCase().includes(kw) ||
           e.industry.toLowerCase().includes(kw)
         )
       }
       return result
-    }, [enterprises, entKeyword, selectedNode]),
+    }, [enterprises, entKeyword, selectedNode, placeCategory]),
     'name',
     'asc'
   )
@@ -294,7 +300,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
               type="text"
-              placeholder="搜索责任主体名称"
+              placeholder="搜索责任主体名称 / 房东名称"
               value={entKeyword}
               onChange={e => { setEntKeyword(e.target.value); setCurrentPage(1) }}
               style={inputStyle}
@@ -306,6 +312,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                   const expert = experts.find(exp => exp.id === e.expert_id)
                   return {
                     责任主体名称: e.name,
+                    房东名称: getLandlordName(e.name),
                     风险等级: e.risk_level,
                     专家: expert?.name || '-',
                     待办总数: dims?.todo_total ?? 0,
@@ -338,6 +345,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                 })
                 exportToCSV(exportData, [
                   { key: '责任主体名称', label: '责任主体名称' },
+                  { key: '房东名称', label: '房东名称' },
                   { key: '风险等级', label: '风险等级' },
                   { key: '专家', label: '专家' },
                   { key: '待办总数', label: '待办总数' },
@@ -399,11 +407,12 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
         </div>
 
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1550 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1780 }}>
             <thead>
               <tr>
                 <th style={thStyle}>#</th>
                 <th style={{ ...thStyle, minWidth: 180 }}>责任主体名称</th>
+                <th style={{ ...thStyle, minWidth: 170 }}>房东名称</th>
                 <th style={thStyle}>风险等级</th>
                 <th style={thStyle}>专家</th>
                 <th style={thStyle}>待办<br/>总数</th>
@@ -430,7 +439,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
             </thead>
             <tbody>
               {pagedEnterprises.length === 0 ? (
-                <tr><td colSpan={24} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>暂无数据</td></tr>
+                <tr><td colSpan={25} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '30px' }}>暂无数据</td></tr>
               ) : pagedEnterprises.map((e, i) => {
                 const dims = dimensionsMap[e.id]
                 const riskColors: Record<string, string> = {
@@ -450,6 +459,7 @@ export function StateDimension({ dateRange, riskLevel, timeRange, navigateParams
                   <tr key={e.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                     <td style={{ ...tdStyle, color: '#9CA3AF' }}>{(Math.min(currentPage, totalPages) - 1) * PAGE_SIZE + i + 1}</td>
                     <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 500, color: '#1F2937', minWidth: 180 }}>{e.name}</td>
+                    <td style={{ ...tdStyle, textAlign: 'left', color: getLandlordName(e.name) === '/' ? '#D1D5DB' : '#6B7280', minWidth: 170 }}>{getLandlordName(e.name)}</td>
                     <td style={{ ...tdStyle, fontWeight: 600, color: riskColors[e.risk_level] || '#374151' }}>{e.risk_level}</td>
                     <td style={{ ...tdStyle, color: '#4F46E5' }}>{expert?.name || '-'}</td>
                     <td style={{ ...tdStyle, fontWeight: 500 }}>{dims?.todo_total ?? 0}</td>

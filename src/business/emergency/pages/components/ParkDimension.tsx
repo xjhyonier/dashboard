@@ -4,6 +4,7 @@ import { useSortableTable } from './useSortableTable'
 import { initDatabase, getEnterprises, getExperts, getEnterpriseDimensions, getRiskPoints } from '../../../../db'
 import type { Enterprise, EnterpriseDimensions, Expert, RiskPoint, RiskLevel, PlanType } from '../../../../db/types'
 import { exportToCSV } from './exportUtils'
+import { getPlaceCategory } from './placeCategory'
 
 // 合并企业数据
 interface EnterpriseWithDimensions extends Enterprise {
@@ -208,7 +209,7 @@ function buildEnterpriseRows(
   return rows
 }
 
-export function ParkDimension() {
+export function ParkDimension({ placeCategory = 'all' }: { placeCategory?: string } = {}) {
   const [enterprises, setEnterprises] = useState<EnterpriseWithDimensions[]>([])
   const [experts, setExperts] = useState<Expert[]>([])
   const [dimensionsMap, setDimensionsMap] = useState<Record<string, EnterpriseDimensions>>({})
@@ -270,6 +271,10 @@ export function ParkDimension() {
   const { sortedData: filteredEnterprises } = useSortableTable<EnterpriseWithDimensions>(
     useMemo(() => {
       let result = enterprises
+      // 企业场所分类筛选（按房东本身所属分类）
+      if (placeCategory && placeCategory !== 'all') {
+        result = result.filter(e => getPlaceCategory(e.name) === placeCategory)
+      }
       if (entKeyword.trim()) {
         const kw = entKeyword.trim().toLowerCase()
         result = result.filter(e => {
@@ -281,7 +286,7 @@ export function ParkDimension() {
         })
       }
       return result
-    }, [enterprises, entKeyword, tenantsMap]),
+    }, [enterprises, entKeyword, tenantsMap, placeCategory]),
     'name',
     'asc'
   )

@@ -71,6 +71,8 @@ export interface StateDimensionProps {
     riskLevel?: RiskLevel
   }
   filterEntityType?: EntityType
+  /** 企业场所分类筛选：'all' 或 综合体/园区/承租企业/承租商户/一般企业/场所 */
+  placeCategory?: string
 }
 
 export interface HazardDimensionProps {

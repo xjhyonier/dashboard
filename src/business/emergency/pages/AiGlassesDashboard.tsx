@@ -146,47 +146,123 @@ const EXPORT_COLUMNS = (firstColLabel: string, showDept = false) => [
   { key: '隐患整改率' as const, label: '隐患整改率' },
 ]
 
-export function AiGlassesDashboard() {
-  // ─── 部门筛选 ────────────────────────────────────────────
-  const [deptFilter, setDeptFilter] = useState('全部')
+// ─── 全局筛选定义 ────────────────────────────────────────────────────────
+type TimeRange = 'today' | 'yesterday' | 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom'
 
-  // ─── 时间筛选：快捷项 + 自定义日期 ─────────────────────────
-  const [timeRange, setTimeRange] = useState<'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'custom'>('thisWeek')
-  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+const TIME_OPTIONS: { value: TimeRange; label: string }[] = [
+  { value: 'today', label: '今日' },
+  { value: 'yesterday', label: '昨日' },
+  { value: 'thisWeek', label: '本周' },
+  { value: 'lastWeek', label: '上周' },
+  { value: 'thisMonth', label: '本月' },
+  { value: 'lastMonth', label: '上月' },
+  { value: 'custom', label: '自定义' },
+]
 
-  const applyQuick = (key: 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth') => {
-    const now = new Date()
-    let from: Date, to: Date
-    if (key === 'thisWeek') {
-      const day = now.getDay() === 0 ? 6 : now.getDay() - 1  // 周一=0
-      from = new Date(now); from.setDate(now.getDate() - day)
-      to = new Date(from); to.setDate(from.getDate() + 6)
-    } else if (key === 'lastWeek') {
-      const day = now.getDay() === 0 ? 6 : now.getDay() - 1
-      to = new Date(now); to.setDate(now.getDate() - day - 1)
-      from = new Date(to); from.setDate(to.getDate() - 6)
-    } else if (key === 'thisMonth') {
-      from = new Date(now.getFullYear(), now.getMonth(), 1)
-      to = new Date(now)
-    } else {
-      from = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      to = new Date(now.getFullYear(), now.getMonth(), 0)
-    }
-    setDateFrom(fmt(from))
-    setDateTo(fmt(to))
-    setTimeRange(key)
-  }
+// 单一下拉内用缩进展示层级：AI巡查 为父级，手机看 / AR眼镜看 为其子项
+const METHOD_OPTIONS = [
+  { value: '全部', label: '全部' },
+  { value: '随手拍', label: '随手拍' },
+  { value: 'AI巡查', label: 'AI巡查（含全部子项）' },
+  { value: '手机看', label: '\u3000└ 手机看' },
+  { value: 'AR眼镜看', label: '\u3000└ AR眼镜看' },
+  { value: '离线报送', label: '离线报送' },
+]
 
-  const [dateFrom, setDateFrom] = useState(() => {
-    const now = new Date()
+interface Filters {
+  timeRange: TimeRange
+  dateFrom: string
+  dateTo: string
+  dept: string
+  method: string
+}
+
+const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+// 快捷时间区间
+function quickRange(key: Exclude<TimeRange, 'custom'>): { from: string; to: string } {
+  const now = new Date()
+  let from: Date, to: Date
+  if (key === 'today') {
+    from = new Date(now); to = new Date(now)
+  } else if (key === 'yesterday') {
+    from = new Date(now); from.setDate(now.getDate() - 1)
+    to = new Date(from)
+  } else if (key === 'thisWeek') {
+    const day = now.getDay() === 0 ? 6 : now.getDay() - 1  // 周一=0
+    from = new Date(now); from.setDate(now.getDate() - day)
+    to = new Date(from); to.setDate(from.getDate() + 6)
+  } else if (key === 'lastWeek') {
     const day = now.getDay() === 0 ? 6 : now.getDay() - 1
-    const from = new Date(now); from.setDate(now.getDate() - day)
-    return fmt(from)
-  })
-  const [dateTo, setDateTo] = useState(() => fmt(new Date()))
+    to = new Date(now); to.setDate(now.getDate() - day - 1)
+    from = new Date(to); from.setDate(to.getDate() - 6)
+  } else if (key === 'thisMonth') {
+    from = new Date(now.getFullYear(), now.getMonth(), 1)
+    to = new Date(now)
+  } else {
+    from = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    to = new Date(now.getFullYear(), now.getMonth(), 0)
+  }
+  return { from: fmt(from), to: fmt(to) }
+}
+
+// 默认筛选：本周 + 全部部门 + 全部检查方式
+function initialFilters(): Filters {
+  const { from, to } = quickRange('thisWeek')
+  return { timeRange: 'thisWeek', dateFrom: from, dateTo: to, dept: '全部', method: '全部' }
+}
+
+export function AiGlassesDashboard() {
+  // ─── 筛选条件：草稿(draft) 与 已生效(applied) 分离，点「查询」才生效 ──────
+  const [draft, setDraft] = useState<Filters>(initialFilters)
+  const [applied, setApplied] = useState<Filters>(initialFilters)
+  const methodFilter = applied.method
+  const deptFilter = applied.dept
+
+  const onTimeChange = (v: TimeRange) => {
+    if (v === 'custom') {
+      setDraft(d => ({ ...d, timeRange: v }))
+      return
+    }
+    const { from, to } = quickRange(v)
+    setDraft(d => ({ ...d, timeRange: v, dateFrom: from, dateTo: to }))
+  }
+  const onQuery = () => setApplied(draft)
+  const onReset = () => {
+    const init = initialFilters()
+    setDraft(init)
+    setApplied(init)
+  }
 
   // ─── 按检查方式统计（层级：AI巡查 = 手机看 + AR眼镜看；合计不含重复） ──────
   const methodRows = useMemo<StatRow[]>(() => {
+    // AI巡查 子项单独查看：仅该子项一行
+    if (methodFilter === '手机看' || methodFilter === 'AR眼镜看') {
+      const row = genStat(methodFilter)
+      return [
+        { 统计对象: methodFilter, ...row },
+        { 统计对象: '合计', ...row },
+      ]
+    }
+    // AI巡查（含全部子项）：组行 + 两个子项
+    if (methodFilter === 'AI巡查') {
+      const shouji = genStat('手机看')
+      const arYanjing = genStat('AR眼镜看')
+      const aiTotal = sumRows([shouji, arYanjing])
+      return [
+        { 统计对象: 'AI巡查', ...aiTotal, isGroup: true },
+        { 统计对象: '手机看', ...shouji, indent: 1 },
+        { 统计对象: 'AR眼镜看', ...arYanjing, indent: 1 },
+        { 统计对象: '合计', ...aiTotal },
+      ]
+    }
+    if (methodFilter !== '全部') {
+      const row = genStat(methodFilter)
+      return [
+        { 统计对象: methodFilter, ...row },
+        { 统计对象: '合计', ...row },
+      ]
+    }
     const suishoupai = genStat('随手拍')
     const shouji = genStat('手机看')
     const arYanjing = genStat('AR眼镜看')
@@ -203,9 +279,9 @@ export function AiGlassesDashboard() {
       { 统计对象: '离线报送', ...lixian },
       { 统计对象: '合计', ...grand },
     ]
-  }, [])
+  }, [methodFilter])
 
-  // ─── 按人员统计（含所属部门；合计随部门筛选重算） ────────────────
+  // ─── 按人员统计（含所属部门；合计随部门/检查方式筛选重算） ────────────────
   const DEPTS = ['综合协调组', '监督检查组', '宣传培训组', '应急救援组']
   const PERSONNEL = [
     '雷重臣', '朱佳佳', '武佳恒', '林文', '曹维', '何纬乐', '刘思佳', '黑拉拉子',
@@ -213,84 +289,67 @@ export function AiGlassesDashboard() {
     '王安睿', '田木基洛布', '刘亚磊', '刘瑞麟', '王科文', '于东旭', '贾义', '覃弘通', '李春',
   ]
   const personRows = useMemo<StatRow[]>(() => {
+    // 选中具体检查方式时，按「人员+方式」重新生成确定性 mock（模拟每人该方式下的检查数据）
+    const seedOf = (name: string, idx: number) =>
+      methodFilter === '全部' ? `${name}-${idx}` : `${name}-${idx}-${methodFilter}`
     const detail = PERSONNEL
       .map((name, idx) => ({ dept: DEPTS[idx % DEPTS.length], name, idx }))
       .filter(p => deptFilter === '全部' || p.dept === deptFilter)
-      .map(p => ({ dept: p.dept, 统计对象: p.name, ...genStat(`${p.name}-${p.idx}`) }))
+      .map(p => ({ dept: p.dept, 统计对象: p.name, ...genStat(seedOf(p.name, p.idx)) }))
     const total = sumRows(detail.map(d => {
       const { dept, 统计对象, ...rest } = d
       return rest
     }))
     return [...detail, { dept: '—', 统计对象: '合计', ...total }]
-  }, [deptFilter])
+  }, [deptFilter, methodFilter])
 
   return (
     <PageShell>
-      <PageHeader title="AI眼镜检查看板" />
+      <PageHeader title="检查数据统计" />
 
-      {/* 数据时间筛选 */}
+      {/* 全局筛选栏：数据时间 / 所属部门 / 检查方式 + 右侧查询·重置 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 12, color: '#6B7280' }}>数据时间:</span>
-        {([
-          { key: 'thisWeek' as const, label: '本周' },
-          { key: 'lastWeek' as const, label: '上周' },
-          { key: 'thisMonth' as const, label: '本月' },
-          { key: 'lastMonth' as const, label: '上月' },
-        ]).map(opt => (
-          <button
-            key={opt.key}
-            onClick={() => applyQuick(opt.key)}
-            style={{
-              padding: '3px 10px',
-              borderRadius: 4,
-              border: '1px solid',
-              borderColor: timeRange === opt.key ? '#3B82F6' : '#E5E7EB',
-              background: timeRange === opt.key ? '#EFF6FF' : 'white',
-              color: timeRange === opt.key ? '#3B82F6' : '#6B7280',
-              fontSize: 12,
-              cursor: 'pointer',
-              fontWeight: timeRange === opt.key ? 600 : 400,
-            }}
-          >
-            {opt.label}
-          </button>
-        ))}
-        <span style={{ fontSize: 12, color: '#9CA3AF' }}>自定义:</span>
-        <input
-          type="date"
-          value={dateFrom}
-          onChange={e => { setDateFrom(e.target.value); setTimeRange('custom') }}
+        <select
+          value={draft.timeRange}
+          onChange={e => onTimeChange(e.target.value as TimeRange)}
           style={{
             padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
-            fontSize: 12, color: '#374151', background: 'white', outline: 'none',
-          }}
-        />
-        <span style={{ fontSize: 12, color: '#9CA3AF' }}>~</span>
-        <input
-          type="date"
-          value={dateTo}
-          onChange={e => { setDateTo(e.target.value); setTimeRange('custom') }}
-          style={{
-            padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
-            fontSize: 12, color: '#374151', background: 'white', outline: 'none',
-          }}
-        />
-        <button
-          onClick={() => applyQuick('thisWeek')}
-          style={{
-            padding: '3px 10px', borderRadius: 4, border: '1px solid #E5E7EB',
-            background: 'white', color: '#6B7280', fontSize: 12, cursor: 'pointer',
+            fontSize: 12, color: '#374151', background: 'white', outline: 'none', cursor: 'pointer',
           }}
         >
-          清除
-        </button>
+          {TIME_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        {draft.timeRange === 'custom' && (
+          <>
+            <input
+              type="date"
+              value={draft.dateFrom}
+              onChange={e => setDraft(d => ({ ...d, dateFrom: e.target.value }))}
+              style={{
+                padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
+                fontSize: 12, color: '#374151', background: 'white', outline: 'none',
+              }}
+            />
+            <span style={{ fontSize: 12, color: '#9CA3AF' }}>~</span>
+            <input
+              type="date"
+              value={draft.dateTo}
+              onChange={e => setDraft(d => ({ ...d, dateTo: e.target.value }))}
+              style={{
+                padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
+                fontSize: 12, color: '#374151', background: 'white', outline: 'none',
+              }}
+            />
+          </>
+        )}
         <span style={{ fontSize: 12, color: '#6B7280', marginLeft: 4 }}>
-          当前范围：{dateFrom} ~ {dateTo}
+          当前范围：{applied.dateFrom} ~ {applied.dateTo}
         </span>
         <span style={{ fontSize: 12, color: '#6B7280', marginLeft: 12 }}>所属部门:</span>
         <select
-          value={deptFilter}
-          onChange={e => setDeptFilter(e.target.value)}
+          value={draft.dept}
+          onChange={e => setDraft(d => ({ ...d, dept: e.target.value }))}
           style={{
             padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
             fontSize: 12, color: '#374151', background: 'white', outline: 'none', cursor: 'pointer',
@@ -298,6 +357,38 @@ export function AiGlassesDashboard() {
         >
           {['全部', ...DEPTS].map(d => <option key={d} value={d}>{d}</option>)}
         </select>
+        <span style={{ fontSize: 12, color: '#6B7280', marginLeft: 12 }}>检查方式:</span>
+        <select
+          value={draft.method}
+          onChange={e => setDraft(d => ({ ...d, method: e.target.value }))}
+          style={{
+            padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
+            fontSize: 12, color: '#374151', background: 'white', outline: 'none', cursor: 'pointer',
+          }}
+        >
+          {METHOD_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        {/* 查询 / 重置：置于所有筛选条件最右侧 */}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={onQuery}
+            style={{
+              padding: '3px 14px', borderRadius: 4, border: '1px solid #2563EB',
+              background: '#2563EB', color: 'white', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+            }}
+          >
+            查询
+          </button>
+          <button
+            onClick={onReset}
+            style={{
+              padding: '3px 14px', borderRadius: 4, border: '1px solid #D1D5DB',
+              background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer',
+            }}
+          >
+            重置
+          </button>
+        </div>
       </div>
 
       {/* 模块一：按检查方式统计 */}
@@ -336,7 +427,7 @@ export function AiGlassesDashboard() {
 
       {/* 底部说明 */}
       <div style={{ marginTop: 12, fontSize: 12, color: '#9CA3AF' }}>
-        说明：检查户数按统计周期去重；整改率 = 已整改隐患 ÷ 发现隐患。
+        说明：检查户数按统计周期去重；整改率 = 已整改隐患 ÷ 发现隐患。检查方式筛选同时作用于两个统计表（AI巡查含手机看 / AR眼镜看二级子项）。
       </div>
     </PageShell>
   )

@@ -525,9 +525,72 @@ export function StationChiefV2Dashboard() {
   const [filterFireType, setFilterFireType] = useState<'all' | 'fireKey' | 'nineSmall' | 'general'>('all')
   const [showChangelog, setShowChangelog] = useState(false)
 
+  // 企业场所分类筛选（全局筛选）
+  const PLACE_CATEGORY_OPTIONS = ['综合体', '园区', '承租企业', '承租商户', '一般企业', '场所']
+  const [filterPlaceCategory, setFilterPlaceCategory] = useState<string>('all')
+
+  // ─── 全局筛选「查询 / 重置」：草稿态 ─────────────────────────────
+  // 下拉控件只改草稿，点「查询」后一次性写入生效态；「重置」同时清空草稿与生效态
+  const DEFAULT_STATUS_FILTER = ['正常', '托管', '歇业中', '未核实']
+  const [dTimeRange, setDTimeRange] = useState<TimeRange>('month')
+  const [dSpecificMonth, setDSpecificMonth] = useState('')
+  const [dRiskLevel, setDRiskLevel] = useState<'all' | 'major' | 'high' | 'medium' | 'low'>('all')
+  const [dEntityType, setDEntityType] = useState<'all' | 'production' | 'venue'>('all')
+  const [dStatuses, setDStatuses] = useState<string[]>(DEFAULT_STATUS_FILTER)
+  const [dFireType, setDFireType] = useState<'all' | 'fireKey' | 'nineSmall' | 'general'>('all')
+  const [dTeam, setDTeam] = useState<string>('all')
+  const [dExpert, setDExpert] = useState<string>('all')
+  const [dPlaceCategory, setDPlaceCategory] = useState<string>('all')
+
+  const handleGlobalQuery = () => {
+    setTimeRange(dTimeRange)
+    setSpecificMonth(dSpecificMonth)
+    setRiskLevel(dRiskLevel)
+    setFilterEntityType(dEntityType)
+    setFilterStatuses([...dStatuses])
+    setFilterFireType(dFireType)
+    setFilterTeam(dTeam)
+    setFilterExpert(dExpert)
+    setFilterPlaceCategory(dPlaceCategory)
+  }
+  const handleGlobalReset = () => {
+    setTimeRange('month')
+    setSpecificMonth('')
+    setRiskLevel('all')
+    setFilterEntityType('all')
+    setFilterStatuses([...DEFAULT_STATUS_FILTER])
+    setFilterFireType('all')
+    setFilterTeam('all')
+    setFilterExpert('all')
+    setFilterPlaceCategory('all')
+    setDTimeRange('month')
+    setDSpecificMonth('')
+    setDRiskLevel('all')
+    setDEntityType('all')
+    setDStatuses([...DEFAULT_STATUS_FILTER])
+    setDFireType('all')
+    setDTeam('all')
+    setDExpert('all')
+    setDPlaceCategory('all')
+  }
+
   // 责任主体分析 - 子 tab：企业看板 / 园区看板
   const [stateSubTab, setStateSubTab] = useState<'enterprise' | 'park'>('enterprise')
   const changeLogDefault = useMemo(() => [
+    {
+      id: 11,
+      date: '2026-11-05',
+      location: '责任主体分析 / 全局筛选栏',
+      content: '1. 企业看板在「责任主体名称」右侧新增「房东名称」列（承租企业/承租商户显示房东，其余显示 /），搜索框同时支持房东名称，导出同步新增该列\n2. 全局筛选新增「企业场所分类」（综合体/园区/承租企业/承租商户/一般企业/场所），联动企业看板与园区看板\n3. 全局筛选最右侧新增「查询」按钮（位于「重置」左侧），筛选改为草稿态：下拉只改草稿，点「查询」才生效，「重置」一键恢复默认',
+      editing: false,
+    },
+    {
+      id: 10,
+      date: '2026-11-05',
+      location: '检查数据统计',
+      content: '原「AI眼镜检查看板」页签及页面标题统一更名为「检查数据统计」；筛选栏「清除」按钮移到所有筛选条件最右侧并改为「查询」「重置」两个按钮（草稿/已生效分离，点查询才生效）',
+      editing: false,
+    },
     {
       id: 9,
       date: '2026-07-17',
@@ -663,7 +726,7 @@ export function StationChiefV2Dashboard() {
   }
 
   const toggleStatus = (s: string) => {
-    setFilterStatuses(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
+    setDStatuses(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
   }
 
   const kpiTotals = useMemo(() => {
@@ -939,7 +1002,7 @@ export function StationChiefV2Dashboard() {
             whiteSpace: 'nowrap',
           }}
         >
-          AI眼镜检查看板
+          检查数据统计
         </button>
         <button
           onClick={() => setSearchParams({ page: 'chaxuan-yiti' })}
@@ -1141,8 +1204,8 @@ export function StationChiefV2Dashboard() {
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#9CA3AF' }}>时间:</span>
           <select
-            value={timeRange}
-            onChange={e => setTimeRange(e.target.value as TimeRange)}
+            value={dTimeRange}
+            onChange={e => setDTimeRange(e.target.value as TimeRange)}
             style={{
               padding: '2px 8px',
               border: '1px solid #D1D5DB',
@@ -1161,16 +1224,16 @@ export function StationChiefV2Dashboard() {
           </select>
           <input
             type="month"
-            value={specificMonth}
-            onChange={e => setSpecificMonth(e.target.value)}
+            value={dSpecificMonth}
+            onChange={e => setDSpecificMonth(e.target.value)}
             style={{
               padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
-              fontSize: 12, color: specificMonth ? '#4F46E5' : '#9CA3AF', background: 'white', outline: 'none',
+              fontSize: 12, color: dSpecificMonth ? '#4F46E5' : '#9CA3AF', background: 'white', outline: 'none',
             }}
           />
-          {specificMonth && (
+          {dSpecificMonth && (
             <button
-              onClick={() => setSpecificMonth('')}
+              onClick={() => setDSpecificMonth('')}
               style={{
                 padding: '2px 6px', border: '1px solid #D1D5DB', borderRadius: 4,
                 background: 'white', color: '#9CA3AF', fontSize: 11, cursor: 'pointer',
@@ -1188,14 +1251,14 @@ export function StationChiefV2Dashboard() {
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#9CA3AF' }}>风险:</span>
           <select
-            value={riskLevel}
-            onChange={e => setRiskLevel(e.target.value as any)}
+            value={dRiskLevel}
+            onChange={e => setDRiskLevel(e.target.value as any)}
             style={{
               padding: '2px 8px',
               border: '1px solid #D1D5DB',
               borderRadius: 4,
               fontSize: 12,
-              color: riskLevel !== 'all' ? '#4F46E5' : '#6B7280',
+              color: dRiskLevel !== 'all' ? '#4F46E5' : '#6B7280',
               background: 'white',
               outline: 'none',
             }}
@@ -1214,14 +1277,14 @@ export function StationChiefV2Dashboard() {
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#9CA3AF' }}>责任主体类型:</span>
           <select
-            value={filterEntityType}
-            onChange={e => setFilterEntityType(e.target.value as any)}
+            value={dEntityType}
+            onChange={e => setDEntityType(e.target.value as any)}
             style={{
               padding: '2px 8px',
               border: '1px solid #D1D5DB',
               borderRadius: 4,
               fontSize: 12,
-              color: filterEntityType !== 'all' ? '#4F46E5' : '#6B7280',
+              color: dEntityType !== 'all' ? '#4F46E5' : '#6B7280',
               background: 'white',
               outline: 'none',
             }}
@@ -1244,15 +1307,15 @@ export function StationChiefV2Dashboard() {
                 padding: '2px 8px',
                 border: '1px solid #D1D5DB',
                 borderRadius: 4,
-                background: filterStatuses.length < ENTERPRISE_STATUSES.length ? '#EEF2FF' : 'white',
-                color: filterStatuses.length < ENTERPRISE_STATUSES.length ? '#4F46E5' : '#6B7280',
+                background: dStatuses.length < ENTERPRISE_STATUSES.length ? '#EEF2FF' : 'white',
+                color: dStatuses.length < ENTERPRISE_STATUSES.length ? '#4F46E5' : '#6B7280',
                 fontSize: 12,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 minWidth: 80,
               }}
             >
-              {filterStatuses.length === ENTERPRISE_STATUSES.length ? '全部' : `${filterStatuses.length}项`}
+              {dStatuses.length === ENTERPRISE_STATUSES.length ? '全部' : `${dStatuses.length}项`}
             </button>
           </div>
           {showStatusDropdown && (
@@ -1265,13 +1328,13 @@ export function StationChiefV2Dashboard() {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, paddingBottom: 6, borderBottom: '1px solid #F3F4F6' }}>
                   <button
-                    onClick={() => setFilterStatuses([...ENTERPRISE_STATUSES])}
+                    onClick={() => setDStatuses([...ENTERPRISE_STATUSES])}
                     style={{ padding: '1px 6px', fontSize: 11, border: '1px solid #D1D5DB', borderRadius: 3, background: 'white', color: '#6B7280', cursor: 'pointer' }}
                   >
                     全选
                   </button>
                   <button
-                    onClick={() => setFilterStatuses([])}
+                    onClick={() => setDStatuses([])}
                     style={{ padding: '1px 6px', fontSize: 11, border: '1px solid #D1D5DB', borderRadius: 3, background: 'white', color: '#6B7280', cursor: 'pointer' }}
                   >
                     清空
@@ -1283,7 +1346,7 @@ export function StationChiefV2Dashboard() {
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0', fontSize: 12, color: '#374151', cursor: 'pointer' }}
                     onClick={() => toggleStatus(s)}
                   >
-                    <input type="checkbox" checked={filterStatuses.includes(s)} onChange={() => {}} style={{ width: 14, height: 14, cursor: 'pointer' }} />
+                    <input type="checkbox" checked={dStatuses.includes(s)} onChange={() => {}} style={{ width: 14, height: 14, cursor: 'pointer' }} />
                     {s}
                   </label>
                 ))}
@@ -1298,14 +1361,14 @@ export function StationChiefV2Dashboard() {
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#9CA3AF' }}>消防类型:</span>
           <select
-            value={filterFireType}
-            onChange={e => setFilterFireType(e.target.value as any)}
+            value={dFireType}
+            onChange={e => setDFireType(e.target.value as any)}
             style={{
               padding: '2px 8px',
               border: '1px solid #D1D5DB',
               borderRadius: 4,
               fontSize: 12,
-              color: filterFireType !== 'all' ? '#4F46E5' : '#6B7280',
+              color: dFireType !== 'all' ? '#4F46E5' : '#6B7280',
               background: 'white',
               outline: 'none',
             }}
@@ -1319,16 +1382,42 @@ export function StationChiefV2Dashboard() {
 
         <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
 
+        {/* 企业场所分类筛选 */}
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: '#9CA3AF' }}>企业场所分类:</span>
+          <select
+            value={dPlaceCategory}
+            onChange={e => setDPlaceCategory(e.target.value)}
+            style={{
+              padding: '2px 8px',
+              border: '1px solid #D1D5DB',
+              borderRadius: 4,
+              fontSize: 12,
+              color: dPlaceCategory !== 'all' ? '#4F46E5' : '#6B7280',
+              background: 'white',
+              outline: 'none',
+              minWidth: 100,
+            }}
+          >
+            <option value="all">全部</option>
+            {PLACE_CATEGORY_OPTIONS.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ width: 1, height: 20, background: '#E5E7EB' }} />
+
         {/* 工作组筛选 */}
         <select
-          value={filterTeam}
-          onChange={e => setFilterTeam(e.target.value)}
+          value={dTeam}
+          onChange={e => setDTeam(e.target.value)}
           style={{
             padding: '2px 8px',
             border: '1px solid #D1D5DB',
             borderRadius: 4,
             fontSize: 12,
-            color: filterTeam !== 'all' ? '#4F46E5' : '#6B7280',
+            color: dTeam !== 'all' ? '#4F46E5' : '#6B7280',
             background: 'white',
             outline: 'none',
             minWidth: 120,
@@ -1342,14 +1431,14 @@ export function StationChiefV2Dashboard() {
 
         {/* 专家筛选 */}
         <select
-          value={filterExpert}
-          onChange={e => setFilterExpert(e.target.value)}
+          value={dExpert}
+          onChange={e => setDExpert(e.target.value)}
           style={{
             padding: '2px 8px',
             border: '1px solid #D1D5DB',
             borderRadius: 4,
             fontSize: 12,
-            color: filterExpert !== 'all' ? '#4F46E5' : '#6B7280',
+            color: dExpert !== 'all' ? '#4F46E5' : '#6B7280',
             background: 'white',
             outline: 'none',
             minWidth: 100,
@@ -1361,23 +1450,38 @@ export function StationChiefV2Dashboard() {
           ))}
         </select>
 
-        {/* 重置筛选 */}
-        {(filterTeam !== 'all' || filterExpert !== 'all' || filterEntityType !== 'all' || filterFireType !== 'all' || filterStatuses.length < ENTERPRISE_STATUSES.length) && (
+        {/* 查询 / 重置（置于所有筛选条件最右侧） */}
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
           <button
-            onClick={() => { setFilterTeam('all'); setFilterExpert('all'); setFilterEntityType('all'); setFilterFireType('all'); setFilterStatuses(['正常', '托管', '歇业中', '未核实']) }}
+            onClick={handleGlobalQuery}
             style={{
-              padding: '2px 8px',
+              padding: '3px 14px',
+              border: '1px solid #2563EB',
+              borderRadius: 4,
+              background: '#2563EB',
+              color: 'white',
+              fontSize: 12,
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            查询
+          </button>
+          <button
+            onClick={handleGlobalReset}
+            style={{
+              padding: '3px 14px',
               border: '1px solid #D1D5DB',
               borderRadius: 4,
               background: 'white',
-              color: '#6B7280',
+              color: '#374151',
               fontSize: 12,
               cursor: 'pointer',
             }}
           >
             重置
           </button>
-        )}
+        </div>
       </div>
 
       {/* KPI 指标卡片 - 第一行：安全责任主体 / 检查次数 / 覆盖户数 / 检查单 */}
@@ -1734,12 +1838,12 @@ export function StationChiefV2Dashboard() {
             })}
           </div>
 
-          {stateSubTab === 'enterprise' && <StateDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} filterEntityType={filterEntityType} navigateParams={{
+          {stateSubTab === 'enterprise' && <StateDimension dateRange={dateRange} riskLevel={riskLevel} timeRange={timeRange} filterEntityType={filterEntityType} placeCategory={filterPlaceCategory} navigateParams={{
             teamName: searchParams.get('teamName') || undefined,
             enterpriseName: searchParams.get('enterpriseName') || undefined,
           }} />}
 
-          {stateSubTab === 'park' && <ParkDimension />}
+          {stateSubTab === 'park' && <ParkDimension placeCategory={filterPlaceCategory} />}
         </div>
       )}
       {dimension === 'hazard' && <HazardDimension
