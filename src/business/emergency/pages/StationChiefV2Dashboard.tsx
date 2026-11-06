@@ -578,6 +578,13 @@ export function StationChiefV2Dashboard() {
   const [stateSubTab, setStateSubTab] = useState<'enterprise' | 'park'>('enterprise')
   const changeLogDefault = useMemo(() => [
     {
+      id: 12,
+      date: '2026-11-06',
+      location: '检查数据统计',
+      content: '按检查方式统计、按人员统计两个列表：原「已推送隐患、重大隐患」两列调整为「重大隐患、重大隐患已整改、已推送隐患」三列（位于发现隐患右侧），导出同步',
+      editing: false,
+    },
+    {
       id: 11,
       date: '2026-11-05',
       location: '责任主体分析 / 全局筛选栏',

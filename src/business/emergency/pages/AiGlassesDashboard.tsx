@@ -41,8 +41,9 @@ interface StatRow {
   检查次数: number
   检查户数: number
   发现隐患: number
-  已推送隐患: number
   重大隐患: number
+  重大隐患已整改: number
+  已推送隐患: number
   已整改隐患: number
   隐患整改率: string // 'xx.x%' 或 '-'
   indent?: number     // 缩进层级：0/缺省=一级，1=子项（如手机看/AR眼镜看属 AI巡查）
@@ -55,11 +56,12 @@ function genStat(name: string): Omit<StatRow, '统计对象'> {
   const 检查次数 = 600 + (h % 1400)
   const 检查户数 = Math.round(检查次数 * (0.6 + ((h >> 3) % 30) / 100))
   const 发现隐患 = Math.round(检查次数 * (0.4 + ((h >> 5) % 25) / 100))
-  const 已推送隐患 = Math.round(发现隐患 * (0.5 + ((h >> 7) % 40) / 100))
   const 重大隐患 = h % 18
-  const 已整改隐患 = Math.round(发现隐患 * (0.6 + ((h >> 9) % 35) / 100))
+  const 重大隐患已整改 = Math.round(重大隐患 * (0.4 + ((h >> 7) % 60) / 100))
+  const 已推送隐患 = Math.round(发现隐患 * (0.5 + ((h >> 9) % 40) / 100))
+  const 已整改隐患 = Math.round(发现隐患 * (0.6 + ((h >> 11) % 35) / 100))
   const 隐患整改率 = 发现隐患 === 0 ? '-' : `${((已整改隐患 / 发现隐患) * 100).toFixed(1)}%`
-  return { 检查次数, 检查户数, 发现隐患, 已推送隐患, 重大隐患, 已整改隐患, 隐患整改率 }
+  return { 检查次数, 检查户数, 发现隐患, 重大隐患, 重大隐患已整改, 已推送隐患, 已整改隐患, 隐患整改率 }
 }
 
 // 合计行（加和；整改率由合计的 已整改/发现 重算）
@@ -69,12 +71,13 @@ function sumRows(rows: Omit<StatRow, '统计对象'>[]): Omit<StatRow, '统计�
       检查次数: acc.检查次数 + x.检查次数,
       检查户数: acc.检查户数 + x.检查户数,
       发现隐患: acc.发现隐患 + x.发现隐患,
-      已推送隐患: acc.已推送隐患 + x.已推送隐患,
       重大隐患: acc.重大隐患 + x.重大隐患,
+      重大隐患已整改: acc.重大隐患已整改 + x.重大隐患已整改,
+      已推送隐患: acc.已推送隐患 + x.已推送隐患,
       已整改隐患: acc.已整改隐患 + x.已整改隐患,
       隐患整改率: '',
     }),
-    { 检查次数: 0, 检查户数: 0, 发现隐患: 0, 已推送隐患: 0, 重大隐患: 0, 已整改隐患: 0, 隐患整改率: '' }
+    { 检查次数: 0, 检查户数: 0, 发现隐患: 0, 重大隐患: 0, 重大隐患已整改: 0, 已推送隐患: 0, 已整改隐患: 0, 隐患整改率: '' }
   )
   r.隐患整改率 = r.发现隐患 === 0 ? '-' : `${((r.已整改隐患 / r.发现隐患) * 100).toFixed(1)}%`
   return r
@@ -101,8 +104,9 @@ function StatTable({ rows, firstColLabel = '统计对象', showDept = false }: {
             <th style={th}>检查次数</th>
             <th style={th}>检查户数</th>
             <th style={th}>发现隐患</th>
-            <th style={th}>已推送隐患</th>
             <th style={th}>重大隐患</th>
+            <th style={th}>重大隐患已整改</th>
+            <th style={th}>已推送隐患</th>
             <th style={th}>已整改隐患</th>
             <th style={{ ...th, borderRight: 'none' }}>隐患整改率</th>
           </tr>
@@ -120,8 +124,9 @@ function StatTable({ rows, firstColLabel = '统计对象', showDept = false }: {
                 <td style={td({ textAlign: 'center', fontWeight: isTotal ? 600 : r.isGroup ? 600 : 400, color: isSub ? '#6B7280' : '#374151' })}>{r.检查次数.toLocaleString()}</td>
                 <td style={td({ textAlign: 'center', color: isSub ? '#6B7280' : '#374151' })}>{r.检查户数.toLocaleString()}</td>
                 <td style={td({ textAlign: 'center', color: isSub ? '#F59E0B' : '#D97706' })}>{r.发现隐患.toLocaleString()}</td>
-                <td style={td({ textAlign: 'center', color: isSub ? '#6B7280' : '#374151' })}>{r.已推送隐患.toLocaleString()}</td>
                 <td style={{ ...td({ textAlign: 'center', color: r.重大隐患 > 0 ? '#DC2626' : isSub ? '#9CA3AF' : '#374151', fontWeight: r.重大隐患 > 0 ? 600 : 400 }) }}>{r.重大隐患.toLocaleString()}</td>
+                <td style={td({ textAlign: 'center', color: isSub ? '#34D399' : '#059669' })}>{r.重大隐患已整改.toLocaleString()}</td>
+                <td style={td({ textAlign: 'center', color: isSub ? '#6B7280' : '#374151' })}>{r.已推送隐患.toLocaleString()}</td>
                 <td style={td({ textAlign: 'center', color: isSub ? '#34D399' : '#059669' })}>{r.已整改隐患.toLocaleString()}</td>
                 <td style={{ ...td({ textAlign: 'center', fontWeight: 600, color: rateColor(r.隐患整改率), borderRight: 'none' }) }}>{r.隐患整改率}</td>
               </tr>
@@ -140,8 +145,9 @@ const EXPORT_COLUMNS = (firstColLabel: string, showDept = false) => [
   { key: '检查次数' as const, label: '检查次数' },
   { key: '检查户数' as const, label: '检查户数' },
   { key: '发现隐患' as const, label: '发现隐患' },
-  { key: '已推送隐患' as const, label: '已推送隐患' },
   { key: '重大隐患' as const, label: '重大隐患' },
+  { key: '重大隐患已整改' as const, label: '重大隐患已整改' },
+  { key: '已推送隐患' as const, label: '已推送隐患' },
   { key: '已整改隐患' as const, label: '已整改隐患' },
   { key: '隐患整改率' as const, label: '隐患整改率' },
 ]
