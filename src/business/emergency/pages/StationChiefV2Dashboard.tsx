@@ -578,6 +578,13 @@ export function StationChiefV2Dashboard() {
   const [stateSubTab, setStateSubTab] = useState<'enterprise' | 'park'>('enterprise')
   const changeLogDefault = useMemo(() => [
     {
+      id: 16,
+      date: '2026-11-13',
+      location: '组织与人员',
+      content: '删除「全部任务 - 汇总进度」模块（按工作组 / 按专家 两组进度条）',
+      editing: false,
+    },
+    {
       id: 15,
       date: '2026-11-13',
       location: '组织与人员',
