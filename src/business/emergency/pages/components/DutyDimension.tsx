@@ -58,8 +58,11 @@ interface ExpertView {
   grade: string
   enterprise_count: number
   check_count: number
+  check_household_count: number
+  check_closed_count: number
   hazard_found: number
   hazard_serious: number
+  hazard_serious_closed: number
   hazard_closed: number
   closure_rate: number
   in_progress: number
@@ -281,8 +284,11 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
         grade: exp.grade,
         enterprise_count: exp.enterprise_count,
         check_count: behavior?.check_count || 0,
+        check_household_count: behavior?.check_household_count ?? 0,
+        check_closed_count: behavior?.check_closed_count ?? 0,
         hazard_found: behavior?.hazard_found || 0,
         hazard_serious: behavior?.hazard_serious || 0,
+        hazard_serious_closed: behavior?.hazard_serious_closed ?? 0,
         hazard_closed: behavior?.hazard_closed || 0,
         closure_rate: behavior?.closure_rate || 0,
         in_progress: 0,
@@ -660,136 +666,6 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
         </table>
       </div>
 
-      {/* （二）人员履职情况表 */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>（二）人员履职情况表</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input type="text" placeholder="搜索姓名" value={memberKeyword} onChange={e => setMemberKeyword(e.target.value)} style={inputStyle} />
-            <button onClick={() => exportToCSV(
-              filteredMembers.map(m => ({
-                姓名: m.name,
-                工作组: m.work_groups.join('、'),
-                负责企业: m.enterprise_count,
-                已检查企业: m.inspection_count,
-                确认隐患数: m.hazard_found,
-                重大隐患: m.hazard_serious,
-                已整改: m.hazard_closed,
-                整改率: m.closure_rate + '%',
-                整改中: m.hazard_in_progress,
-                逾期未改: m.hazard_overdue,
-              })),
-              [
-                { key: '姓名', label: '姓名' },
-                { key: '工作组', label: '工作组' },
-                { key: '负责企业', label: '负责企业' },
-                { key: '已检查企业', label: '已检查企业' },
-                { key: '确认隐患数', label: '确认隐患数' },
-                { key: '重大隐患', label: '重大隐患' },
-                { key: '已整改', label: '已整改' },
-                { key: '整改率', label: '整改率' },
-                { key: '整改中', label: '整改中' },
-                { key: '逾期未改', label: '逾期未改' },
-              ],
-              '人员履职情况表'
-            )} style={{ padding: '4px 12px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer' }}>⬇ 导出</button>
-          </div>
-        </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-          <thead>
-            <tr>
-              <SortableTh label="姓名" sortKey="name" sort={sortMembers} onSort={handleSortMembers} />
-              <th style={thStyle}>职位</th>
-              <SortableTh label="所在工作组" sortKey="work_groups" sort={sortMembers} onSort={handleSortMembers} />
-              <SortableTh label="负责企业" sortKey="enterprise_count" sort={sortMembers} onSort={handleSortMembers} />
-              <SortableTh label="已检查企业" sortKey="inspection_count" sort={sortMembers} onSort={handleSortMembers} />
-              <SortableTh label="检查完成率" sortKey="plan_completion_rate" sort={sortMembers} onSort={handleSortMembers} />
-              <th style={thStyle} title="已检查企业的隐患数量">确认隐患数 ⓘ</th>
-              <SortableTh label="重大隐患" sortKey="hazard_serious" sort={sortMembers} onSort={handleSortMembers} />
-              <SortableTh label="已整改" sortKey="hazard_closed" sort={sortMembers} onSort={handleSortMembers} />
-              <SortableTh label="整改率" sortKey="closure_rate" sort={sortMembers} onSort={handleSortMembers} />
-              <SortableTh label="整改中" sortKey="hazard_in_progress" sort={sortMembers} onSort={handleSortMembers} />
-              <SortableTh label="逾期未改" sortKey="hazard_overdue" sort={sortMembers} onSort={handleSortMembers} />
-            </tr>
-          </thead>
-          <tbody>
-            {sortedMembers.length === 0 ? (
-              <tr><td colSpan={12} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的人员</td></tr>
-            ) : sortedMembers.map((m, i) => (
-              <tr key={m.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
-                <td
-                  style={{ ...tdStyle, textAlign: 'left', fontWeight: 500, cursor: 'pointer', color: '#4F46E5', textDecoration: 'underline' }}
-                  onClick={() => setSelectedMemberName(m.name)}
-                  title="点击筛选此人"
-                >
-                  {m.name}
-                </td>
-                <td style={{ ...tdStyle, color: '#6B7280' }}>{m.position || '-'}</td>
-                <td style={{ ...tdStyle, textAlign: 'left' }}>
-                  {m.work_groups.map((wg, idx) => (
-                    <span
-                      key={idx}
-                      style={{ cursor: 'pointer', color: '#059669', textDecoration: 'underline', marginRight: 4 }}
-                      onClick={() => setSelectedTeamId(workGroups.find(g => g.name === wg)?.id || null)}
-                      title={`点击查看 ${wg} 详情`}
-                    >
-                      {wg}{idx < m.work_groups.length - 1 ? '、' : ''}
-                    </span>
-                  ))}
-                </td>
-                <td
-                  style={{ ...tdStyle, cursor: m.enterprise_count > 0 ? 'pointer' : 'default' }}
-                  onClick={() => m.enterprise_count > 0 && setSelectedKpi('enterprise')}
-                  title="点击查看负责的企业"
-                >
-                  {m.enterprise_count}
-                </td>
-                <td style={tdStyle}>{m.inspection_count}</td>
-                <td style={{ ...tdStyle, color: m.plan_completion_rate >= 80 ? '#059669' : m.plan_completion_rate >= 50 ? '#D97706' : '#DC2626' }}>
-                  {m.plan_completion_rate}%
-                </td>
-                <td
-                  style={{ ...tdStyle, cursor: m.hazard_found > 0 ? 'pointer' : 'default' }}
-                  onClick={() => m.hazard_found > 0 && onNavigateToHazard?.({ expertName: m.name })}
-                  title="已检查企业的隐患数量，点击查看发现的隐患"
-                >
-                  {m.hazard_found}
-                </td>
-                <td
-                  style={{ ...tdStyle, color: '#DC2626', cursor: m.hazard_serious > 0 ? 'pointer' : 'default' }}
-                  onClick={() => m.hazard_serious > 0 && onNavigateToHazard?.({ expertName: m.name, riskLevel: 'major' })}
-                  title="点击查看重大隐患"
-                >
-                  {m.hazard_serious}
-                </td>
-                <td
-                  style={{ ...tdStyle, color: '#059669', cursor: m.hazard_closed > 0 ? 'pointer' : 'default' }}
-                  onClick={() => m.hazard_closed > 0 && onNavigateToHazard?.({ expertName: m.name, status: 'rectified' })}
-                  title="点击查看已整改隐患"
-                >
-                  {m.hazard_closed}
-                </td>
-                <td style={tdStyle}>{m.closure_rate}%</td>
-                <td
-                  style={{ ...tdStyle, color: '#D97706', cursor: m.hazard_in_progress > 0 ? 'pointer' : 'default' }}
-                  onClick={() => m.hazard_in_progress > 0 && onNavigateToHazard?.({ expertName: m.name, status: 'rectifying' })}
-                  title="点击查看整改中隐患"
-                >
-                  {m.hazard_in_progress}
-                </td>
-                <td
-                  style={{ ...tdStyle, color: '#DC2626', cursor: m.hazard_overdue > 0 ? 'pointer' : 'default' }}
-                  onClick={() => m.hazard_overdue > 0 && onNavigateToHazard?.({ expertName: m.name, status: 'overdue' })}
-                  title="点击查看逾期未整改隐患"
-                >
-                  {m.hazard_overdue}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
       {/* 全部任务 - 汇总进度 */}
       <div style={{ marginBottom: 24, background: 'white', borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid #E5E7EB', background: '#F9FAFB' }}>
@@ -850,82 +726,76 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
         </div>
       </div>
 
-      {/* （三）专家履职情况表 */}
+      {/* （二）检查人员工作量统计（原专家履职情况表） */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>（三）专家履职情况表</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>（二）检查人员工作量统计</div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <input type="text" placeholder="搜索姓名或工作组" value={expertKeyword} onChange={e => setExpertKeyword(e.target.value)} style={inputStyle} />
+            <input type="text" placeholder="搜索人员姓名或所属部门" value={expertKeyword} onChange={e => setExpertKeyword(e.target.value)} style={inputStyle} />
              <button onClick={() => exportToCSV(
               filteredExperts.map(e => ({
-                姓名: e.name,
-                配合工作组: e.work_group,
-                负责企业: e.enterprise_count,
+                人员姓名: e.name,
+                所属部门: e.work_group,
+                负责企业数: e.enterprise_count,
                 检查次数: e.check_count,
-                发现隐患: e.hazard_found,
-                重大隐患: e.hazard_serious,
-                已整改: e.hazard_closed,
-                检查单推送户数: e.todo_push_enterprise_count,
-                检查单推送次数: e.todo_push_count,
-                检查单办结数量: e.todo_closed_count,
-                检查单办结率: e.todo_closure_rate + '%',
+                检查户数: e.check_household_count,
+                检查闭环数: e.check_closed_count,
+                重大隐患数: e.hazard_serious,
+                已整改重大隐患: e.hazard_serious_closed,
+                发现隐患数: e.hazard_found,
+                已整改隐患: e.hazard_closed,
+                现场看: e.on_site_visit,
+                视频看: e.video_watch,
+                AI看: e.ai_watch,
+                一企一档: e.enterprise_file,
               })),
               [
-                { key: '姓名', label: '姓名' },
-                { key: '配合工作组', label: '配合工作组' },
-                { key: '负责企业', label: '负责企业' },
+                { key: '人员姓名', label: '人员姓名' },
+                { key: '所属部门', label: '所属部门' },
+                { key: '负责企业数', label: '负责企业数' },
                 { key: '检查次数', label: '检查次数' },
-                { key: '发现隐患', label: '发现隐患' },
-                { key: '重大隐患', label: '重大隐患' },
-                { key: '已整改', label: '已整改' },
-                { key: '检查单推送户数', label: '检查单推送户数' },
-                { key: '检查单推送次数', label: '检查单推送次数' },
-                { key: '检查单办结数量', label: '检查单办结数量' },
-                { key: '检查单办结率', label: '检查单办结率' },
+                { key: '检查户数', label: '检查户数' },
+                { key: '检查闭环数', label: '检查闭环数' },
+                { key: '重大隐患数', label: '重大隐患数' },
+                { key: '已整改重大隐患', label: '已整改重大隐患' },
+                { key: '发现隐患数', label: '发现隐患数' },
+                { key: '已整改隐患', label: '已整改隐患' },
+                { key: '现场看', label: '现场看' },
+                { key: '视频看', label: '视频看' },
+                { key: 'AI看', label: 'AI看' },
+                { key: '一企一档', label: '一企一档' },
               ],
-              '专家履职情况表'
+              '检查人员工作量统计'
             )} style={{ padding: '4px 12px', border: '1px solid #D1D5DB', borderRadius: 4, background: 'white', color: '#374151', fontSize: 12, cursor: 'pointer' }}>⬇ 导出</button>
           </div>
         </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1200 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1150 }}>
             <thead>
               <tr>
-                <th colSpan={17} style={{ ...thStyle, borderBottom: 'none', padding: '4px 0' }}></th>
+                <th colSpan={10} style={{ ...thStyle, borderBottom: 'none', padding: '4px 0' }}></th>
                 <th colSpan={4} style={{ ...thStyle, borderBottom: '1px solid #E5E7EB', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#7C3AED', background: '#F5F3FF', padding: '4px 0' }}>隐患来源</th>
-                <th colSpan={4} style={{ ...thStyle, borderBottom: '1px solid #FED7AA', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#B45309', background: '#FFFBEB', padding: '4px 0' }}>日常监管隐患推送数据</th>
               </tr>
               <tr>
-                <SortableTh label="姓名" sortKey="name" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="配合工作组" sortKey="work_group" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="AI评估总分" sortKey="ai_total_score" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="负责" sortKey="enterprise_count" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="检查" sortKey="check_count" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="发现隐患" sortKey="hazard_found" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="重大隐患" sortKey="hazard_serious" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="已整改" sortKey="hazard_closed" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="整改率" sortKey="closure_rate" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="整改中" sortKey="in_progress" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="逾期" sortKey="overdue" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="风险标注" sortKey="risk_mark" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="视频待办" sortKey="video_todo" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="隐患待办" sortKey="hazard_todo" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="信息完善" sortKey="info_complete" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="IM咨询" sortKey="im_chat" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="服务日志" sortKey="service_log" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="人员姓名" sortKey="name" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="所属部门" sortKey="work_group" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="负责企业数" sortKey="enterprise_count" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="检查次数" sortKey="check_count" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="检查户数" sortKey="check_household_count" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="检查闭环数" sortKey="check_closed_count" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="重大隐患数" sortKey="hazard_serious" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="已整改重大隐患" sortKey="hazard_serious_closed" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="发现隐患数" sortKey="hazard_found" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="已整改隐患" sortKey="hazard_closed" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="现场看" sortKey="on_site_visit" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="视频看" sortKey="video_watch" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="AI看" sortKey="ai_watch" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="一企一档" sortKey="enterprise_file" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="检查单推送户数" sortKey="todo_push_enterprise_count" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="检查单推送次数" sortKey="todo_push_count" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="检查单办结数量" sortKey="todo_closed_count" sort={sortExperts} onSort={handleSortExperts} />
-                <SortableTh label="检查单办结率" sortKey="todo_closure_rate" sort={sortExperts} onSort={handleSortExperts} />
               </tr>
             </thead>
             <tbody>
               {sortedExperts.length === 0 ? (
-                <tr><td colSpan={25} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的专家</td></tr>
+                <tr><td colSpan={14} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的人员</td></tr>
               ) : sortedExperts.map((e, i) => (
                 <tr key={e.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                   <td
@@ -936,34 +806,23 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                     {e.name}
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'left' }}>{e.work_group}</td>
-                  <td style={{ ...tdStyle, fontWeight: 600, color: e.ai_total_score >= 80 ? '#059669' : e.ai_total_score >= 65 ? '#D97706' : '#DC2626' }}>{e.ai_total_score}</td>
                   <td style={tdStyle}>{e.enterprise_count}</td>
                   <td style={tdStyle}>{e.check_count}</td>
+                  <td style={tdStyle}>{e.check_household_count}</td>
+                  <td style={tdStyle}>{e.check_closed_count}</td>
+                  <td style={{ ...tdStyle, color: '#DC2626' }}>{e.hazard_serious}</td>
+                  <td style={{ ...tdStyle, color: '#059669' }}>{e.hazard_serious_closed}</td>
                   <td
                     style={{ ...tdStyle, cursor: e.hazard_found > 0 ? 'pointer' : 'default' }}
                     onClick={() => e.hazard_found > 0 && onNavigateToHazard?.({ expertName: e.name })}
                   >
                     {e.hazard_found}
                   </td>
-                  <td style={{ ...tdStyle, color: '#DC2626' }}>{e.hazard_serious}</td>
                   <td style={{ ...tdStyle, color: '#059669' }}>{e.hazard_closed}</td>
-                  <td style={tdStyle}>{e.closure_rate}%</td>
-                  <td style={{ ...tdStyle, color: '#D97706' }}>{e.in_progress}</td>
-                  <td style={{ ...tdStyle, color: '#DC2626' }}>{e.overdue}</td>
-                  <td style={tdStyle}>{e.risk_mark}</td>
-                  <td style={tdStyle}>{e.video_todo}</td>
-                  <td style={tdStyle}>{e.hazard_todo}</td>
-                  <td style={tdStyle}>{e.info_complete}%</td>
-                  <td style={tdStyle}>{e.im_chat}</td>
-                  <td style={tdStyle}>{e.service_log}</td>
                   <td style={tdStyle}>{e.on_site_visit}</td>
                   <td style={tdStyle}>{e.video_watch}</td>
                   <td style={tdStyle}>{e.ai_watch}</td>
                   <td style={tdStyle}>{e.enterprise_file}</td>
-                  <td style={tdStyle}>{e.todo_push_enterprise_count}</td>
-                  <td style={tdStyle}>{e.todo_push_count}</td>
-                  <td style={tdStyle}>{e.todo_closed_count}</td>
-                  <td style={tdStyle}>{e.todo_closure_rate}%</td>
                 </tr>
               ))}
             </tbody>
@@ -971,10 +830,10 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
         </div>
       </div>
 
-      {/* （四）专家7维度绩效得分明细 */}
+      {/* （三）检查人员绩效明细（原专家7维度绩效得分明细） */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>（四）专家7维度绩效得分明细</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#1F2937' }}>（三）检查人员绩效明细</div>
           <input
             type="text"
             placeholder="搜索姓名"

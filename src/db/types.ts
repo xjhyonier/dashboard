@@ -118,8 +118,11 @@ export interface ExpertPlatformBehavior {
   expert_id: string
   responsible: number           // 负责企业数
   check_count: number           // 检查次数
+  check_household_count: number // 检查户数（去重后的被检查企业数）
+  check_closed_count: number    // 检查闭环数（检查后完成闭环的数量）
   hazard_found: number         // 发现隐患数
   hazard_serious: number       // 重大隐患数
+  hazard_serious_closed: number // 已整改重大隐患数
   hazard_closed: number         // 已整改隐患数
   closure_rate: number          // 整改率 %
   risk_mark: number             // 风险标注数

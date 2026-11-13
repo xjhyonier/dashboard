@@ -736,13 +736,26 @@ export function generateAllData(): GeneratedData {
   const expertPlatformBehaviors: ExpertPlatformBehavior[] = experts.map(exp => {
     const expHazards = hazards.filter(h => h.expert_id === exp.id)
     const closedHazards = expHazards.filter(h => h.status === 'closed' || h.status === 'verified')
-    
+    // 检查次数 / 检查户数（户数=去重企业数，不超过负责企业数）/ 检查闭环数
+    const check_count = randomInt(20, 80)
+    const check_household_count = Math.min(
+      exp.enterprise_count || check_count,
+      Math.max(1, Math.round(check_count * randomInt(60, 100) / 100))
+    )
+    const check_closed_count = Math.max(
+      1,
+      Math.min(check_count, Math.round(check_count * randomInt(70, 98) / 100))
+    )
+
     return {
       expert_id: exp.id,
       responsible: exp.enterprise_count,
-      check_count: randomInt(20, 80),
+      check_count,
+      check_household_count,
+      check_closed_count,
       hazard_found: expHazards.length,
       hazard_serious: expHazards.filter(h => h.level === '重大隐患').length,
+      hazard_serious_closed: closedHazards.filter(h => h.level === '重大隐患').length,
       hazard_closed: closedHazards.length,
       closure_rate: expHazards.length > 0 ? Math.round((closedHazards.length / expHazards.length) * 100) : 100,
       risk_mark: randomInt(10, 50),
