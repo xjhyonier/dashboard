@@ -76,6 +76,8 @@ interface ExpertView {
   on_site_visit: number
   video_watch: number
   ai_watch: number
+  snapshot_count: number
+  record_hazard: number
   enterprise_file: number
   ai_total_score: number
   dimensions: {
@@ -302,6 +304,8 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
         on_site_visit: behavior?.on_site_visit || 0,
         video_watch: behavior?.video_watch || 0,
         ai_watch: behavior?.ai_watch || 0,
+        snapshot_count: behavior?.snapshot_count || 0,
+        record_hazard: behavior?.record_hazard || 0,
         enterprise_file: behavior?.enterprise_file || 0,
         ai_total_score,
         dimensions: avgDims,
@@ -687,6 +691,8 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 现场看: e.on_site_visit,
                 视频看: e.video_watch,
                 AI看: e.ai_watch,
+                随手拍: e.snapshot_count,
+                记隐患: e.record_hazard,
                 一企一档: e.enterprise_file,
               })),
               [
@@ -703,6 +709,8 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 { key: '现场看', label: '现场看' },
                 { key: '视频看', label: '视频看' },
                 { key: 'AI看', label: 'AI看' },
+                { key: '随手拍', label: '随手拍' },
+                { key: '记隐患', label: '记隐患' },
                 { key: '一企一档', label: '一企一档' },
               ],
               '检查人员工作量统计'
@@ -710,11 +718,11 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
           </div>
         </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1150 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 1300 }}>
             <thead>
               <tr>
                 <th colSpan={10} style={{ ...thStyle, borderBottom: 'none', padding: '4px 0' }}></th>
-                <th colSpan={4} style={{ ...thStyle, borderBottom: '1px solid #E5E7EB', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#7C3AED', background: '#F5F3FF', padding: '4px 0' }}>隐患来源</th>
+                <th colSpan={6} style={{ ...thStyle, borderBottom: '1px solid #E5E7EB', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#7C3AED', background: '#F5F3FF', padding: '4px 0' }}>隐患来源</th>
               </tr>
               <tr>
                 <SortableTh label="人员姓名" sortKey="name" sort={sortExperts} onSort={handleSortExperts} />
@@ -730,12 +738,14 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                 <SortableTh label="现场看" sortKey="on_site_visit" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="视频看" sortKey="video_watch" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="AI看" sortKey="ai_watch" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="随手拍" sortKey="snapshot_count" sort={sortExperts} onSort={handleSortExperts} />
+                <SortableTh label="记隐患" sortKey="record_hazard" sort={sortExperts} onSort={handleSortExperts} />
                 <SortableTh label="一企一档" sortKey="enterprise_file" sort={sortExperts} onSort={handleSortExperts} />
               </tr>
             </thead>
             <tbody>
               {sortedExperts.length === 0 ? (
-                <tr><td colSpan={14} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的人员</td></tr>
+                <tr><td colSpan={16} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>未找到匹配的人员</td></tr>
               ) : sortedExperts.map((e, i) => (
                 <tr key={e.id} style={{ background: i % 2 === 0 ? 'white' : '#FAFBFC' }}>
                   <td
@@ -762,6 +772,8 @@ export function DutyDimension({ dateRange, riskLevel, timeRange, selectedKpi, se
                   <td style={tdStyle}>{e.on_site_visit}</td>
                   <td style={tdStyle}>{e.video_watch}</td>
                   <td style={tdStyle}>{e.ai_watch}</td>
+                  <td style={tdStyle}>{e.snapshot_count}</td>
+                  <td style={tdStyle}>{e.record_hazard}</td>
                   <td style={tdStyle}>{e.enterprise_file}</td>
                 </tr>
               ))}

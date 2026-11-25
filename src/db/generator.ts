@@ -767,6 +767,8 @@ export function generateAllData(): GeneratedData {
       on_site_visit: randomInt(5, 25),
       video_watch: randomInt(10, 40),
       ai_watch: randomInt(5, 30),
+      snapshot_count: randomInt(3, 20),
+      record_hazard: randomInt(2, 15),
       enterprise_file: randomInt(10, exp.enterprise_count),
       todo_push_enterprise_count: randomInt(5, 30),
       todo_push_count: randomInt(10, 60),
