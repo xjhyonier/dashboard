@@ -135,7 +135,6 @@ export interface ExpertPlatformBehavior {
   video_watch: number           // 视频查看数
   ai_watch: number              // AI巡查数
   snapshot_count: number        // 随手拍数
-  record_hazard: number         // 记隐患数
   enterprise_file: number        // 一企一档完成数
   todo_push_enterprise_count: number // 待办推送户数
   todo_push_count: number         // 待办推送次数

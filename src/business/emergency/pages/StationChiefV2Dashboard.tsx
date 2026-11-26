@@ -578,6 +578,13 @@ export function StationChiefV2Dashboard() {
   const [stateSubTab, setStateSubTab] = useState<'enterprise' | 'park'>('enterprise')
   const changeLogDefault = useMemo(() => [
     {
+      id: 18,
+      date: '2026-11-26',
+      location: '组织与人员',
+      content: '（二）检查人员工作量统计：删除隐患来源中的「记隐患」列',
+      editing: false,
+    },
+    {
       id: 17,
       date: '2026-11-25',
       location: '组织与人员',
